@@ -39,7 +39,7 @@ class CommandServer(object):
 
 if __name__ == '__main__':
     config = configparser.ConfigParser()
-    config.read('command_server.conf')
+    config.read('etc/command_server.conf')
     host = config.get('commandServer', 'host')
     port = config.get('commandServer', 'port')
     logging.basicConfig(level=logging.DEBUG)
