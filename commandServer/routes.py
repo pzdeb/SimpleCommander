@@ -1,13 +1,20 @@
-import asyncio
-from aiohttp import web
+import json
 
-#Test View
-@asyncio.coroutine
-def handle(request):
-    name = request.match_info.get('name', "Anonymous")
-    text = "Hello, " + name
-    return web.Response(body=text.encode('utf-8'))
 
-ROUTES = (
-	(r'/{name}', handle),
-)
+class BaseModel(object):
+
+    def get(self, request, params=None):
+        return json.dumps([]).encode('utf_8')
+
+    def post(self, request, params=None):
+        return json.dumps([]).encode('utf_8')
+
+    def put(self, request, params=None):
+        return json.dumps([]).encode('utf_8')
+
+    def delete(self, request, params=None):
+        return json.dumps([]).encode('utf_8')
+
+
+ROUTES = {r'/': BaseModel,
+          r'/test': BaseModel}
