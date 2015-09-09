@@ -1,5 +1,4 @@
 import asyncio
-import aiohttp
 import configparser
 import logging
 
@@ -10,11 +9,11 @@ class CommandServer(object):
     _instance = None
 
     def __init__(self, host=None, port=None, loop=None):
+        logging.info('Init Server on host %s:%s' %(host, port))
         self._loop = loop or asyncio.get_event_loop()
         self.app = web.Application(loop=loop)()
         self._load_routes()
         self._server = self._loop.create_server(self.app.make_handler(), host, port)
-        logging.info('Init Server on host %s:%s' %(host, port))
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -23,17 +22,18 @@ class CommandServer(object):
 
     def start(self, and_loop=True):
         self._server = self._loop.run_until_complete(self._server)
-        logging.info('Conection')
+        logging.info('Listening established on {0}'.format(self._server.sockets[0].getsockname()))
         if and_loop:
             self._loop.run_forever()
 
     def stop(self, and_loop=True):
+        logging.info('Server has stopped on {0}'.format(self._server.sockets[0].getsockname()))
         self._server.close()
         if and_loop:
             self._loop.close()
-        logging.info('server has stopped')
 
     def _load_routes(self):
+        logging.debug('Loading  Application Routes %s' %ROUTES)
         for url, callback in ROUTES:
             self.app.router.add_route('GET', url, callback)
 
