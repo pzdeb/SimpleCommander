@@ -1,23 +1,18 @@
 import asyncio
 import aiohttp
+import configparser
 import logging
 
 from aiohttp import web
-
-#Test View
-@asyncio.coroutine
-def handle(request):
-    name = request.match_info.get('name', "Anonymous")
-    text = "Hello, " + name
-    return web.Response(body=text.encode('utf-8'))
+from routes import ROUTES
 
 class CommandServer(object):
     _instance = None
 
     def __init__(self, host=None, port=None, loop=None):
         self._loop = loop or asyncio.get_event_loop()
-        self.app = web.Application(loop=loop)
-        self.app.router.add_route('GET', '/{name}', handle)
+        self.app = web.Application(loop=loop)()
+        self._load_routes()
         self._server = self._loop.create_server(self.app.make_handler(), host, port)
         logging.info('Init Server on host %s:%s' %(host, port))
 
@@ -38,10 +33,17 @@ class CommandServer(object):
             self._loop.close()
         logging.info('server has stopped')
 
+    def _load_routes(self):
+        for url, callback in ROUTES:
+            self.app.router.add_route('GET', url, callback)
 
 if __name__ == '__main__':
+    config = configparser.ConfigParser()
+    config.read('command_server.conf')
+    host = config.get('commandServer', 'host')
+    port = config.get('commandServer', 'port')
     logging.basicConfig(level=logging.DEBUG)
-    server = CommandServer('0.0.0.0', 8000)
+    server = CommandServer(host, port)
 
     try:
         server.start()
