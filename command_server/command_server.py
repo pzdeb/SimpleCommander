@@ -36,7 +36,8 @@ class CommandServer(object):
     def __init__(self, host=None, port=None, loop=None):
         logging.info('Init Server on host %s:%s' % (host, port))
         self._loop = loop or asyncio.get_event_loop()
-        self._server = self._loop.create_server(lambda: HttpRequestHandler(debug=True, keep_alive=75),
+        #TODO: MOve debug mode to config file.
+        self._server = self._loop.create_server(lambda: HttpRequestHandler(),
                                                 host, port)
 
     def __new__(cls, *args, **kwargs):

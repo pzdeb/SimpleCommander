@@ -1,7 +1,7 @@
 import json
 
 
-class BaseModel(object):
+class BaseView(object):
 
     def get(self, request, params=None):
         return json.dumps([]).encode('utf_8')
@@ -16,5 +16,5 @@ class BaseModel(object):
         return json.dumps([]).encode('utf_8')
 
 
-ROUTES = {r'/': BaseModel,
-          r'/test': BaseModel}
+ROUTES = {r'/': BaseView,
+          r'/test': BaseView}
