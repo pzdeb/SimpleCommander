@@ -1,11 +1,12 @@
 import asyncio
+import aiohttp
 import configparser
 import logging
-from urllib.parse import urlparse, parse_qsl
-from routes import ROUTES
-import aiohttp
+
 from aiohttp import server
 from aiohttp.multidict import MultiDict
+from routes import ROUTES
+from urllib.parse import urlparse, parse_qsl
 
 
 class HttpRequestHandler(aiohttp.server.ServerHttpProtocol):
