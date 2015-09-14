@@ -1,6 +1,7 @@
 import asyncio
 import json
-import aiohttp
+
+from aiohttp.web_reqrep import Response
 
 
 class BaseView(object):
@@ -38,18 +39,18 @@ class StringResponseMixin(object):
 
 
 class StringBaseView(StringResponseMixin, BaseView):
+    content_type = 'text/html'
 
     @asyncio.coroutine
     def get(self, request, *args, **kwargs):
         result = yield from self.get_string(request, *args, **kwargs)
         result = bytes(result, 'utf8')
-        response = aiohttp.Response(
-            request.transport, 200, http_version=request.version
+        response = Response(
+            body=result,
+            status=200,
+            content_type=self.content_type
         )
-        response.add_header('Content-Type', 'text/html')
-        response.send_headers()
-        response.write(result)
-        yield from response.write_eof()
+        return response
 
 
 class ContextResponseMixin(object):
