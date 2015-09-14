@@ -1,34 +1,13 @@
+import aiohttp
 import asyncio
 import configparser
 import logging
-import aiohttp
+import views
 
 from aiohttp import server, web
 from aiohttp.multidict import MultiDict
 from generic import routes
 from urllib.parse import urlparse, parse_qsl
-import views
-
-
-class HttpRequestHandler(aiohttp.server.ServerHttpProtocol):
-    @asyncio.coroutine
-    def handle_request(self, request, payload=None):
-        response = aiohttp.Response(
-            self.writer, 200, http_version=request.version
-        )
-        response.add_header('Content-Type', 'application/json')
-
-        handler = routes.ROUTES.get(request.path)
-        if not handler:
-            logging.error('Method not found for: %s' % request.path)
-            raise aiohttp.errors.HttpBadRequest('Bad Request')
-
-        method = getattr(handler(), request.method.lower(), None)
-        request_params = MultiDict(parse_qsl(urlparse(request.path).query))
-        method_response = method(request, request_params)
-        response.send_headers()
-        response.write(method_response)
-        yield from response.write_eof()
 
 
 class CommandServer(object):

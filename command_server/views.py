@@ -1,20 +1,20 @@
 import asyncio
 
 from generic.base import StringBaseView, JSONBaseView
-from generic.routes import class_route
+from generic.routes import url_route
 
 
-@class_route('/hello/{name:\w+}')
+@url_route('/hello/{name:\w+}')
 class HelloWorldView(StringBaseView):
 
     @asyncio.coroutine
-    def get_string(self, request, name, *args, **kwargs):
+    def get(self, request, name=None, *args, **kwargs):
         return u'Hello %s' % name
 
 
-@class_route('/json')
+@url_route('/json')
 class HelloWorldJsonView(JSONBaseView):
 
     @asyncio.coroutine
-    def get_context_data(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         return {'message': 'Hello! This is JSON'}

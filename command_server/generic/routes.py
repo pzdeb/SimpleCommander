@@ -1,14 +1,18 @@
+import asyncio
 from aiohttp.web_urldispatcher import UrlDispatcher
-
+from functools import wraps
 from generic.base import BaseView
 
 ROUTES = []
 
 
 def dispatch(view, method):
+    @wraps(method)
+    @asyncio.coroutine
     def _dispatch(request, *args, **kwargs):
         kwargs.update(request.match_info)
-        return view.dispatch(request, method, *args, **kwargs)
+        request.exec_method = method
+        return view.dispatch(request, *args, **kwargs)
     return _dispatch
 
 
@@ -29,7 +33,7 @@ def route(path_reg, method='*'):
     return _dec
 
 
-def class_route(path_reg):
+def url_route(path_reg):
     """
     Route decorator for class-based views
 

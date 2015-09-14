@@ -12,56 +12,37 @@ class BaseView(object):
         return view
 
     @asyncio.coroutine
-    def dispatch(self, request, method, *args, **kwargs):
-        yield from method(request, *args, **kwargs)
+    def dispatch(self, request, *args, **kwargs):
+        response = yield from request.exec_method(request, *args, **kwargs)
+        return self.finalize_response(response)
 
-    @asyncio.coroutine
-    def get(self, request, *args, **kwargs):
-        raise NotImplementedError
-
-    @asyncio.coroutine
-    def post(self, request, *args, **kwargs):
-        raise NotImplementedError
-
-    @asyncio.coroutine
-    def put(self, request, *args, **kwargs):
-        raise NotImplementedError
-
-    @asyncio.coroutine
-    def delete(self, request, *args, **kwargs):
-        raise NotImplementedError
+    def finalize_response(self, response):
+        return response
 
 
 class StringResponseMixin(object):
-
-    def get_string(self, request, *args, **kwargs):
-        raise NotImplementedError
-
-
-class StringBaseView(StringResponseMixin, BaseView):
     content_type = 'text/html'
 
-    @asyncio.coroutine
-    def get(self, request, *args, **kwargs):
-        result = yield from self.get_string(request, *args, **kwargs)
-        result = bytes(result, 'utf8')
+    def finalize_response(self, response):
         response = Response(
-            body=result,
-            status=200,
+            body= bytes(response, 'utf8'),
             content_type=self.content_type
         )
         return response
 
 
-class ContextResponseMixin(object):
+class StringBaseView(StringResponseMixin, BaseView):
+    pass
 
-    def get_context_data(self, request, *args, **kwargs):
-        raise NotImplementedError
+
+class ContextResponseMixin(StringResponseMixin):
+    content_type = 'application/json'
+
+    def finalize_response(self, response):
+        response = json.dumps(response)
+        response = super().finalize_response(response)
+        return response
 
 
 class JSONBaseView(ContextResponseMixin, StringBaseView):
-
-    @asyncio.coroutine
-    def get_string(self, request, *args, **kwargs):
-        result = yield from self.get_context_data(request, *args, **kwargs)
-        return json.dumps(result)
+    pass
