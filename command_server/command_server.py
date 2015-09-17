@@ -1,33 +1,13 @@
-import asyncio
 import aiohttp
+import asyncio
 import configparser
 import logging
+import views
 
-from aiohttp import server
+from aiohttp import server, web
 from aiohttp.multidict import MultiDict
-from routes import ROUTES
+from generic import routes
 from urllib.parse import urlparse, parse_qsl
-
-
-class HttpRequestHandler(aiohttp.server.ServerHttpProtocol):
-    @asyncio.coroutine
-    def handle_request(self, request, payload=None):
-        response = aiohttp.Response(
-            self.writer, 200, http_version=request.version
-        )
-        response.add_header('Content-Type', 'application/json')
-
-        handler = ROUTES.get(request.path)
-        if not handler:
-            logging.error('Method not found for: %s' % request.path)
-            raise aiohttp.errors.HttpBadRequest('Bad Request')
-
-        method = getattr(handler(), request.method.lower(), None)
-        request_params = MultiDict(parse_qsl(urlparse(request.path).query))
-        method_response = method(request, request_params)
-        response.send_headers()
-        response.write(method_response)
-        yield from response.write_eof()
 
 
 class CommandServer(object):
@@ -37,7 +17,9 @@ class CommandServer(object):
         logging.info('Init Server on host %s:%s' % (host, port))
         self._loop = loop or asyncio.get_event_loop()
         #TODO: MOve debug mode to config file.
-        self._server = self._loop.create_server(lambda: HttpRequestHandler(),
+        self._app = web.Application(loop=loop)
+        self._load_routes()
+        self._server = self._loop.create_server(self._app.make_handler(),
                                                 host, port)
 
     def __new__(cls, *args, **kwargs):
@@ -60,9 +42,9 @@ class CommandServer(object):
             self._loop.close()
 
     def _load_routes(self):
-        logging.debug('Loading  Application Routes %s' % ROUTES)
-        for url, callback in ROUTES:
-            self.app.router.add_route('GET', url, callback)
+        logging.debug('Loading  Application Routes:\n%s' % '\n'.join(str(r) for r in routes.ROUTES))
+        for route in routes.ROUTES:
+            self._app.router.add_route(*route)
 
 
 if __name__ == '__main__':
