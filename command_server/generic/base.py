@@ -1,4 +1,5 @@
 import asyncio
+import aiohttp_jinja2
 import json
 
 from aiohttp.web_reqrep import Response
@@ -13,6 +14,7 @@ class BaseView(object):
 
     @asyncio.coroutine
     def dispatch(self, request, *args, **kwargs):
+        self.request = request
         response = yield from request.exec_method(request, *args, **kwargs)
         return self.finalize_response(response)
 
@@ -45,4 +47,15 @@ class ContextResponseMixin(StringResponseMixin):
 
 
 class JSONBaseView(ContextResponseMixin, StringBaseView):
+    pass
+
+
+class TemplateResponseMixin(object):
+    template = None
+
+    def finalize_response(self, response):
+        return aiohttp_jinja2.render_template(self.template, self.request, response)
+
+
+class TemplateView(TemplateResponseMixin, BaseView):
     pass

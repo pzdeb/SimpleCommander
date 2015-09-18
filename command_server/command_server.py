@@ -1,23 +1,26 @@
 import aiohttp
+import aiohttp_jinja2
 import asyncio
 import configparser
 import logging
+import jinja2
 import views
 
 from aiohttp import server, web
-from aiohttp.multidict import MultiDict
 from generic import routes
-from urllib.parse import urlparse, parse_qsl
 
 
 class CommandServer(object):
     _instance = None
 
-    def __init__(self, host=None, port=None, loop=None):
+    def __init__(self, host=None, port=None, templates=None, loop=None):
         logging.info('Init Server on host %s:%s' % (host, port))
         self._loop = loop or asyncio.get_event_loop()
         #TODO: MOve debug mode to config file.
         self._app = web.Application(loop=loop)
+        if templates:
+            aiohttp_jinja2.setup(self._app,
+                                 loader=jinja2.FileSystemLoader(templates))
         self._load_routes()
         self._server = self._loop.create_server(self._app.make_handler(),
                                                 host, port)
@@ -52,8 +55,9 @@ if __name__ == '__main__':
     config.read('etc/command_server.conf')
     host = config.get('commandServer', 'host')
     port = config.get('commandServer', 'port')
+    templates = config.get('commandServer', 'templates')
     logging.basicConfig(level=logging.DEBUG)
-    server = CommandServer(host, port)
+    server = CommandServer(host, port, templates)
 
     try:
         server.start()
