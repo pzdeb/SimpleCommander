@@ -1,45 +1,65 @@
-import aiohttp
 import asyncio
 import configparser
 import logging
 import views
+import websockets
 
 from aiohttp import server, web
-from aiohttp.multidict import MultiDict
+from time import gmtime, strftime
+
 from generic import routes
-from urllib.parse import urlparse, parse_qsl
 
 
-class CommandServer(object):
+class BaseCommandServer(object):
+
+    def __init__(self, server_type=None, host=None, port=None, loop=None):
+        logging.info('Init %s Server on host %s:%s' % (server_type, host, port))
+        self._server_type = server_type
+        self._loop = loop or asyncio.get_event_loop()
+        self._init_server(host, port)
+
+    def start(self):
+        self._server = self._loop.run_until_complete(self._server)
+        logging.info(' %s has started.' % (self._server_type))
+
+    def stop(self):
+        self._server.close()
+        logging.info('%s has stopped.' % (self._server_type))
+
+
+class StreamCommandServer(BaseCommandServer):
     _instance = None
 
-    def __init__(self, host=None, port=None, loop=None):
-        logging.info('Init Server on host %s:%s' % (host, port))
-        self._loop = loop or asyncio.get_event_loop()
-        #TODO: MOve debug mode to config file.
-        self._app = web.Application(loop=loop)
+    def _init_server(self, host, port):
+        self._app = web.Application(loop=self._loop)
+        self._server = websockets.serve(self.process_request, host, port)
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(StreamCommandServer, cls).__new__(cls)
+        return cls._instance
+
+    @asyncio.coroutine
+    def process_request(self, websocket, path):
+        while True:
+            yield from websocket.send(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+            yield from asyncio.sleep(2)
+        yield from websocket.close()
+
+
+class HttpCommandServer(BaseCommandServer):
+    _instance = None
+
+    def _init_server(self, host, port):
+        self._app = web.Application()
         self._load_routes()
         self._server = self._loop.create_server(self._app.make_handler(),
                                                 host, port)
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
-            cls._instance = super(CommandServer, cls).__new__(cls)
+            cls._instance = super(HttpCommandServer, cls).__new__(cls)
         return cls._instance
-
-    def start(self, and_loop=True):
-        self._server = self._loop.run_until_complete(self._server)
-        logging.info('Listening established on {0}'.format(
-            self._server.sockets[0].getsockname()))
-        if and_loop:
-            self._loop.run_forever()
-
-    def stop(self, and_loop=True):
-        logging.info('Server has stopped on {0}'.format(
-            self._server.sockets[0].getsockname()))
-        self._server.close()
-        if and_loop:
-            self._loop.close()
 
     def _load_routes(self):
         logging.debug('Loading  Application Routes:\n%s' % '\n'.join(str(r) for r in routes.ROUTES))
@@ -53,11 +73,16 @@ if __name__ == '__main__':
     host = config.get('commandServer', 'host')
     port = config.get('commandServer', 'port')
     logging.basicConfig(level=logging.DEBUG)
-    server = CommandServer(host, port)
-
+    loop = asyncio.get_event_loop()
+    server = HttpCommandServer(server_type='Http Server', host=host, port=port, loop=loop)
+    socket_server = StreamCommandServer(server_type='Stream Server', host=host, port=8765, loop=loop)
     try:
         server.start()
+        socket_server.start()
+        loop.run_forever()
     except KeyboardInterrupt:
         pass
     finally:
         server.stop()
+        socket_server.stop()
+        loop.close()
