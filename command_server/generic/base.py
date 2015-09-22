@@ -54,6 +54,10 @@ class TemplateResponseMixin(object):
     template = None
 
     def finalize_response(self, response):
+        """
+        So basically it will block event loop, such as it use blocking IO with files.
+        Maybe make sense to use threading for template loading.
+        """
         return aiohttp_jinja2.render_template(self.template, self.request, response)
 
 
