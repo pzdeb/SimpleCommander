@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import time
+from random import randint
 
 '''
 In this game we have two role - invader and hero. Both can bullet.
@@ -13,11 +14,18 @@ If he bullet some invader, his bonus is grow.
 When invader bullet to main hero, the main hero's life is decrease.
 '''
 
+IMAGE_FILENAME = {'background': 'images/bg.png',
+                  'hero': 'images/hero.png',
+                  'bullet_hero': 'images/bullet_hero',
+                  'bullet_invader': 'images/bullet_invader',
+                  'invader': ['images/invader1.png', 'images/invader2.png']
+                  }
+
 
 class Unit(object):
 
-    def __init__(self, unit_filename, bullet_filename, x, y, bonus=0, speed=5):
-        self.image = unit_filename
+    def __init__(self, x, y, bonus, speed, unit_filename, bullet_filename):
+        self.image_filename = unit_filename
         self.x = x
         self.y = y
         self.width = 10  # temporary when we don't have real images
@@ -45,8 +53,12 @@ class Unit(object):
 class Invader(Unit):
     moving_speed = 0
 
-    def __init__(self, hero_filename, bullet_filename, x, y, bonus=0, speed=5):
-        super(Invader, self).__init__(hero_filename, bullet_filename, x, y, bonus, speed)
+    def __init__(self, x, y, bonus=0, speed=5, unit_filename='',
+                 bullet_filename=IMAGE_FILENAME.get('bullet_invader', '')):
+        if not unit_filename and len(IMAGE_FILENAME.get('invader', [])):
+            random_number = randint(0, len(IMAGE_FILENAME.get('invader', [])) - 1)
+            unit_filename = IMAGE_FILENAME.get('invader', [])[random_number]
+        super(Invader, self).__init__(x, y, bonus, speed, unit_filename, bullet_filename)
         self.moving_speed = speed
 
     def check_if_move_y(self):
@@ -74,8 +86,9 @@ class Invader(Unit):
 
 class Hero(Unit):
 
-    def __init__(self, unit_filename, bullet_filename, x, y, bonus=0, speed=5, life_count=3):
-        super(Hero, self).__init__(unit_filename, bullet_filename, x, y, bonus, speed)
+    def __init__(self, x, y, bonus=0, speed=5, life_count=3, unit_filename=IMAGE_FILENAME.get('hero', ''),
+                 bullet_filename=IMAGE_FILENAME.get('bullet_hero', '')):
+        super(Hero, self).__init__(x, y, bonus, speed, unit_filename, bullet_filename)
         self.life_count = life_count
 
     def fire(self, invader):
@@ -93,8 +106,11 @@ class Hero(Unit):
 
     def check_fire(self, invader):
         # check if coordinate the bullet and the Invader's is the same
-        if (self.bullet.x > invader.x - invader.width) and (self.bullet.x < invader.x + invader.width) and \
-                (self.bullet.y > invader.y - invader.height) and (self.bullet.y < invader.y + invader.height):
+        # for this check we also include width and height of invader image
+        # (invader.x - invader.width / 2 < bullet.x < invader.x + invader.width / 2)
+        # (invader.y - invader.height / 2 < bullet.y < invader.y + invader.height / 2)
+        if (self.bullet.x > invader.x - invader.width / 2) and (self.bullet.x < invader.x + invader.width / 2) and \
+                (self.bullet.y > invader.y - invader.height / 2) and (self.bullet.y < invader.y + invader.height / 2):
             self.fire(invader)
             return True
         elif self.bullet.y < 0:
@@ -104,10 +120,10 @@ class Hero(Unit):
 
 
 class Bullet():
-    def __init__(self, unit, image):
+    def __init__(self, unit, image_filename):
         self.x = unit.x
         self.y = unit.y
-        self.image = image
+        self.image_filename = image_filename
 
     def move(self, moving_speed):
         self.y += moving_speed
@@ -116,12 +132,14 @@ class Bullet():
 class GameController(object):
 
     def __init__(self, height, width, invaders_count):
-        self.game_field = {'image': 'images/bg.png', 'height': height, 'width': width}
-        self.hero = Hero('images/hero.png', 'images/bullet_hero',
-                         self.game_field['height'] / 2, self.game_field['width'] - 10)
+        self.game_field = {'image_filename': IMAGE_FILENAME.get('background', ''), 'height': height, 'width': width}
+        self.hero = Hero(self.game_field['height'] / 2, self.game_field['width'] - 10)
+        print 'hero -', self.hero.__dict__
         self.invaders_count = invaders_count
         self.Invaders = []
         self.set_invaders()
+        for invader in self.Invaders:
+            print 'invader - ', invader.__dict__
 
     def set_invaders(self):
         x = 1
@@ -132,7 +150,7 @@ class GameController(object):
                 y += 1
             pos_x = self.hero.shift * x
             pos_y = self.hero.shift * y
-            self.Invaders.append(Invader('images/invader.png', 'images/bullet_invader', pos_x, pos_y, 10))
+            self.Invaders.append(Invader(pos_x, pos_y, 10))
             x += 1
 
     def get_action(self, action):
