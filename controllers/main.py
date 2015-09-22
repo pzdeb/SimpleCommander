@@ -134,12 +134,9 @@ class GameController(object):
     def __init__(self, height, width, invaders_count):
         self.game_field = {'image_filename': IMAGE_FILENAME.get('background', ''), 'height': height, 'width': width}
         self.hero = Hero(self.game_field['height'] / 2, self.game_field['width'] - 10)
-        print 'hero -', self.hero.__dict__
         self.invaders_count = invaders_count
         self.Invaders = []
         self.set_invaders()
-        for invader in self.Invaders:
-            print 'invader - ', invader.__dict__
 
     def set_invaders(self):
         x = 1
@@ -167,31 +164,33 @@ class GameController(object):
         if action == 'move_left':
             self.hero.move_to(self.hero.x - self.hero.speed, self.hero.y)
 
+    def run(self):
+        game_object = GameController(50, 50, 2)
+
+        '''this code for moving invaders. Work as a job.
+            We set moving_speed for positive - if reach the left coordinate of our game field
+            or negative  - if we reach the right coordinate of our game field '''
+
+        while not game_object.hero.is_dead and len(game_object.Invaders):
+            game_object.Invaders[0].set_speed(game_object.game_field['width'])
+            game_object.Invaders[-1].set_speed(game_object.game_field['width'])
+            check_if_move_y = game_object.Invaders[0].check_if_move_y()
+            for invader in game_object.Invaders:
+                new_x = invader.x + invader.moving_speed
+                new_y = check_if_move_y and invader.y + invader.speed or invader.y
+                invader.move_to(new_x, new_y)
+
+            # for invader in game_object.Invaders:
+            #     print invader.__dict__
+
+            time.sleep(3)
 
 if __name__ == "__main__":
-    game_object = GameController(50, 50, 2)
-
-    '''this code for moving invaders. Work as a job.
-        We set moving_speed for positive - if reach the left coordinate of our game field
-        or negative  - if we reach the right coordinate of our game field '''
-
-    while not game_object.hero.is_dead and len(game_object.Invaders):
-        game_object.Invaders[0].set_speed(game_object.game_field['width'])
-        game_object.Invaders[-1].set_speed(game_object.game_field['width'])
-        check_if_move_y = game_object.Invaders[0].check_if_move_y()
-        for invader in game_object.Invaders:
-            new_x = invader.x + invader.moving_speed
-            new_y = check_if_move_y and invader.y + invader.speed or invader.y
-            invader.move_to(new_x, new_y)
-
-        # for invader in game_object.Invaders:
-        #     print invader.__dict__
-
-        time.sleep(3)
 
     '''This example of calling actions such as 'bullet', 'move_left' for our hero
        Also we can call action 'move_right' '''
 
+    # game_object = GameController(50, 50, 2)
     # game_object.get_action('bullet')
     # game_object.get_action('move_left')
     # game_object.get_action('move_left')
