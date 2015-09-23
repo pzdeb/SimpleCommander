@@ -40,13 +40,24 @@ class Unit(object):
         self.x = x
         self.y = y
 
-    def check_fire(self, other_unit):
-        raise NotImplementedError
+    def check_fire(self, unit, game_field_height):
+        # check if coordinate the bullet and the unit's is the same
+        # for this check we also include width and height of invader image
+        # (unit.x - unit.width / 2 < bullet.x < unit.x + unit.width / 2)
+        # (unit.y - unit.height / 2 < bullet.y < unit.y + unit.height / 2)
+        if (self.bullet.x > unit.x - unit.width / 2) and (self.bullet.x < unit.x + unit.width / 2) and \
+                (self.bullet.y > unit.y - unit.height / 2) and (self.bullet.y < unit.y + unit.height / 2):
+            self.fire(unit)
+            return True
+        elif self.bullet.y < 0 or self.bullet.y > game_field_height:
+            return True
+        else:
+            return False
 
     def fire(self, other_unit):
         raise NotImplementedError
 
-    def make_bullet(self):
+    def move_bullet(self):
         raise NotImplementedError
 
 
@@ -72,13 +83,14 @@ class Invader(Unit):
         if self.x >= game_field_width:
             self.moving_speed = self.speed < 0 and self.speed or -self.speed  # negative value
 
-    def check_fire(self, other_unit):
-        raise NotImplementedError
-
     def fire(self, hero):
-        hero.is_dead = True
+        if hero.life_count > 1:
+            hero.life_count -= 1
+        else:
+            hero.life_count = 0
+            hero.is_dead = True
 
-    def make_bullet(self):
+    def move_bullet(self):
         # Invaders will be at the top and must bullet at the bottom
         # so speed must be positive value
         self.bullet.move(self.speed or -self.speed)
@@ -92,31 +104,13 @@ class Hero(Unit):
         self.life_count = life_count
 
     def fire(self, invader):
-        if self.life_count > 0:
-            self.life_count -= 1
-            invader.is_dead = True
-            self.bonus += invader.bonus
-        else:
-            self.is_dead = True
+        self.bonus += invader.bonus
+        invader.is_dead = True
 
-    def make_bullet(self):
+    def move_bullet(self):
         # hero will be at the bottom and must bullet at the top
         # so speed must be negative value
         self.bullet.move(-self.speed)
-
-    def check_fire(self, invader):
-        # check if coordinate the bullet and the Invader's is the same
-        # for this check we also include width and height of invader image
-        # (invader.x - invader.width / 2 < bullet.x < invader.x + invader.width / 2)
-        # (invader.y - invader.height / 2 < bullet.y < invader.y + invader.height / 2)
-        if (self.bullet.x > invader.x - invader.width / 2) and (self.bullet.x < invader.x + invader.width / 2) and \
-                (self.bullet.y > invader.y - invader.height / 2) and (self.bullet.y < invader.y + invader.height / 2):
-            self.fire(invader)
-            return True
-        elif self.bullet.y < 0:
-            return True
-        else:
-            return False
 
 
 class Bullet():
@@ -150,15 +144,23 @@ class GameController(object):
             self.Invaders.append(Invader(pos_x, pos_y, 10))
             x += 1
 
-    def get_action(self, action):
-        if action == 'bullet':
-            make_bullet = True
-            while make_bullet:
-                self.hero.make_bullet()
+    def get_action(self, action, unit_number=0):
+        if action == 'bullet_invader':
+            move_bullet = True
+            while move_bullet:
+                self.Invaders[unit_number].move_bullet()
+                if self.Invaders[unit_number].check_fire(self.hero, self.game_field['height']):
+                    move_bullet = False
+                    self.Invaders[unit_number].bullet = Bullet(self.Invaders[unit_number], self.Invaders[unit_number].bullet.image_filename)
+        if action == 'bullet_hero':
+            move_bullet = True
+            while move_bullet:
+                self.hero.move_bullet()
                 # print 'bullet - ', game_object.hero.bullet.__dict__
                 for _invader in self.Invaders:
-                    if self.hero.check_fire(_invader):
-                        make_bullet = False
+                    if self.hero.check_fire(_invader, self.game_field['height']):
+                        move_bullet = False
+                        self.hero.bullet = Bullet(self.hero, self.hero.bullet.image_filename)
         if action == 'move_right':
             self.hero.move_to(self.hero.x + self.hero.speed, self.hero.y)
         if action == 'move_left':
@@ -175,6 +177,8 @@ class GameController(object):
             game_object.Invaders[0].set_speed(game_object.game_field['width'])
             game_object.Invaders[-1].set_speed(game_object.game_field['width'])
             check_if_move_y = game_object.Invaders[0].check_if_move_y()
+            random_number = randint(0, len(game_object.Invaders) - 1)
+            game_object.get_action('bullet_invader', random_number)
             for invader in game_object.Invaders:
                 new_x = invader.x + invader.moving_speed
                 new_y = check_if_move_y and invader.y + invader.speed or invader.y
