@@ -8,7 +8,7 @@ from aiohttp import server, web
 from time import gmtime, strftime
 
 from generic import routes
-
+from controllers.main import run
 
 class BaseCommandServer(object):
 
@@ -32,7 +32,7 @@ class StreamCommandServer(BaseCommandServer):
 
     def _init_server(self, host, port):
         self._app = web.Application(loop=self._loop)
-        self._server = websockets.serve(self.process_request, host, port)
+        self._server = websockets.serve(run, host, port)
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -80,6 +80,7 @@ if __name__ == '__main__':
         server.start()
         socket_server.start()
         loop.run_forever()
+
     except KeyboardInterrupt:
         pass
     finally:

@@ -2,6 +2,7 @@ import asyncio
 
 from generic.base import StringBaseView, JSONBaseView
 from generic.routes import url_route
+from controllers.main import get_game_controller
 
 
 @url_route('/hello/{name:\w+}')
@@ -18,3 +19,15 @@ class HelloWorldJsonView(JSONBaseView):
     @asyncio.coroutine
     def get(self, request, *args, **kwargs):
         return {'message': 'Hello! This is JSON'}
+
+
+@url_route('/action/{action:\w+}')
+class HeroAction(JSONBaseView):
+    @asyncio.coroutine
+    def get(self, request, action=None, *args, **kwargs):
+        game = get_game_controller()
+        game_action = getattr(game, action, None)
+        if game_action and callable(game_action):
+            game_action()
+            return{'message': 'Success'}
+
