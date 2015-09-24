@@ -169,7 +169,6 @@ class GameController(object):
         move_bullet = True
         while move_bullet:
             self.hero.move_bullet()
-            # print 'bullet - ', game_object.hero.bullet.__dict__
             for _invader in self.Invaders:
                 if self.hero.check_fire(_invader, self.game_field['height']):
                     move_bullet = False
@@ -180,28 +179,6 @@ class GameController(object):
 
     def move_left(self):
         self.hero.move_to(self.hero.x - self.hero.speed, self.hero.y)
-
-    # def get_action(self, action, unit_number=0):
-    #     if action == 'bullet_invader':
-    #         move_bullet = True
-    #         while move_bullet:
-    #             self.Invaders[unit_number].move_bullet()
-    #             if self.Invaders[unit_number].check_fire(self.hero, self.game_field['height']):
-    #                 move_bullet = False
-    #                 self.Invaders[unit_number].bullet = Bullet(self.Invaders[unit_number], self.Invaders[unit_number].bullet.image_filename)
-    #     if action == 'bullet_hero':
-    #         move_bullet = True
-    #         while move_bullet:
-    #             self.hero.move_bullet()
-    #             # print 'bullet - ', game_object.hero.bullet.__dict__
-    #             for _invader in self.Invaders:
-    #                 if self.hero.check_fire(_invader, self.game_field['height']):
-    #                     move_bullet = False
-    #                     self.hero.bullet = Bullet(self.hero, self.hero.bullet.image_filename)
-    #     if action == 'move_right':
-    #         self.hero.move_to(self.hero.x + self.hero.speed, self.hero.y)
-    #     if action == 'move_left':
-    #         self.hero.move_to(self.hero.x - self.hero.speed, self.hero.y)
 
 
 @asyncio.coroutine
@@ -231,7 +208,6 @@ def run( websocket, path):
             new_x = invader.x + invader.moving_speed
             new_y = check_if_move_y and invader.y + invader.speed or invader.y
             invader.move_to(new_x, new_y)
-            logging.error(invader)
             yield from websocket.send(invader.to_json())
         yield from asyncio.sleep(2)
     yield from websocket.close()
