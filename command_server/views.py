@@ -1,9 +1,10 @@
 import asyncio
+import aiohttp
 
-from generic.base import StringBaseView, JSONBaseView
+from aiohttp import web
+from generic.base import BaseView, StringBaseView, JSONBaseView
 from generic.routes import url_route
 from controllers.main import get_game_controller
-
 
 @url_route('/hello/{name:\w+}')
 class HelloWorldView(StringBaseView):

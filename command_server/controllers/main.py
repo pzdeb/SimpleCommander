@@ -181,33 +181,31 @@ class GameController(object):
         self.hero.move_to(self.hero.x - self.hero.speed, self.hero.y)
 
 
-@asyncio.coroutine
-def run( websocket, path):
-    logging.basicConfig(level=logging.DEBUG)
-    logging.info('Starting Space Invaders Game instance.')
-    game_object = get_game_controller()
+    @asyncio.coroutine
+    def run(self, websocket, path):
+        #game_object = get_game_controller()
 
-    '''this code for moving invaders. Work as a job.
-        We set moving_speed for positive - if reach the left coordinate of our game field
-        or negative  - if we reach the right coordinate of our game field '''
+        '''this code for moving invaders. Work as a job.
+            We set moving_speed for positive - if reach the left coordinate of our game field
+            or negative  - if we reach the right coordinate of our game field '''
 
-    while True:
-        if game_object.hero.is_dead:
-            yield from websocket.send('Hero is dead')
-            continue
-        if not game_object.Invaders:
-            yield from websocket.send('You win')
-            continue                  
-        game_object.Invaders[0].set_speed(game_object.game_field['width'])
-        game_object.Invaders[-1].set_speed(game_object.game_field['width'])
-        check_if_move_y = game_object.Invaders[0].check_if_move_y()
-        random_number = randint(0, len(game_object.Invaders) - 1)
-        game_object.bullet_invader(random_number)
-        yield from websocket.send(game_object.hero.to_json())
-        for invader in game_object.Invaders:
-            new_x = invader.x + invader.moving_speed
-            new_y = check_if_move_y and invader.y + invader.speed or invader.y
-            invader.move_to(new_x, new_y)
-            yield from websocket.send(invader.to_json())
-        yield from asyncio.sleep(2)
-    yield from websocket.close()
+        while True:
+            if self.hero.is_dead:
+                yield from websocket.send('Hero is dead')
+                continue
+            if not self.Invaders:
+                yield from websocket.send('You win')
+                continue
+            self.Invaders[0].set_speed(self.game_field['width'])
+            self.Invaders[-1].set_speed(self.game_field['width'])
+            check_if_move_y = self.Invaders[0].check_if_move_y()
+            random_number = randint(0, len(self.Invaders) - 1)
+            self.bullet_invader(random_number)
+            yield from websocket.send(self.hero.to_json())
+            for invader in self.Invaders:
+                new_x = invader.x + invader.moving_speed
+                new_y = check_if_move_y and invader.y + invader.speed or invader.y
+                invader.move_to(new_x, new_y)
+                yield from websocket.send(invader.to_json())
+            yield from asyncio.sleep(2)
+        yield from websocket.close()
