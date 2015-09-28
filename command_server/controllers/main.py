@@ -180,10 +180,8 @@ class GameController(object):
     def move_left(self):
         self.hero.move_to(self.hero.x - self.hero.speed, self.hero.y)
 
-
-    @asyncio.coroutine
-    def run(self, websocket, path):
-        #game_object = get_game_controller()
+    def run(self):
+        game_object = get_game_controller()
 
         '''this code for moving invaders. Work as a job.
             We set moving_speed for positive - if reach the left coordinate of our game field
@@ -191,10 +189,10 @@ class GameController(object):
 
         while True:
             if self.hero.is_dead:
-                yield from websocket.send('Hero is dead')
+                #yield from websocket.send('Hero is dead')
                 continue
             if not self.Invaders:
-                yield from websocket.send('You win')
+                #yield from websocket.send('You win')
                 continue
             self.Invaders[0].set_speed(self.game_field['width'])
             self.Invaders[-1].set_speed(self.game_field['width'])
