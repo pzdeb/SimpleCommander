@@ -20,7 +20,6 @@ class CommandServer(object):
 
     def __init__(self,  host=None, port=None, templates=None, **kwargs):
         logging.info('Init Server on host %s:%s' % (host, port))
-        super().__init__(**kwargs)
         self._loop = asyncio.get_event_loop()
         self._ws = web.WebSocketResponse()
         self._app = web.Application(loop=self._loop)
