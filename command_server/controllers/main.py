@@ -74,7 +74,7 @@ class Unit(object):
         # (other_unit.x - other_unit.width / 2 < self.x < other_unit.x + other_unit.width / 2)
         # (other_unit.y - other_unit.height / 2 < self.y < other_unit.y + other_unit.height / 2)
         if (self.x > other_unit.x - other_unit.width / 2) and (self.x < other_unit.x + other_unit.width / 2) and \
-                (self.y > other_unit.y - other_unit.height / 2) and (self.y < unit.y + other_unit.height / 2):
+                (self.y > other_unit.y - other_unit.height / 2) and (self.y < other_unit.y + other_unit.height / 2):
             self.kill(other_unit)
 
     def kill(self, other_unit):
@@ -91,7 +91,12 @@ class Invader(Unit):
         super(Invader, self).__init__(x, y, angle, bonus, speed, unit_filename, bullet_filename)
 
     def kill(self, other_unit):
-        raise NotImplementedError
+        unit_class_name = other_unit. __class__.__name__
+        if unit_class_name == 'Hero':
+            other_unit.decrease_life()
+        else:
+            del other_unit
+        del self
 
 
 class Hero(Unit):
@@ -101,17 +106,41 @@ class Hero(Unit):
         super(Hero, self).__init__(x, y, angle, bonus, speed, unit_filename, bullet_filename)
         self.life_count = life_count
 
+    def decrease_life(self):
+        if self.life_count > 1:
+            self.life_count -= 1
+        else:
+            self.life_count = 0
+            self.is_dead = True
+
     def kill(self, other_unit):
-        raise NotImplementedError
+        unit_class_name = other_unit. __class__.__name__
+        self.decrease_life()
+        if unit_class_name == 'Hero':
+            other_unit.decrease_life()
+        else:
+            del other_unit
 
 
 class Bullet(Unit):
     def __init__(self, unit):
+        self.unit_id = id(unit)
         super(Bullet, self).__init__(unit.x, unit.y, unit.angle, 0, unit.speed or DEFAULT_SPEED,
                                      unit.bullet_filename, unit.bullet_filename)
 
     def kill(self, other_unit):
-            raise NotImplementedError
+        unit_class_name = other_unit. __class__.__name__
+        if unit_class_name == 'Hero':
+            other_unit.decrease_life()
+        elif unit_class_name == 'Invader':
+            units = get_game_controller().units
+            for unit in units:
+                if id(unit) == self.unit_id and unit.__class__.name == 'Hero':
+                    unit.bonus += other_unit.bonus
+            del other_unit
+        else:
+            del other_unit
+        del self
 
 
 class GameController(object):
