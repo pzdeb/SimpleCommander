@@ -1,6 +1,6 @@
 import asyncio
 
-from generic.base import StringBaseView, JSONBaseView
+from generic.base import StringBaseView, JSONBaseView, TemplateView
 from generic.routes import url_route
 
 
@@ -18,3 +18,11 @@ class HelloWorldJsonView(JSONBaseView):
     @asyncio.coroutine
     def get(self, request, *args, **kwargs):
         return {'message': 'Hello! This is JSON'}
+
+@url_route('/t')
+class HelloTemplateView(TemplateView):
+    template = 'index.html'
+
+    @asyncio.coroutine
+    def get(self, request):
+        return {'name': 'World!!!'}

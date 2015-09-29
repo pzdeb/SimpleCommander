@@ -1,8 +1,11 @@
+import aiohttp_jinja2
 import asyncio
 import configparser
 import logging
-import views
+import jinja2
 import websockets
+
+import views
 
 from aiohttp import server, web
 from time import gmtime, strftime
@@ -56,6 +59,12 @@ class HttpCommandServer(BaseCommandServer):
         self._server = self._loop.create_server(self._app.make_handler(),
                                                 host, port)
 
+    def __init__(self, templates=None, **kwargs):
+        super().__init__(**kwargs)
+        if templates:
+            aiohttp_jinja2.setup(self._app,
+                                 loader=jinja2.FileSystemLoader(templates))
+    
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
             cls._instance = super(HttpCommandServer, cls).__new__(cls)
@@ -72,9 +81,10 @@ if __name__ == '__main__':
     config.read('etc/command_server.conf')
     host = config.get('commandServer', 'host')
     port = config.get('commandServer', 'port')
+    templates = config.get('commandServer', 'templates')
     logging.basicConfig(level=logging.DEBUG)
     loop = asyncio.get_event_loop()
-    server = HttpCommandServer(server_type='Http Server', host=host, port=port, loop=loop)
+    server = HttpCommandServer(server_type='Http Server', host=host, port=port, loop=loop, templates=templates)
     socket_server = StreamCommandServer(server_type='Stream Server', host=host, port=8765, loop=loop)
     try:
         server.start()
