@@ -4,9 +4,7 @@ import asyncio
 import configparser
 import logging
 import views
-import websockets
-
-import views
+import jinja2
 
 from aiohttp import server, web
 from time import gmtime, strftime
@@ -23,9 +21,6 @@ class CommandServer(object):
     def __init__(self,  host=None, port=None, templates=None, **kwargs):
         logging.info('Init Server on host %s:%s' % (host, port))
         super().__init__(**kwargs)
-        if templates:
-            aiohttp_jinja2.setup(self._app,
-                                 loader=jinja2.FileSystemLoader(templates))
         self._loop = asyncio.get_event_loop()
         self._ws = web.WebSocketResponse()
         self._app = web.Application(loop=self._loop)
@@ -34,6 +29,10 @@ class CommandServer(object):
         self._load_routes()
         self._server = self._loop.create_server(self._app.make_handler(),
                                                 host, port)
+
+        if templates:
+            aiohttp_jinja2.setup(self._app,
+                                 loader=jinja2.FileSystemLoader(templates))
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
