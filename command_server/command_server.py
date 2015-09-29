@@ -1,7 +1,11 @@
 import aiohttp
+import aiohttp_jinja2
 import asyncio
 import configparser
 import logging
+import views
+import websockets
+
 import views
 
 from aiohttp import server, web
@@ -16,8 +20,12 @@ class CommandServer(object):
     _instance = None
     _controller = None
 
-    def __init__(self,  host=None, port=None):
+    def __init__(self,  host=None, port=None, templates=None, **kwargs):
         logging.info('Init Server on host %s:%s' % (host, port))
+        super().__init__(**kwargs)
+        if templates:
+            aiohttp_jinja2.setup(self._app,
+                                 loader=jinja2.FileSystemLoader(templates))
         self._loop = asyncio.get_event_loop()
         self._ws = web.WebSocketResponse()
         self._app = web.Application(loop=self._loop)
@@ -78,8 +86,9 @@ if __name__ == '__main__':
     config.read('etc/command_server.conf')
     host = config.get('commandServer', 'host')
     port = config.get('commandServer', 'port')
+    templates = config.get('commandServer', 'templates')
     logging.basicConfig(level=logging.DEBUG)
-    server = CommandServer(host=host, port=port)
+    server = CommandServer(host=host, port=port, templates=templates)
     try:
         server.start()
     except KeyboardInterrupt:

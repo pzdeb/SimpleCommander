@@ -1,8 +1,7 @@
 import asyncio
 import aiohttp
 
-from aiohttp import web
-from generic.base import BaseView, StringBaseView, JSONBaseView
+from generic.base import BaseView, StringBaseView, JSONBaseView, TemplateView
 from generic.routes import url_route
 from command_server import CommandServer
 
@@ -33,3 +32,12 @@ class HeroAction(JSONBaseView):
             game_action()
             return{'message': 'Success'}
 
+        return {'message': 'Hello! This is JSON'}
+
+@url_route('/t')
+class HelloTemplateView(TemplateView):
+    template = 'index.html'
+
+    @asyncio.coroutine
+    def get(self, request):
+        return {'name': 'World!!!'}
