@@ -2,6 +2,7 @@ import aiohttp
 import asyncio
 import configparser
 import logging
+import views
 
 from aiohttp import server, web
 from time import gmtime, strftime
@@ -13,16 +14,29 @@ from controllers.main import GameController
 class CommandServer(object):
 
     _instance = None
+    _controller = None
 
     def __init__(self,  host=None, port=None):
         logging.info('Init Server on host %s:%s' % (host, port))
         self._loop = asyncio.get_event_loop()
+        self._ws = web.WebSocketResponse()
         self._app = web.Application(loop=self._loop)
+        asyncio.async(self.get_game_ctr().run())
+
         self._load_routes()
         self._server = self._loop.create_server(self._app.make_handler(),
                                                 host, port)
-        self._ws = web.WebSocketResponse()
-        self.controller = GameController(50, 50, 2)
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(CommandServer, cls).__new__(cls)
+        return cls._instance
+
+    @classmethod
+    def get_game_ctr(cls):
+        if not cls._controller:
+            cls._controller = GameController(50, 50, 2)
+        return cls._controller
 
     def start(self):
         self._server = self._loop.run_until_complete(self._server)
@@ -33,17 +47,11 @@ class CommandServer(object):
         self._server.close()
         logging.info('Server has stopped.')
 
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super(CommandServer, cls).__new__(cls)
-        return cls._instance
-
     def _load_routes(self):
         logging.debug('Loading  Application Routes:\n%s' % '\n'.join(str(r) for r in routes.ROUTES))
-        for route in routes.ROUTES:
-            logging.error(*route)
-            self._app.router.add_route(*route)
         self._app.router.add_route('GET', '/ws_stream', self.ws_stream)
+        for route in routes.ROUTES:
+            self._app.router.add_route(*route)
 
     @asyncio.coroutine
     def ws_stream(self, request, *args, **kwargs):

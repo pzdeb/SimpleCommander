@@ -3,6 +3,10 @@ import asyncio
 import json
 import logging
 from random import randint
+from time import gmtime, strftime
+
+from aiohttp import server, web
+from time import gmtime, strftime
 
 '''
 In this game we have two role - invader and hero. Both can bullet.
@@ -21,15 +25,6 @@ IMAGE_FILENAME = {'background': 'images/bg.png',
                   'bullet_invader': 'images/bullet_invader',
                   'invader': ['images/invader1.png', 'images/invader2.png']
                   }
-
-GAME_OBJ = None
-
-
-def get_game_controller():
-    global GAME_OBJ
-    if not GAME_OBJ:
-        GAME_OBJ = GameController(50, 50, 2)
-    return GAME_OBJ
 
 
 class Unit(object):
@@ -180,30 +175,20 @@ class GameController(object):
     def move_left(self):
         self.hero.move_to(self.hero.x - self.hero.speed, self.hero.y)
 
+    @asyncio.coroutine
     def run(self):
-        game_object = get_game_controller()
-
-        '''this code for moving invaders. Work as a job.
-            We set moving_speed for positive - if reach the left coordinate of our game field
-            or negative  - if we reach the right coordinate of our game field '''
-
         while True:
             if self.hero.is_dead:
-                #yield from websocket.send('Hero is dead')
                 continue
             if not self.Invaders:
-                #yield from websocket.send('You win')
                 continue
             self.Invaders[0].set_speed(self.game_field['width'])
             self.Invaders[-1].set_speed(self.game_field['width'])
             check_if_move_y = self.Invaders[0].check_if_move_y()
             random_number = randint(0, len(self.Invaders) - 1)
             self.bullet_invader(random_number)
-            yield from websocket.send(self.hero.to_json())
             for invader in self.Invaders:
                 new_x = invader.x + invader.moving_speed
                 new_y = check_if_move_y and invader.y + invader.speed or invader.y
                 invader.move_to(new_x, new_y)
-                yield from websocket.send(invader.to_json())
             yield from asyncio.sleep(2)
-        yield from websocket.close()
