@@ -1,12 +1,11 @@
-import aiohttp
 import aiohttp_jinja2
 import asyncio
 import configparser
+import jinja2
 import logging
 import views
-import jinja2
 
-from aiohttp import server, web
+from aiohttp import server, web, MsgType
 from time import gmtime, strftime
 
 from generic import routes
@@ -65,15 +64,15 @@ class CommandServer(object):
         while True:
             msg = yield from self._ws.receive()
 
-            if msg.tp == aiohttp.MsgType.text:
+            if msg.tp == MsgType.text:
                 if msg.data == 'close':
                     yield from self._ws.close()
                 else:
                     self._ws.send_str(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
                     yield from asyncio.sleep(2)
-            elif msg.tp == aiohttp.MsgType.close:
+            elif msg.tp == MsgType.close:
                 logging.info('websocket connection closed')
-            elif msg.tp == aiohttp.MsgType.error:
+            elif msg.tp == MsgType.error:
                 logging.info('ws connection closed with exception %s',
                     self._ws.exception())
         yield from self._ws.close()

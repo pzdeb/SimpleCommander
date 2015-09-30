@@ -34,10 +34,11 @@ class HeroAction(JSONBaseView):
 
         return {'message': 'Hello! This is JSON'}
 
-@url_route('/t')
-class HelloTemplateView(TemplateView):
+@url_route('/')
+class StreamTemplateView(TemplateView):
     template = 'index.html'
 
     @asyncio.coroutine
     def get(self, request):
         return {'name': 'World!!!'}
+
