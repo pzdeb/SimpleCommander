@@ -53,6 +53,7 @@ class Unit(object):
         self.bonus = bonus
         self.speed = speed
         self.is_dead = False
+        self.step = 0
 
     def to_json(self):
         return json.dumps(self, default=lambda o: o.__dict__)
@@ -66,16 +67,21 @@ class Unit(object):
 
     def change_speed(self, speed):
         new_speed = self.speed + speed
-        self.speed = new_speed or 0
+        self.speed = new_speed > 0 and new_speed or 0
 
     def check_collision(self, other_unit):
         # check if coordinate for two units is the same
         # for this check we also include width and height of unit's image
         # (other_unit.x - other_unit.width / 2 < self.x < other_unit.x + other_unit.width / 2)
         # (other_unit.y - other_unit.height / 2 < self.y < other_unit.y + other_unit.height / 2)
-        if (self.x > other_unit.x - other_unit.width / 2) and (self.x < other_unit.x + other_unit.width / 2) and \
-                (self.y > other_unit.y - other_unit.height / 2) and (self.y < other_unit.y + other_unit.height / 2):
-            self.kill(other_unit)
+        if id(self) != id(other_unit) and getattr(self, 'unit_id', '') != id(other_unit) and \
+                getattr(other_unit, 'unit_id', '') != id(self):
+            if (self.x > other_unit.x - other_unit.width / 2) and (self.x < other_unit.x + other_unit.width / 2) and \
+                    (self.y > other_unit.y - other_unit.height / 2) and (self.y < other_unit.y + other_unit.height / 2):
+                self.kill(other_unit)
+
+    def reset(self):
+        raise NotImplementedError
 
     def kill(self, other_unit):
         raise NotImplementedError
@@ -90,13 +96,19 @@ class Invader(Unit):
             unit_filename = IMAGE_FILENAME.get('invader', [])[random_number]
         super(Invader, self).__init__(x, y, angle, bonus, speed, unit_filename, bullet_filename)
 
+    def reset(self):
+        self.angle = randint(0, 360)
+        self.step = 0
+        self.x0 = self.x
+        self.y0 = self.y
+
     def kill(self, other_unit):
         unit_class_name = other_unit. __class__.__name__
         if unit_class_name == 'Hero':
             other_unit.decrease_life()
         else:
-            del other_unit
-        del self
+            other_unit.is_dead = True
+        self.is_dead = True
 
 
 class Hero(Unit):
@@ -113,20 +125,26 @@ class Hero(Unit):
             self.life_count = 0
             self.is_dead = True
 
+    def reset(self):
+        self.speed = 0
+
     def kill(self, other_unit):
         unit_class_name = other_unit. __class__.__name__
         self.decrease_life()
         if unit_class_name == 'Hero':
             other_unit.decrease_life()
         else:
-            del other_unit
+            other_unit.is_dead = True
 
 
 class Bullet(Unit):
     def __init__(self, unit):
         self.unit_id = id(unit)
-        super(Bullet, self).__init__(unit.x, unit.y, unit.angle, 0, unit.speed or DEFAULT_SPEED,
+        super(Bullet, self).__init__(unit.x, unit.y, unit.angle, 0, unit.speed * 2 or DEFAULT_SPEED,
                                      unit.bullet_filename, unit.bullet_filename)
+
+    def reset(self):
+        self.is_dead = True
 
     def kill(self, other_unit):
         unit_class_name = other_unit. __class__.__name__
@@ -135,12 +153,12 @@ class Bullet(Unit):
         elif unit_class_name == 'Invader':
             units = get_game_controller().units
             for unit in units:
-                if id(unit) == self.unit_id and unit.__class__.name == 'Hero':
+                if id(unit) == self.unit_id and unit.__class__.__name__ == 'Hero':
                     unit.bonus += other_unit.bonus
-            del other_unit
+            other_unit.is_dead = True
         else:
-            del other_unit
-        del self
+            other_unit.is_dead = True
+        self.is_dead = True
 
 
 class GameController(object):
@@ -165,14 +183,7 @@ class GameController(object):
             angle = randint(0, 360)
             self.units.append(Invader(pos_x, pos_y, angle))
 
-    def rotate(self, unit_number, angle):
-        self.units[unit_number].rotate(angle)
-
-    def change_speed(self, unit_number, speed):
-        self.units[unit_number].change_speed(speed)
-
-    def fire(self, unit_number):
-        unit = self.units[unit_number]
+    def fire(self, unit):
         self.units.append(Bullet(unit))
 
 
@@ -181,23 +192,31 @@ def run( websocket, path):
     logging.basicConfig(level=logging.DEBUG)
     logging.info('Starting Space Invaders Game instance.')
     game_object = get_game_controller()
+    max_height = game_object.game_field['height']
+    max_width = game_object.game_field['width']
 
     '''this code for moving invaders. Work as a job.
         We set moving_speed for positive - if reach the left coordinate of our game field
         or negative  - if we reach the right coordinate of our game field '''
 
     while True:
-        _time = 0
         for unit in game_object.units:
             if unit.speed:
-                x = round(unit.x0 + unit.speed * _time * math.cos(unit.angle))
-                y = round(unit.yo + unit.speed * _time * math.sin(unit.angle) - (g * _time * _time) / 2)
-                if x in range(game_object.game_field['height']) and y in range(game_object.game_field['width']):
+                x = round(unit.x0 + unit.speed * unit.step * math.cos(unit.angle))
+                y = round(unit.y0 + unit.speed * unit.step * math.sin(unit.angle) - (g * unit.step * unit.step) / 2)
+                unit.step += TIME_TO_SLEEP
+                if x in range(-max_height, max_height) and y in range(-max_width, max_width):
                     unit.move_to(x, y)
+                else:
+                    unit.reset()
             for obj in game_object.units:
                 unit.check_collision(obj)
+                for u in [unit, obj]:
+                    if u.is_dead:
+                        try:
+                            game_object.units.remove(u)
+                        except:
+                            logging.error('this unit already has removed!')
             yield from websocket.send(unit.to_json())
         yield from asyncio.sleep(TIME_TO_SLEEP)
-        _time += TIME_TO_SLEEP
     yield from websocket.close()
-
