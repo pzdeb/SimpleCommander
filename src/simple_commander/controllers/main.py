@@ -2,6 +2,8 @@
 import asyncio
 import json
 
+import math
+
 from random import randint
 
 '''
@@ -22,19 +24,27 @@ IMAGE_FILENAME = {'background': 'images/bg.png',
                   'invader': ['images/invader1.png', 'images/invader2.png']
                   }
 
+DEFAULT_SPEED = 5
+TIME_TO_SLEEP = 1
+g = 9.81
+
 
 class Unit(object):
 
-    def __init__(self, x, y, bonus, speed, unit_filename, bullet_filename):
+    def __init__(self, x, y, angle, bonus, speed, unit_filename, bullet_filename):
         self.image_filename = unit_filename
+        self.bullet_filename = bullet_filename
         self.x = x
         self.y = y
+        self.x0 = x
+        self.y0 = y
+        self.angle = angle
         self.width = 10  # temporary when we don't have real images
         self.height = 10  # must be height of real image
         self.bonus = bonus
         self.speed = speed
         self.is_dead = False
-        self.bullet = Bullet(self, bullet_filename)
+        self.step = 0
         self.shift = 5
 
     def to_json(self):
@@ -44,147 +54,156 @@ class Unit(object):
         self.x = x
         self.y = y
 
-    def check_fire(self, unit, game_field_height):
-        # check if coordinate the bullet and the unit's is the same
-        # for this check we also include width and height of invader image
-        # (unit.x - unit.width / 2 < bullet.x < unit.x + unit.width / 2)
-        # (unit.y - unit.height / 2 < bullet.y < unit.y + unit.height / 2)
-        if (self.bullet.x > unit.x - unit.width / 2) and (self.bullet.x < unit.x + unit.width / 2) and \
-                (self.bullet.y > unit.y - unit.height / 2) and (self.bullet.y < unit.y + unit.height / 2):
-            self.fire(unit)
-            return True
-        elif self.bullet.y < 0 or self.bullet.y > game_field_height:
-            return True
-        else:
-            return False
+    def rotate(self, angle):
+        self.angle += angle
 
-    def fire(self, other_unit):
+    def change_speed(self, speed):
+        new_speed = self.speed + speed
+        self.speed = new_speed > 0 and new_speed or 0
+
+    def check_collision(self, other_unit, all_units):
+        # check if coordinate for two units is the same
+        # for this check we also include width and height of unit's image
+        # (other_unit.x - other_unit.width / 2 < self.x < other_unit.x + other_unit.width / 2)
+        # (other_unit.y - other_unit.height / 2 < self.y < other_unit.y + other_unit.height / 2)
+        if id(self) != id(other_unit) and getattr(self, 'unit_id', '') != id(other_unit) and \
+                getattr(other_unit, 'unit_id', '') != id(self):
+            if (self.x > other_unit.x - other_unit.width / 2) and (self.x < other_unit.x + other_unit.width / 2) and \
+                    (self.y > other_unit.y - other_unit.height / 2) and (self.y < other_unit.y + other_unit.height / 2):
+                self.kill(other_unit, all_units)
+
+    def reset(self):
         raise NotImplementedError
 
-    def move_bullet(self):
+    def kill(self, other_unit, units):
         raise NotImplementedError
 
 
 class Invader(Unit):
-    moving_speed = 0
 
-    def __init__(self, x, y, bonus=0, speed=5, unit_filename='',
+    def __init__(self, x, y, angle, bonus=10, speed=DEFAULT_SPEED, unit_filename='',
                  bullet_filename=IMAGE_FILENAME.get('bullet_invader', '')):
         if not unit_filename and len(IMAGE_FILENAME.get('invader', [])):
             random_number = randint(0, len(IMAGE_FILENAME.get('invader', [])) - 1)
             unit_filename = IMAGE_FILENAME.get('invader', [])[random_number]
-        super(Invader, self).__init__(x, y, bonus, speed, unit_filename, bullet_filename)
-        self.moving_speed = speed
+        super(Invader, self).__init__(x, y, angle, bonus, speed, unit_filename, bullet_filename)
 
-    def check_if_move_y(self):
-        return self.x <= self.shift
+    def reset(self):
+        self.angle = randint(0, 360)
+        self.step = 0
+        self.x0 = self.x
+        self.y0 = self.y
 
-    def set_speed(self, game_field_width):
-        # this check for first Invader
-        if self.x <= self.shift:
-            self.moving_speed = self.speed or -self.speed  # positive value
-        # this check for last Invader
-        if self.x >= game_field_width:
-            self.moving_speed = self.speed < 0 and self.speed or -self.speed  # negative value
-
-    def fire(self, hero):
-        if hero.life_count > 1:
-            hero.life_count -= 1
+    def kill(self, other_unit, units):
+        unit_class_name = other_unit. __class__.__name__
+        if unit_class_name == 'Hero':
+            other_unit.decrease_life()
         else:
-            hero.life_count = 0
-            hero.is_dead = True
-
-    def move_bullet(self):
-        # Invaders will be at the top and must bullet at the bottom
-        # so speed must be positive value
-        self.bullet.move(self.speed or -self.speed)
+            other_unit.is_dead = True
+        self.is_dead = True
 
 
 class Hero(Unit):
 
-    def __init__(self, x, y, bonus=0, speed=5, life_count=3, unit_filename=IMAGE_FILENAME.get('hero', ''),
+    def __init__(self, x, y, angle, bonus=0, speed=0, life_count=3, unit_filename=IMAGE_FILENAME.get('hero', ''),
                  bullet_filename=IMAGE_FILENAME.get('bullet_hero', '')):
-        super(Hero, self).__init__(x, y, bonus, speed, unit_filename, bullet_filename)
+        super(Hero, self).__init__(x, y, angle, bonus, speed, unit_filename, bullet_filename)
         self.life_count = life_count
 
-    def fire(self, invader):
-        self.bonus += invader.bonus
-        invader.is_dead = True
+    def decrease_life(self):
+        if self.life_count > 1:
+            self.life_count -= 1
+        else:
+            self.life_count = 0
+            self.is_dead = True
 
-    def move_bullet(self):
-        # hero will be at the bottom and must bullet at the top
-        # so speed must be negative value
-        self.bullet.move(-self.speed)
+    def reset(self):
+        self.speed = 0
+
+    def kill(self, other_unit, units):
+        unit_class_name = other_unit. __class__.__name__
+        self.decrease_life()
+        if unit_class_name == 'Hero':
+            other_unit.decrease_life()
+        else:
+            other_unit.is_dead = True
 
 
-class Bullet():
-    def __init__(self, unit, image_filename):
-        self.x = unit.x
-        self.y = unit.y
-        self.image_filename = image_filename
+class Bullet(Unit):
+    def __init__(self, unit):
+        self.unit_id = id(unit)
+        super(Bullet, self).__init__(unit.x, unit.y, unit.angle, 0, unit.speed * 2 or DEFAULT_SPEED,
+                                     unit.bullet_filename, unit.bullet_filename)
 
-    def move(self, moving_speed):
-        self.y += moving_speed
+    def reset(self):
+        self.is_dead = True
+
+    def kill(self, other_unit, units):
+        unit_class_name = other_unit. __class__.__name__
+        if unit_class_name == 'Hero':
+            other_unit.decrease_life()
+        elif unit_class_name == 'Invader':
+            for unit in units:
+                if id(unit) == self.unit_id and unit.__class__.__name__ == 'Hero':
+                    unit.bonus += other_unit.bonus
+            other_unit.is_dead = True
+        else:
+            other_unit.is_dead = True
+        self.is_dead = True
 
 
 class GameController(object):
 
     def __init__(self, height, width, invaders_count):
         self.game_field = {'image_filename': IMAGE_FILENAME.get('background', ''), 'height': height, 'width': width}
-        self.hero = Hero(self.game_field['height'] / 2, self.game_field['width'] - 10)
         self.invaders_count = invaders_count
-        self.Invaders = []
+        self.units = []
+        self.set_hero()
         self.set_invaders()
 
+    def set_hero(self):
+        pos_x = randint(0, self.game_field['width'])
+        pos_y = randint(0, self.game_field['height'])
+        angle = randint(0, 360)
+        self.units.append(Hero(pos_x, pos_y, angle))
+
     def set_invaders(self):
-        x = 1
-        y = 1
         for count in range(self.invaders_count):
-            if self.hero.shift * x >= self.game_field['width']:
-                x = 1
-                y += 1
-            pos_x = self.hero.shift * x
-            pos_y = self.hero.shift * y
-            self.Invaders.append(Invader(pos_x, pos_y, 10))
-            x += 1
+            pos_x = randint(0, self.game_field['width'])
+            pos_y = randint(0, self.game_field['height'])
+            angle = randint(0, 360)
+            self.units.append(Invader(pos_x, pos_y, angle))
 
-    def bullet_invader(self, unit_number=0):
-        move_bullet = True
-        while move_bullet:
-            self.Invaders[unit_number].move_bullet()
-            if self.Invaders[unit_number].check_fire(self.hero, self.game_field['height']):
-                move_bullet = False
-                self.Invaders[unit_number].bullet = Bullet(self.Invaders[unit_number], self.Invaders[unit_number].bullet.image_filename)
-
-    def bullet_hero(self):
-        move_bullet = True
-        while move_bullet:
-            self.hero.move_bullet()
-            for _invader in self.Invaders:
-                if self.hero.check_fire(_invader, self.game_field['height']):
-                    move_bullet = False
-                    self.hero.bullet = Bullet(self.hero, self.hero.bullet.image_filename)
-
-    def move_right(self):
-        self.hero.move_to(self.hero.x + self.hero.speed, self.hero.y)
-
-    def move_left(self):
-        self.hero.move_to(self.hero.x - self.hero.speed, self.hero.y)
+    def fire(self, unit):
+        self.units.append(Bullet(unit))
 
     @asyncio.coroutine
     def run(self):
+        logging.basicConfig(level=logging.DEBUG)
+        logging.info('Starting Space Invaders Game instance.')
+        max_height = self.game_field['height']
+        max_width = self.game_field['width']
+
+        '''this code for moving invaders. Work as a job.
+            We set moving_speed for positive - if reach the left coordinate of our game field
+            or negative  - if we reach the right coordinate of our game field '''
+
         while True:
-            if self.hero.is_dead:
-                continue
-            if not self.Invaders:
-                continue
-            self.Invaders[0].set_speed(self.game_field['width'])
-            self.Invaders[-1].set_speed(self.game_field['width'])
-            check_if_move_y = self.Invaders[0].check_if_move_y()
-            random_number = randint(0, len(self.Invaders) - 1)
-            self.bullet_invader(random_number)
-            for invader in self.Invaders:
-                new_x = invader.x + invader.moving_speed
-                new_y = check_if_move_y and invader.y + invader.speed or invader.y
-                invader.move_to(new_x, new_y)
-            yield from asyncio.sleep(2)
+            for unit in self.units:
+                if unit.speed:
+                    x = round(unit.x0 + unit.speed * unit.step * math.cos(unit.angle))
+                    y = round(unit.y0 + unit.speed * unit.step * math.sin(unit.angle) - (g * unit.step * unit.step) / 2)
+                    unit.step += TIME_TO_SLEEP
+                    if x in range(-max_height, max_height) and y in range(-max_width, max_width):
+                        unit.move_to(x, y)
+                    else:
+                        unit.reset()
+                for obj in self.units:
+                    unit.check_collision(obj, self.units)
+                    for u in [unit, obj]:
+                        if u.is_dead:
+                            try:
+                                self.units.remove(u)
+                            except:
+                                logging.error('this unit already has removed!')
+            yield from asyncio.sleep(TIME_TO_SLEEP)
