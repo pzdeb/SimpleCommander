@@ -1,9 +1,8 @@
 import asyncio
-import aiohttp
 
-from generic.base import BaseView, StringBaseView, JSONBaseView, TemplateView
-from generic.routes import url_route
-from command_server import CommandServer
+from .generic.base import BaseView, StringBaseView, JSONBaseView, TemplateView
+from .generic.routes import url_route
+from src.command_server.command_server import CommandServer
 
 
 @url_route('/hello/{name:\w+}')
