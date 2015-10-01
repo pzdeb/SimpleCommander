@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
-
-import time
+import asyncio
+import json
+import logging
 from random import randint
+from time import gmtime, strftime
+
+from aiohttp import server, web
+from time import gmtime, strftime
 
 '''
 In this game we have two role - invader and hero. Both can bullet.
@@ -35,6 +40,9 @@ class Unit(object):
         self.is_dead = False
         self.bullet = Bullet(self, bullet_filename)
         self.shift = 5
+
+    def to_json(self):
+        return json.dumps(self, default=lambda o: o.__dict__)
 
     def move_to(self, x, y):
         self.x = x
@@ -144,61 +152,43 @@ class GameController(object):
             self.Invaders.append(Invader(pos_x, pos_y, 10))
             x += 1
 
-    def get_action(self, action, unit_number=0):
-        if action == 'bullet_invader':
-            move_bullet = True
-            while move_bullet:
-                self.Invaders[unit_number].move_bullet()
-                if self.Invaders[unit_number].check_fire(self.hero, self.game_field['height']):
+    def bullet_invader(self, unit_number=0):
+        move_bullet = True
+        while move_bullet:
+            self.Invaders[unit_number].move_bullet()
+            if self.Invaders[unit_number].check_fire(self.hero, self.game_field['height']):
+                move_bullet = False
+                self.Invaders[unit_number].bullet = Bullet(self.Invaders[unit_number], self.Invaders[unit_number].bullet.image_filename)
+
+    def bullet_hero(self):
+        move_bullet = True
+        while move_bullet:
+            self.hero.move_bullet()
+            for _invader in self.Invaders:
+                if self.hero.check_fire(_invader, self.game_field['height']):
                     move_bullet = False
-                    self.Invaders[unit_number].bullet = Bullet(self.Invaders[unit_number], self.Invaders[unit_number].bullet.image_filename)
-        if action == 'bullet_hero':
-            move_bullet = True
-            while move_bullet:
-                self.hero.move_bullet()
-                # print 'bullet - ', game_object.hero.bullet.__dict__
-                for _invader in self.Invaders:
-                    if self.hero.check_fire(_invader, self.game_field['height']):
-                        move_bullet = False
-                        self.hero.bullet = Bullet(self.hero, self.hero.bullet.image_filename)
-        if action == 'move_right':
-            self.hero.move_to(self.hero.x + self.hero.speed, self.hero.y)
-        if action == 'move_left':
-            self.hero.move_to(self.hero.x - self.hero.speed, self.hero.y)
+                    self.hero.bullet = Bullet(self.hero, self.hero.bullet.image_filename)
 
+    def move_right(self):
+        self.hero.move_to(self.hero.x + self.hero.speed, self.hero.y)
+
+    def move_left(self):
+        self.hero.move_to(self.hero.x - self.hero.speed, self.hero.y)
+
+    @asyncio.coroutine
     def run(self):
-        game_object = GameController(50, 50, 2)
-
-        '''this code for moving invaders. Work as a job.
-            We set moving_speed for positive - if reach the left coordinate of our game field
-            or negative  - if we reach the right coordinate of our game field '''
-
-        while not game_object.hero.is_dead and len(game_object.Invaders):
-            game_object.Invaders[0].set_speed(game_object.game_field['width'])
-            game_object.Invaders[-1].set_speed(game_object.game_field['width'])
-            check_if_move_y = game_object.Invaders[0].check_if_move_y()
-            random_number = randint(0, len(game_object.Invaders) - 1)
-            game_object.get_action('bullet_invader', random_number)
-            for invader in game_object.Invaders:
+        while True:
+            if self.hero.is_dead:
+                continue
+            if not self.Invaders:
+                continue
+            self.Invaders[0].set_speed(self.game_field['width'])
+            self.Invaders[-1].set_speed(self.game_field['width'])
+            check_if_move_y = self.Invaders[0].check_if_move_y()
+            random_number = randint(0, len(self.Invaders) - 1)
+            self.bullet_invader(random_number)
+            for invader in self.Invaders:
                 new_x = invader.x + invader.moving_speed
                 new_y = check_if_move_y and invader.y + invader.speed or invader.y
                 invader.move_to(new_x, new_y)
-
-            # for invader in game_object.Invaders:
-            #     print invader.__dict__
-
-            time.sleep(3)
-
-if __name__ == "__main__":
-
-    '''This example of calling actions such as 'bullet', 'move_left' for our hero
-       Also we can call action 'move_right' '''
-
-    # game_object = GameController(50, 50, 2)
-    # game_object.get_action('bullet')
-    # game_object.get_action('move_left')
-    # game_object.get_action('move_left')
-
-    # for invader in game_object.Invaders:
-    #     print 'invader - ', invader.__dict__
-    # print 'hero - ', game_object.hero.__dict__
+            yield from asyncio.sleep(2)
