@@ -56,7 +56,6 @@ class Unit(object):
         max_height = game_field.get('height', 0)
         max_width = game_field.get('width', 0)
         self.step += TIME_TO_SLEEP
-        print ('self.speed - ', self.speed)
         x = round(self.x0 + self.speed * round(self.step) * math.cos(self.angle))
         y = round(self.y0 + self.speed * round(self.step) * math.sin(self.angle) - (g * self.step * self.step) / 2)
         if x in range(-max_height, max_height) and y in range(-max_width, max_width):
