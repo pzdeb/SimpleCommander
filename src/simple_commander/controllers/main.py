@@ -27,7 +27,7 @@ IMAGE_FILENAME = {'background': 'images/bg.png',
                   }
 
 DEFAULT_SPEED = 5
-TIME_TO_SLEEP = 1
+TIME_TO_SLEEP = 1  # 1 second, can be changed to 0.5
 g = 9.81
 
 
@@ -51,6 +51,18 @@ class Unit(object):
 
     def to_json(self):
         return json.dumps(self, default=lambda o: o.__dict__)
+
+    def compute_new_coordinate(self, game_field):
+        max_height = game_field.get('height', 0)
+        max_width = game_field.get('width', 0)
+        self.step += TIME_TO_SLEEP
+        print ('self.speed - ', self.speed)
+        x = round(self.x0 + self.speed * round(self.step) * math.cos(self.angle))
+        y = round(self.y0 + self.speed * round(self.step) * math.sin(self.angle) - (g * self.step * self.step) / 2)
+        if x in range(-max_height, max_height) and y in range(-max_width, max_width):
+            self.move_to(x, y)
+        else:
+            self.reset()
 
     def move_to(self, x, y):
         self.x = x
@@ -99,10 +111,12 @@ class Invader(Unit):
     def kill(self, other_unit, units):
         unit_class_name = other_unit. __class__.__name__
         if unit_class_name == 'Hero':
-            other_unit.decrease_life()
+            other_unit.decrease_life(units)
         else:
             other_unit.is_dead = True
+            units.remove(other_unit)
         self.is_dead = True
+        units.remove(self)
 
 
 class Hero(Unit):
@@ -112,23 +126,25 @@ class Hero(Unit):
         super(Hero, self).__init__(x, y, angle, bonus, speed, unit_filename, bullet_filename)
         self.life_count = life_count
 
-    def decrease_life(self):
+    def decrease_life(self, units):
         if self.life_count > 1:
             self.life_count -= 1
         else:
             self.life_count = 0
             self.is_dead = True
+            units.remove(self)
 
     def reset(self):
         self.speed = 0
 
     def kill(self, other_unit, units):
         unit_class_name = other_unit. __class__.__name__
-        self.decrease_life()
+        self.decrease_life(units)
         if unit_class_name == 'Hero':
-            other_unit.decrease_life()
+            other_unit.decrease_life(units)
         else:
             other_unit.is_dead = True
+            units.remove(other_unit)
 
 
 class Bullet(Unit):
@@ -149,9 +165,11 @@ class Bullet(Unit):
                 if id(unit) == self.unit_id and unit.__class__.__name__ == 'Hero':
                     unit.bonus += other_unit.bonus
             other_unit.is_dead = True
+            units.remove(other_unit)
         else:
             other_unit.is_dead = True
         self.is_dead = True
+        units.remove(self)
 
 
 class GameController(object):
@@ -183,8 +201,6 @@ class GameController(object):
     def run(self):
         logging.basicConfig(level=logging.DEBUG)
         logging.info('Starting Space Invaders Game instance.')
-        max_height = self.game_field['height']
-        max_width = self.game_field['width']
 
         '''this code for moving invaders. Work as a job.
             We set moving_speed for positive - if reach the left coordinate of our game field
@@ -193,19 +209,7 @@ class GameController(object):
         while True:
             for unit in self.units:
                 if unit.speed:
-                    x = round(unit.x0 + unit.speed * unit.step * math.cos(unit.angle))
-                    y = round(unit.y0 + unit.speed * unit.step * math.sin(unit.angle) - (g * unit.step * unit.step) / 2)
-                    unit.step += TIME_TO_SLEEP
-                    if x in range(-max_height, max_height) and y in range(-max_width, max_width):
-                        unit.move_to(x, y)
-                    else:
-                        unit.reset()
+                    unit.compute_new_coordinate(self.game_field)
                 for obj in self.units:
                     unit.check_collision(obj, self.units)
-                    for u in [unit, obj]:
-                        if u.is_dead:
-                            try:
-                                self.units.remove(u)
-                            except:
-                                logging.error('this unit already has removed!')
             yield from asyncio.sleep(TIME_TO_SLEEP)
