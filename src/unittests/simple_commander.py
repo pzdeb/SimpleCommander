@@ -6,6 +6,7 @@ from src.simple_commander.controllers.main import GameController
 from src.simple_commander.controllers.main import Bullet
 from src.simple_commander.controllers.main import Hero
 from src.simple_commander.controllers.main import Invader
+from src.simple_commander.controllers.main import DEFAULT_SPEED
 
 
 class MainControllerTestCase(unittest.TestCase):
@@ -13,6 +14,9 @@ class MainControllerTestCase(unittest.TestCase):
         self.game_object = GameController(100, 100, 2)
         self.max_height = self.game_object.game_field['height']
         self.max_width = self.game_object.game_field['width']
+
+    def tearDown(self):
+        del self
 
     def test_game_field_width(self):
         self.assertEqual(self.game_object.game_field['width'], 100, 'incorrect game field width')
@@ -29,10 +33,12 @@ class MainControllerTestCase(unittest.TestCase):
 
     def test_hero_start_speed(self):
         self.assertEqual(self.game_object.units[0].speed, 0, 'Incorrect initial speed')
+        self.assertEqual(self.game_object.units[1].speed, DEFAULT_SPEED, 'Incorrect initial speed')
 
     def test_hero_speed_after_change(self):
         self.game_object.units[0].change_speed(5)
         self.assertEqual(self.game_object.units[0].speed, 5, 'Incorrect initial speed')
+        self.assertEqual(self.game_object.units[1].speed, DEFAULT_SPEED, 'Incorrect initial speed')
 
     def test_hero_angle(self):
         hero = Hero(20, 20, 100)
