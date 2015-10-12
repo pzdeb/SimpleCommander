@@ -1,6 +1,4 @@
 import unittest
-import math
-import time
 
 from src.simple_commander.controllers.main import GameController
 from src.simple_commander.controllers.main import Bullet
