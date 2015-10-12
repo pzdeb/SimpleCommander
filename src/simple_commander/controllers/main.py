@@ -27,8 +27,7 @@ IMAGE_FILENAME = {'background': 'images/bg.png',
                   }
 
 DEFAULT_SPEED = 5
-TIME_TO_SLEEP = 1  # 1 second, can be changed to 0.5
-g = 9.81
+STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
 
 
 class Unit(object):
@@ -38,15 +37,12 @@ class Unit(object):
         self.bullet_filename = bullet_filename
         self.x = x
         self.y = y
-        self.x0 = x
-        self.y0 = y
         self.angle = angle
         self.width = 10  # temporary when we don't have real images
         self.height = 10  # must be height of real image
         self.bonus = bonus
         self.speed = speed
         self.is_dead = False
-        self.step = 0
         self.shift = 5
 
     def to_json(self):
@@ -55,24 +51,26 @@ class Unit(object):
     def compute_new_coordinate(self, game_field):
         max_height = game_field.get('height', 0)
         max_width = game_field.get('width', 0)
-        self.step += TIME_TO_SLEEP
-        x = round(self.x0 + self.speed * self.step * math.cos(self.angle))
-        y = round(self.y0 + self.speed * self.step * math.sin(self.angle) - (g * self.step * self.step) / 2)
+        x = round(self.x + self.speed * STEP_INTERVAL * math.cos(round(math.radians(self.angle), 2)))
+        y = round(self.y + self.speed * STEP_INTERVAL * math.sin(round(math.radians(self.angle), 2)))
         if x in range(-max_height, max_height) and y in range(-max_width, max_width):
             self.move_to(x, y)
         else:
             self.reset()
 
     def move_to(self, x, y):
+        logging.info('Move %s to new coordinate - (%s, %s)' % (self.__class__.__name__, x, y))
         self.x = x
         self.y = y
 
     def rotate(self, angle):
+        logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, self.angle+angle))
         self.angle += angle
 
     def change_speed(self, speed):
         new_speed = self.speed + speed
         self.speed = new_speed > 0 and new_speed or 0
+        logging.info('Change %s speed to %s' % (self.__class__.__name__, self.speed))
 
     def check_collision(self, other_unit, all_units):
         # check if coordinate for two units is the same
@@ -103,12 +101,11 @@ class Invader(Unit):
 
     def reset(self):
         self.angle = randint(0, 360)
-        self.step = 0
-        self.x0 = self.x
-        self.y0 = self.y
+        logging.info('Reset %s angle. New angle - %s' % (self.__class__.__name__, self.angle))
 
     def kill(self, other_unit, units):
         unit_class_name = other_unit. __class__.__name__
+        logging.info('In kill - %s and %s' % (self.__class__.__name__, unit_class_name))
         if unit_class_name == 'Hero':
             other_unit.decrease_life(units)
         else:
@@ -138,6 +135,7 @@ class Hero(Unit):
 
     def kill(self, other_unit, units):
         unit_class_name = other_unit. __class__.__name__
+        logging.info('In kill - %s and %s' % (self.__class__.__name__, unit_class_name))
         self.decrease_life(units)
         if unit_class_name == 'Hero':
             other_unit.decrease_life(units)
@@ -157,12 +155,15 @@ class Bullet(Unit):
 
     def kill(self, other_unit, units):
         unit_class_name = other_unit. __class__.__name__
+        logging.info('In kill - %s and %s' % (self.__class__.__name__, unit_class_name))
         if unit_class_name == 'Hero':
             other_unit.decrease_life()
         elif unit_class_name == 'Invader':
             for unit in units:
                 if id(unit) == self.unit_id and unit.__class__.__name__ == 'Hero':
                     unit.bonus += other_unit.bonus
+                    logging.info('Add %s bonus for %s. Now he has %s bonus'
+                                 % (other_unit.bonus, unit.__class__.__name__, unit.bonus))
             other_unit.is_dead = True
             units.remove(other_unit)
         else:
@@ -194,6 +195,7 @@ class GameController(object):
             self.units.append(Invader(pos_x, pos_y, angle))
 
     def fire(self, unit):
+        logging.info('Fire!! Creating bullet!')
         self.units.append(Bullet(unit))
 
     @asyncio.coroutine
@@ -211,4 +213,4 @@ class GameController(object):
                     unit.compute_new_coordinate(self.game_field)
                 for obj in self.units:
                     unit.check_collision(obj, self.units)
-            yield from asyncio.sleep(TIME_TO_SLEEP)
+            yield from asyncio.sleep(STEP_INTERVAL)

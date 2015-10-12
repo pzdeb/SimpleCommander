@@ -7,6 +7,7 @@ from src.simple_commander.controllers.main import Bullet
 from src.simple_commander.controllers.main import Hero
 from src.simple_commander.controllers.main import Invader
 from src.simple_commander.controllers.main import DEFAULT_SPEED
+from src.simple_commander.controllers.main import STEP_INTERVAL
 
 
 class MainControllerTestCase(unittest.TestCase):
@@ -50,26 +51,30 @@ class MainControllerTestCase(unittest.TestCase):
         self.assertEqual(hero.angle, 120, 'Incorrect angle after rotate')
 
     #  Bullet coordinates after initial x = 0, y = 0, angle = 90:
-    #    1. after 0 seconds --- step = 0, x = 0, y = 0
-    #    2. after 1 seconds --- step = 1, x = -2, y = 0
-    #    3. after 2 seconds --- step = 2, x = -4, y = -11
-    #    4. after 3 seconds --- step = 3, x = -7, y = -31
+    #    1. after 0 seconds ---  x = 0, y = 0
+    #    2. after 1 seconds ---  x = 0, y = 5
+    #    3. after 2 seconds ---  x = 0, y = 10
+    #    4. after 3 seconds ---  x = 0, y = 15
     #  Coordinate will be the same as in invader!! Both units will be dead !!
     def test_compute_new_coordinate(self):
         hero = Hero(0, 0, 90)
         bullet = Bullet(hero)
-        while bullet.step < 3:
+        step = 0
+        while step < 3:
             bullet.compute_new_coordinate(self.game_object.game_field)
-        self.assertEqual(bullet.x, -7, 'Bullet coordinate x is incorrect!')
-        self.assertEqual(bullet.y, -31, 'Bullet coordinate y is incorrect!')
+            step += STEP_INTERVAL
+        self.assertEqual(bullet.x, 0, 'Bullet coordinate x is incorrect!')
+        self.assertEqual(bullet.y, 15, 'Bullet coordinate y is incorrect!')
 
     def test_check_collision_with_kill(self):
         hero = Hero(0, 0, 90)
-        invader = Invader(-7, -31, 90, 10, 0)
+        invader = Invader(0, 15, 90, 10, 0)
         bullet = Bullet(hero)
         self.units = [hero, invader, bullet]
-        while bullet.step < 3:
+        step = 0
+        while step < 3:
             bullet.compute_new_coordinate(self.game_object.game_field)
+            step += STEP_INTERVAL
         bullet.check_collision(invader, self.units)
         self.assertEqual(bullet.is_dead, True, 'Bullet is not dead!')
         self.assertEqual(invader.is_dead, True, 'Invader is not dead!')
@@ -81,8 +86,10 @@ class MainControllerTestCase(unittest.TestCase):
         invader = Invader(7, 31, 90, 10, 0)
         bullet = Bullet(hero)
         self.units = [hero, invader, bullet]
-        while bullet.step < 3:
+        step = 0
+        while step < 3:
             bullet.compute_new_coordinate(self.game_object.game_field)
+            step += STEP_INTERVAL
         bullet.check_collision(invader, self.units)
         self.assertEqual(bullet.is_dead, False, 'Bullet is dead!')
         self.assertEqual(invader.is_dead, False, 'Invader is dead!')
