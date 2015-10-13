@@ -65,9 +65,9 @@ class CommandServer(object):
     @asyncio.coroutine
     def ws_stream(self, request, *args, **kwargs):
         self._ws.start(request)
-        while True:
+        while not self._ws.closed:
             msg = yield from self._ws.receive()
-
+            print(msg)
             if msg.tp == MsgType.text:
                 if msg.data == 'close':
                     yield from self._ws.close()
