@@ -67,7 +67,6 @@ class CommandServer(object):
         self._ws.start(request)
         while not self._ws.closed:
             msg = yield from self._ws.receive()
-            print(msg)
             if msg.tp == MsgType.text:
                 if msg.data == 'close':
                     yield from self._ws.close()
