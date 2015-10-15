@@ -2,7 +2,7 @@ import asyncio
 
 from .generic.base import BaseView, StringBaseView, JSONBaseView, TemplateView
 from .generic.routes import url_route
-from src.command_server.command_server import CommandServer
+from src.command_server.command_server import BaseCommandServer
 
 
 @url_route('/hello/{name:\w+}')
@@ -25,7 +25,7 @@ class HelloWorldJsonView(JSONBaseView):
 class HeroAction(JSONBaseView):
     @asyncio.coroutine
     def get(self, request, action=None, *args, **kwargs):
-        game = CommandServer.get_game_ctr()
+        game = BaseCommandServer.get_game_ctr()
         game_action = getattr(game, action, None)
         if game_action and callable(game_action):
             game_action()

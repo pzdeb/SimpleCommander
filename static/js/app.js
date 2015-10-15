@@ -14,4 +14,5 @@ function init() {
     //    .to({x: 100}, 800, createjs.Ease.getPowInOut(2));
     //createjs.Ticker.setFPS(60);
     //createjs.Ticker.addEventListener("tick", stage);
+    connectWebSocket();
 }
