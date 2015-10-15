@@ -6,7 +6,7 @@ import logging
 import src.core.views
 import websockets
 
-from aiohttp import server, web
+from aiohttp import web
 from time import gmtime, strftime
 
 from src.core.generic import routes
@@ -80,7 +80,7 @@ class HttpCommandServer(BaseCommandServer):
             self._app.router.add_route(*route)
 
     def _load_static(self):
-        self._app.router.add_static('/static', 'static')
+        self._app.router.add_static('/static', static_path)
 
 
 if __name__ == '__main__':
@@ -89,6 +89,7 @@ if __name__ == '__main__':
     host = config.get('commandServer', 'host')
     http_port = config.get('commandServer', 'http_port')
     stream_port = config.get('commandServer', 'stream_port')
+    static_path = config.get('commandServer', 'static_path')
     templates = config.get('commandServer', 'templates')
     logging.basicConfig(level=logging.DEBUG)
     loop = asyncio.get_event_loop()
