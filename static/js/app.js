@@ -17,7 +17,7 @@ function init() {
 }
 
 
-var socket = new WebSocket("ws://localhost:8000/ws_stream");
+var socket = new WebSocket("ws://localhost:8765");
 
 socket.onopen = function(event) {
     console.log("Connected.");
@@ -40,11 +40,3 @@ socket.onmessage = function(event) {
 socket.onerror = function(error) {
     console.log("Error " + error.message);
 };
-
-function test() {
-        socket.send('hi');
-}
-
-function stop() {
-    socket.send('close');
-}
