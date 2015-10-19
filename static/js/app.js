@@ -25,6 +25,7 @@ var units;                 //Array with units
 document.onkeydown = handleKeyDown;
 
 function init() {
+    connectWebSocket();
     canvas = document.getElementById("gameCanvas");
     stage = new createjs.Stage(canvas);
     messageField = new createjs.Text("Welcome: Click to play", "bold 24px Arial", "#000");
