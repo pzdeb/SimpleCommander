@@ -1,5 +1,5 @@
-var TURN_FACTOR = 7;
-var SPEED_FACTOR = 1;
+var TURN_ADDING = 7;
+var SPEED_ADDING = 1;
 
 var KEYCODE_UP = 38;
 var KEYCODE_DOWN = 40;
@@ -19,6 +19,7 @@ var alive;                 //whether the player is alive
 
 var messageField;          //Message display field
 var scoreField;            //score Field
+var units;                 //Array with units
 
 //register key functions
 document.onkeydown = handleKeyDown;
@@ -65,12 +66,28 @@ function restart() {
     hero.speed = 0;
     hero.rotation = 0;
 
-    //reset key presses
-    leftPress = rightPress = upPress = downPress = false;
+    //create Units
+    units = [];
+    units.push(hero);
 
     //ensure stage is blank and add the hero
     stage.clear();
     stage.addChild(hero);
+
+    for (var i = 0; i < 2; i++) {
+        var unit = new createjs.Shape();
+        unit.graphics.beginFill("Black").drawRect(0, 0, 10, 15);
+        unit.x = Math.random() * canvas.width;
+        unit.y = Math.random() * canvas.height;
+        unit.speed = Math.random() * 10;
+        unit.rotation = Math.random() * 360;
+        units.push(unit);
+        stage.addChild(unit);
+    }
+
+    //reset key presses
+    leftPress = rightPress = upPress = downPress = false;
+
     stage.update();
 
     //start game timer
@@ -86,26 +103,33 @@ function ShowSpeed(value) {
 function tick(event) {
     //handle turning
     if (alive && leftPress) {
-        hero.rotation -= TURN_FACTOR;
+        hero.rotation -= TURN_ADDING;
         leftPress = false;
     } else if (alive && rightPress) {
-        hero.rotation += TURN_FACTOR;
+        hero.rotation += TURN_ADDING;
         rightPress = false;
     }
 
     //handle speed
     if (alive && upPress) {
-        hero.speed += SPEED_FACTOR;
+        hero.speed += SPEED_ADDING;
         ShowSpeed(hero.speed);
         upPress = false;
     } else if (alive && downPress) {
-        hero.speed -= SPEED_FACTOR;
+        hero.speed -= SPEED_ADDING;
         ShowSpeed(hero.speed);
         downPress = false;
     }
 
-    hero.x += Math.sin(hero.rotation * (Math.PI / -180)) * hero.speed;
-    hero.y += Math.cos(hero.rotation * (Math.PI / -180)) * hero.speed;
+    for (var i = 0; i < units.length; i++){
+        if ((units[i].x < 0) || (units[i].x > canvas.width) || (units[i].y < 0) || (units[i].y > canvas.height)) {
+            units[i].rotation = Math.random() * 360;
+        }
+        if (units[i].speed != 0){
+            units[i].x += Math.sin(units[i].rotation * (Math.PI / -180)) * units[i].speed;
+            units[i].y += Math.cos(units[i].rotation * (Math.PI / -180)) * units[i].speed;
+        }
+    }
 
     stage.update();
 
