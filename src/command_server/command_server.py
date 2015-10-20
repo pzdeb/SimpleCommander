@@ -2,6 +2,7 @@ import aiohttp_jinja2
 import asyncio
 import configparser
 import jinja2
+import json
 import logging
 import src.core.views
 import websockets
@@ -41,9 +42,12 @@ class BaseCommandServer(object):
 
 class StreamCommandServer(BaseCommandServer):
     _instance = None
+    _controller = None
 
     def _init_server(self, host, port):
         self._app = web.Application(loop=self._loop)
+        self._game = self.get_game_ctr()
+        asyncio.async(self._game.run())
         self._server = websockets.serve(self.process_request, host, port)
 
     def __new__(cls, *args, **kwargs):
@@ -53,9 +57,15 @@ class StreamCommandServer(BaseCommandServer):
 
     @asyncio.coroutine
     def process_request(self, websocket, path):
+        self._game.set_hero()
+        my_hero = self._game.units[-1]
+        my_id = {'id': my_hero.id}
+        yield from websocket.send(json.dumps(my_id))
         while True:
-            yield from websocket.send(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
-            yield from asyncio.sleep(2)
+            if not websocket.open:
+                break
+            yield from websocket.send(self._game.get_field())
+            yield from asyncio.sleep(1)
         yield from websocket.close()
 
 
