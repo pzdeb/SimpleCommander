@@ -64,7 +64,7 @@ class StreamCommandServer(BaseCommandServer):
         while True:
             if not websocket.open:
                 break
-            yield from websocket.send(self._game.get_field())
+            yield from websocket.send(self._game.get_serialized_field())
             yield from asyncio.sleep(1)
         yield from websocket.close()
 
