@@ -1,6 +1,6 @@
-var TURN_ADDING = 7;
-var SPEED_ADDING = 1;
-var MAX_SPEED = 8;
+var TURN_ADDING = 2;
+var SPEED_ADDING = 0.02;
+var MAX_SPEED = 4;
 
 var KEYCODE_UP = 38;
 var KEYCODE_DOWN = 40;
@@ -25,6 +25,7 @@ var newSpeed;
 
 //register key functions
 document.onkeydown = handleKeyDown;
+document.onkeyup = handleKeyUp;
 
 function gameStart() {
     canvas = document.getElementById("gameCanvas");
@@ -81,7 +82,7 @@ function restart() {
         unit.graphics.beginFill("Black").drawRect(0, 0, 10, 15);
         unit.x = Math.random() * canvas.width;
         unit.y = Math.random() * canvas.height;
-        unit.speed = Math.random() * MAX_SPEED;
+        unit.speed = Math.random() * 2 + 0.5;
         unit.rotation = Math.random() * 360;
         units.push(unit);
         stage.addChild(unit);
@@ -94,8 +95,10 @@ function restart() {
 
     //start game timer
     if (!createjs.Ticker.hasEventListener("tick")) {
+        createjs.Ticker.setFPS(60);
         createjs.Ticker.addEventListener("tick", tick);
     }
+    console.log(createjs.Ticker.getInterval())
 }
 
 function ShowSpeed(value) {
@@ -103,13 +106,15 @@ function ShowSpeed(value) {
 }
 
 function tick(event) {
+    //var currentdate = new Date();
+    //console.log(currentdate);
     //handle turning
     if (alive && leftPress) {
         hero.rotation -= TURN_ADDING;
-        leftPress = false;
+        //leftPress = false;
     } else if (alive && rightPress) {
         hero.rotation += TURN_ADDING;
-        rightPress = false;
+        //rightPress = false;
     }
 
     //handle speed
@@ -119,14 +124,14 @@ function tick(event) {
             hero.speed = newSpeed;
             ShowSpeed(hero.speed);
         }
-        upPress = false;
+        //upPress = false;
     } else if (alive && downPress) {
         newSpeed = hero.speed - SPEED_ADDING;
         if (newSpeed >= -MAX_SPEED && newSpeed <= MAX_SPEED) {
             hero.speed = newSpeed;
             ShowSpeed(hero.speed);
         }
-        downPress = false;
+        //downPress = false;
     }
 
     for (var i = 0; i < units.length; i++){
@@ -162,5 +167,26 @@ function handleKeyDown(e) {
         case KEYCODE_DOWN:
             downPress = true;
             return false;
+    }
+}
+
+function handleKeyUp(e) {
+    //cross browser issues exist
+    if (!e) {
+        var e = window.event;
+    }
+    switch (e.keyCode) {
+        case KEYCODE_LEFT:
+            leftPress = false;
+            break;
+        case KEYCODE_RIGHT:
+            rightPress = false;
+            break;
+        case KEYCODE_UP:
+            upPress = false;
+            break;
+        case KEYCODE_DOWN:
+            downPress = false;
+            break;
     }
 }
