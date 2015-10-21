@@ -199,7 +199,7 @@ class GameController(object):
         logging.info('Fire!! Creating bullet!')
         self.units.append(Bullet(unit))
 
-    def get_field(self):
+    def get_serialized_field(self):
         result = {'field': self.game_field,
                   'units': [unit.__dict__ for unit in self.units]}
         return json.dumps(result)
