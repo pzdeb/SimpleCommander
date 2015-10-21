@@ -25,8 +25,6 @@ socket.onerror = function(error) {
     console.log("Error " + error.message);
 };
 
-function send(){
-    socket.send('hi')
-};
+
 
 
