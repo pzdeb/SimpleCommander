@@ -15,6 +15,7 @@ from src.simple_commander.controllers.main import GameController
 
 
 class BaseCommandServer(object):
+    _controller = None
 
     def __init__(self, server_type=None, host=None, port=None, loop=None, templates=None):
         logging.info('Init %s Server on host %s:%s' % (server_type, host, port))
@@ -36,13 +37,12 @@ class BaseCommandServer(object):
     @classmethod
     def get_game_ctr(cls):
         if not cls._controller:
-            cls._controller = GameController(50, 50, 2)
+            cls._controller = GameController(100, 100, 5)
         return cls._controller
 
 
 class StreamCommandServer(BaseCommandServer):
     _instance = None
-    _controller = None
 
     def _init_server(self, host, port):
         self._app = web.Application(loop=self._loop)
