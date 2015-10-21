@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import asyncio
+import datetime
 import json
 import uuid
 
@@ -36,6 +37,9 @@ class Unit(object):
     def __init__(self, x, y, angle, bonus, speed, unit_filename, bullet_filename):
         self.image_filename = unit_filename
         self.bullet_filename = bullet_filename
+        self.time_last_calculation = datetime.datetime.now()
+        self.real_x = x
+        self.real_y = y
         self.x = x
         self.y = y
         self.angle = angle
@@ -43,17 +47,32 @@ class Unit(object):
         self.height = 10  # must be height of real image
         self.bonus = bonus
         self.speed = speed
+        self.id = str(uuid.uuid4())
         self.is_dead = False
         self.shift = 5
 
     def to_json(self):
         return json.dumps(self, default=lambda o: o.__dict__)
 
-    def compute_new_coordinate(self, game_field):
+    def compute_time(self):
+        result = (datetime.datetime.now() - self.time_last_calculation).total_seconds()
+        return result
+
+    def compute_new_coordinate(self, game_field, force=None):
         max_height = game_field.get('height', 0)
         max_width = game_field.get('width', 0)
-        x = round(self.x + self.speed * STEP_INTERVAL * math.cos(round(math.radians(self.angle), 2)))
-        y = round(self.y + self.speed * STEP_INTERVAL * math.sin(round(math.radians(self.angle), 2)))
+        if force and self.compute_time() < STEP_INTERVAL:
+            last_calculation = self.compute_time()
+            self.real_x = round(self.real_x +
+                                self.speed * last_calculation * math.cos(round(math.radians(self.angle), 2)))
+            self.real_y = round(self.real_x +
+                                self.speed * last_calculation * math.sin(round(math.radians(self.angle), 2)))
+        else:
+            self.real_x = self.x
+            self.real_y = self.y
+        x = round(self.real_x + self.speed * STEP_INTERVAL * math.cos(round(math.radians(self.angle), 2)))
+        y = round(self.real_y + self.speed * STEP_INTERVAL * math.sin(round(math.radians(self.angle), 2)))
+        self.time_last_calculation = datetime.datetime.now()
         if x in range(-max_height, max_height) and y in range(-max_width, max_width):
             self.move_to(x, y)
         else:
@@ -122,7 +141,6 @@ class Hero(Unit):
                  bullet_filename=IMAGE_FILENAME.get('bullet_hero', '')):
         super(Hero, self).__init__(x, y, angle, bonus, speed, unit_filename, bullet_filename)
         self.life_count = life_count
-        self.id = str(uuid.uuid4())
 
     def decrease_life(self, units):
         if self.life_count > 1:
