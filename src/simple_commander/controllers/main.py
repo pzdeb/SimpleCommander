@@ -52,9 +52,6 @@ class Unit(object):
         self.is_dead = False
         self.shift = 5
 
-    def to_json(self):
-        return json.dumps(self, default=lambda o: o.to_dict())
-
     def to_dict(self):
         result = {}
         for attr in self.__dict__:
@@ -134,9 +131,9 @@ class Invader(Unit):
             other_unit.decrease_life(units)
         else:
             other_unit.is_dead = True
-            units.remove(other_unit)
+            del units[other_unit.id]
         self.is_dead = True
-        units.remove(self)
+        del units[self.id]
 
 
 class Hero(Unit):
@@ -165,7 +162,7 @@ class Hero(Unit):
             other_unit.decrease_life(units)
         else:
             other_unit.is_dead = True
-            units.remove(other_unit)
+            del units[other_unit.id]
 
 
 class Bullet(Unit):
@@ -184,16 +181,16 @@ class Bullet(Unit):
             other_unit.decrease_life()
         elif unit_class_name == 'Invader':
             for unit in units:
-                if id(unit) == self.unit_id and unit.__class__.__name__ == 'Hero':
-                    unit.bonus += other_unit.bonus
+                if id(units[unit]) == self.unit_id and units[unit].__class__.__name__ == 'Hero':
+                    units[unit].bonus += other_unit.bonus
                     logging.info('Add %s bonus for %s. Now he has %s bonus'
                                  % (other_unit.bonus, unit.__class__.__name__, unit.bonus))
             other_unit.is_dead = True
-            units.remove(other_unit)
+            del units[other_unit.id]
         else:
             other_unit.is_dead = True
         self.is_dead = True
-        units.remove(self)
+        del units[self.id]
 
 
 class GameController(object):
@@ -201,28 +198,31 @@ class GameController(object):
     def __init__(self, height, width, invaders_count):
         self.game_field = {'image_filename': IMAGE_FILENAME.get('background', ''), 'height': height, 'width': width}
         self.invaders_count = invaders_count
-        self.units = []
+        self.units = {}
         self.set_invaders()
 
     def set_hero(self):
         pos_x = randint(0, self.game_field['width'])
         pos_y = randint(0, self.game_field['height'])
         angle = randint(0, 360)
-        self.units.append(Hero(pos_x, pos_y, angle))
+        hero = Hero(pos_x, pos_y, angle)
+        self.units[hero.id] = hero
+        return hero
 
     def set_invaders(self):
         for count in range(self.invaders_count):
             pos_x = randint(0, self.game_field['width'])
             pos_y = randint(0, self.game_field['height'])
             angle = randint(0, 360)
-            self.units.append(Invader(pos_x, pos_y, angle))
+            invader = Invader(pos_x, pos_y, angle)
+            self.units[invader.id] = invader
 
     def fire(self, unit):
         logging.info('Fire!! Creating bullet!')
         self.units.append(Bullet(unit))
 
     def get_serialized_units(self):
-        units = [unit.to_dict() for unit in self.units]
+        units = [self.units[unit].to_dict() for unit in self.units]
         return json.dumps(units)
 
     @asyncio.coroutine
@@ -235,9 +235,11 @@ class GameController(object):
             or negative  - if we reach the right coordinate of our game field '''
 
         while True:
-            for unit in self.units:
-                if unit.speed:
-                    unit.compute_new_coordinate(self.game_field)
-                for obj in self.units:
-                    unit.check_collision(obj, self.units)
+            for unit in list(self.units.keys()):
+                if self.units.get(unit):
+                    if self.units[unit].speed:
+                        self.units[unit].compute_new_coordinate(self.game_field)
+                    for key in list(self.units.keys()):
+                        if self.units.get(unit) and self.units.get(key):
+                            self.units[unit].check_collision(self.units[key], self.units)
             yield from asyncio.sleep(STEP_INTERVAL)
