@@ -2,6 +2,7 @@ import aiohttp_jinja2
 import asyncio
 import configparser
 import jinja2
+import json
 import logging
 import src.core.views
 import websockets
@@ -14,6 +15,7 @@ from src.simple_commander.controllers.main import GameController
 
 
 class BaseCommandServer(object):
+    _controller = None
 
     def __init__(self, server_type=None, host=None, port=None, loop=None, templates=None):
         logging.info('Init %s Server on host %s:%s' % (server_type, host, port))
@@ -35,7 +37,7 @@ class BaseCommandServer(object):
     @classmethod
     def get_game_ctr(cls):
         if not cls._controller:
-            cls._controller = GameController(50, 50, 2)
+            cls._controller = GameController(100, 100, 5)
         return cls._controller
 
 
@@ -44,6 +46,8 @@ class StreamCommandServer(BaseCommandServer):
 
     def _init_server(self, host, port):
         self._app = web.Application(loop=self._loop)
+        self._game = self.get_game_ctr()
+        asyncio.async(self._game.run())
         self._server = websockets.serve(self.process_request, host, port)
 
     def __new__(cls, *args, **kwargs):
@@ -53,9 +57,15 @@ class StreamCommandServer(BaseCommandServer):
 
     @asyncio.coroutine
     def process_request(self, websocket, path):
+        self._game.set_hero()
+        my_hero = self._game.units[-1]
+        my_id = {'id': my_hero.id}
+        yield from websocket.send(json.dumps(my_id))
         while True:
-            yield from websocket.send(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
-            yield from asyncio.sleep(2)
+            if not websocket.open:
+                break
+            yield from websocket.send(self._game.get_field())
+            yield from asyncio.sleep(1)
         yield from websocket.close()
 
 

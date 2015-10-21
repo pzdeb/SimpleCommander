@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import asyncio
 import json
+import uuid
 
 import logging
 
@@ -121,6 +122,7 @@ class Hero(Unit):
                  bullet_filename=IMAGE_FILENAME.get('bullet_hero', '')):
         super(Hero, self).__init__(x, y, angle, bonus, speed, unit_filename, bullet_filename)
         self.life_count = life_count
+        self.id = str(uuid.uuid4())
 
     def decrease_life(self, units):
         if self.life_count > 1:
@@ -178,7 +180,6 @@ class GameController(object):
         self.game_field = {'image_filename': IMAGE_FILENAME.get('background', ''), 'height': height, 'width': width}
         self.invaders_count = invaders_count
         self.units = []
-        self.set_hero()
         self.set_invaders()
 
     def set_hero(self):
@@ -197,6 +198,11 @@ class GameController(object):
     def fire(self, unit):
         logging.info('Fire!! Creating bullet!')
         self.units.append(Bullet(unit))
+
+    def get_serialized_field(self):
+        result = {'field': self.game_field,
+                  'units': [unit.__dict__ for unit in self.units]}
+        return json.dumps(result)
 
     @asyncio.coroutine
     def run(self):
