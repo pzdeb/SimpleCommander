@@ -30,6 +30,7 @@ IMAGE_FILENAME = {'background': 'images/bg.png',
 
 DEFAULT_SPEED = 5
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
+UNIT_PROPERTIES = ['x0', 'y0', 'x1', 'y1', 'angle', 'bonus', 'speed', 'shift', 'width', 'height', 'id', 'life_count']
 
 
 class Unit(object):
@@ -38,10 +39,10 @@ class Unit(object):
         self.image_filename = unit_filename
         self.bullet_filename = bullet_filename
         self.time_last_calculation = datetime.datetime.now()
-        self.real_x = x
-        self.real_y = y
-        self.x = x
-        self.y = y
+        self.x0 = x
+        self.y0 = y
+        self.x1 = x
+        self.y1 = y
         self.angle = angle
         self.width = 10  # temporary when we don't have real images
         self.height = 10  # must be height of real image
@@ -52,26 +53,29 @@ class Unit(object):
         self.shift = 5
 
     def to_json(self):
-        return json.dumps(self, default=lambda o: o.__dict__)
+        return json.dumps(self, default=lambda o: o.to_dict())
 
-    def compute_time(self):
-        result = (datetime.datetime.now() - self.time_last_calculation).total_seconds()
+    def to_dict(self):
+        result = {}
+        for attr in self.__dict__:
+            if attr in UNIT_PROPERTIES:
+                result[attr] = self.__dict__[attr]
         return result
 
     def compute_new_coordinate(self, game_field, force=None):
         max_height = game_field.get('height', 0)
         max_width = game_field.get('width', 0)
-        if force and self.compute_time() < STEP_INTERVAL:
-            last_calculation = self.compute_time()
-            self.real_x = round(self.real_x +
-                                self.speed * last_calculation * math.cos(round(math.radians(self.angle), 2)))
-            self.real_y = round(self.real_x +
-                                self.speed * last_calculation * math.sin(round(math.radians(self.angle), 2)))
+        if force and (datetime.datetime.now() - self.time_last_calculation).total_seconds() < STEP_INTERVAL:
+            last_calculation = (datetime.datetime.now() - self.time_last_calculation).total_seconds()
+            self.x0 = round(self.x0 +
+                            self.speed * last_calculation * math.cos(round(math.radians(self.angle), 2)))
+            self.y0 = round(self.x0 +
+                            self.speed * last_calculation * math.sin(round(math.radians(self.angle), 2)))
         else:
-            self.real_x = self.x
-            self.real_y = self.y
-        x = round(self.real_x + self.speed * STEP_INTERVAL * math.cos(round(math.radians(self.angle), 2)))
-        y = round(self.real_y + self.speed * STEP_INTERVAL * math.sin(round(math.radians(self.angle), 2)))
+            self.x0 = self.x1
+            self.y0 = self.y1
+        x = round(self.x0 + self.speed * STEP_INTERVAL * math.cos(round(math.radians(self.angle), 2)))
+        y = round(self.y0 + self.speed * STEP_INTERVAL * math.sin(round(math.radians(self.angle), 2)))
         self.time_last_calculation = datetime.datetime.now()
         if x in range(-max_height, max_height) and y in range(-max_width, max_width):
             self.move_to(x, y)
@@ -80,8 +84,8 @@ class Unit(object):
 
     def move_to(self, x, y):
         logging.info('Move %s to new coordinate - (%s, %s)' % (self.__class__.__name__, x, y))
-        self.x = x
-        self.y = y
+        self.x1 = x
+        self.y1 = y
 
     def rotate(self, angle):
         logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, self.angle+angle))
@@ -99,8 +103,8 @@ class Unit(object):
         # (other_unit.y - other_unit.height / 2 < self.y < other_unit.y + other_unit.height / 2)
         if id(self) != id(other_unit) and getattr(self, 'unit_id', '') != id(other_unit) and \
                 getattr(other_unit, 'unit_id', '') != id(self):
-            if (self.x > other_unit.x - other_unit.width / 2) and (self.x < other_unit.x + other_unit.width / 2) and \
-                    (self.y > other_unit.y - other_unit.height / 2) and (self.y < other_unit.y + other_unit.height / 2):
+            if (self.x1 > other_unit.x1 - other_unit.width / 2) and (self.x1 < other_unit.x1 + other_unit.width / 2) and \
+                    (self.y1 > other_unit.y1 - other_unit.height / 2) and (self.y1 < other_unit.y1 + other_unit.height / 2):
                 self.kill(other_unit, all_units)
 
     def reset(self):
@@ -218,7 +222,7 @@ class GameController(object):
         self.units.append(Bullet(unit))
 
     def get_serialized_units(self):
-        units = [unit.__dict__ for unit in self.units]
+        units = [unit.to_dict() for unit in self.units]
         return json.dumps(units)
 
     @asyncio.coroutine
