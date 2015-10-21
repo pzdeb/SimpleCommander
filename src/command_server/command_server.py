@@ -59,12 +59,13 @@ class StreamCommandServer(BaseCommandServer):
     def process_request(self, websocket, path):
         self._game.set_hero()
         my_hero = self._game.units[-1]
-        my_id = {'id': my_hero.id}
+        my_id = {'id': my_hero.id,
+                 'field': self._game.game_field}
         yield from websocket.send(json.dumps(my_id))
         while True:
             if not websocket.open:
                 break
-            yield from websocket.send(self._game.get_serialized_field())
+            yield from websocket.send(self._game.get_serialized_units())
             yield from asyncio.sleep(1)
         yield from websocket.close()
 
