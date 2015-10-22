@@ -35,7 +35,7 @@ class BaseCommandServer(object):
         logging.info('%s has stopped.' % (self._server_type))
 
     @classmethod
-    def get_game_ctr(cls, height=100, width=100, invaders=5):
+    def get_game_ctr(cls, height=600, width=600, invaders=1):
         if not cls._controller:
             cls._controller = GameController(height, width, invaders)
         return cls._controller

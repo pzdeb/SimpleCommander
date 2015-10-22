@@ -224,7 +224,7 @@ class GameController(object):
     def get_serialized_units(self):
         units = []
         if len(self.units):
-            units = [self.units[unit].to_dict() for unit in self.units]
+            units = {unit: self.units[unit].to_dict() for unit in self.units}
         return json.dumps(units)
 
     @asyncio.coroutine

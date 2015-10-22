@@ -26,6 +26,7 @@ var newSpeed;
 //register key functions
 document.onkeydown = handleKeyDown;
 document.onkeyup = handleKeyUp;
+var socket = sockets();
 
 function gameStart() {
     canvas = document.getElementById("gameCanvas");
@@ -44,7 +45,6 @@ function gameStart() {
 function handleClick() {
     //prevent extra clicks and hide text
     canvas.onclick = null;
-    var socket = sockets();
     try{
         socket.send('start');
     }
@@ -52,11 +52,11 @@ function handleClick() {
         console.log('server started');
     }
     stage.removeChild(messageField);
-    restart();
+    //restart();
 }
 
 //reset all game logic
-function restart() {
+function restart(heroObj, unitsObj) {
     //hide anything on stage and show the score
     stage.removeAllChildren();
     scoreField = new createjs.Text("0", "bold 18px Arial", "#FFFFFF");
@@ -71,10 +71,11 @@ function restart() {
     alive = true;
     hero = new createjs.Shape();
     hero.graphics.beginFill("DeepSkyBlue").drawRect(0, 0, 10, 15);
-    hero.x = canvas.width / 2;
-    hero.y = canvas.height / 2;
-    hero.speed = 0;
-    hero.rotation = 0;
+    hero.id = heroObj.id;
+    hero.x = heroObj.x0;
+    hero.y = heroObj.y0;
+    hero.speed = heroObj.speed;
+    hero.rotation = heroObj.rotation;
 
     //create Units
     units = [];
@@ -84,15 +85,18 @@ function restart() {
     stage.clear();
     stage.addChild(hero);
 
-    for (var i = 0; i < 2; i++) {
-        var unit = new createjs.Shape();
-        unit.graphics.beginFill("Black").drawRect(0, 0, 10, 15);
-        unit.x = Math.random() * canvas.width;
-        unit.y = Math.random() * canvas.height;
-        unit.speed = Math.random() * 2 + 0.5;
-        unit.rotation = Math.random() * 360;
-        units.push(unit);
-        stage.addChild(unit);
+    for (var i in unitsObj) {
+        if (unitsObj[i].id != hero.id) {
+            var unit = new createjs.Shape();
+            unit.graphics.beginFill("Black").drawRect(0, 0, 10, 15);
+            unit.id = unitsObj[i].id;
+            unit.x = unitsObj[i].x0;
+            unit.y = unitsObj[i].y0;
+            unit.speed = unitsObj[i].speed;
+            unit.rotation = unitsObj[i].angle;
+            units.push(unit);
+            stage.addChild(unit);
+        }
     }
 
     //reset key presses
@@ -111,6 +115,14 @@ function restart() {
 function ShowSpeed(value) {
     scoreField.text = Number(value).toString();
 }
+
+function unitsUpdate(heroObj, unitsObj) {
+    for (var i = 0; i < units.length; i++) {
+        units[i].x = unitsObj[units[i].id].x0;
+        units[i].y = unitsObj[units[i].id].y0;
+    }
+}
+
 
 function tick(event) {
     //var currentdate = new Date();
@@ -141,15 +153,15 @@ function tick(event) {
         //downPress = false;
     }
 
-    for (var i = 0; i < units.length; i++){
-        if ((units[i].x < 0) || (units[i].x > canvas.width) || (units[i].y < 0) || (units[i].y > canvas.height)) {
-            units[i].rotation = Math.random() * 360;
-        }
-        if (units[i].speed != 0){
-            units[i].x += Math.sin(units[i].rotation * (Math.PI / -180)) * units[i].speed;
-            units[i].y += Math.cos(units[i].rotation * (Math.PI / -180)) * units[i].speed;
-        }
-    }
+    //for (var i = 0; i < units.length; i++){
+    //    if ((units[i].x < 0) || (units[i].x > canvas.width) || (units[i].y < 0) || (units[i].y > canvas.height)) {
+    //        units[i].rotation = Math.random() * 360;
+    //    }
+    //    if (units[i].speed != 0){
+    //        units[i].x += Math.sin(units[i].rotation * (Math.PI / -180)) * units[i].speed;
+    //        units[i].y += Math.cos(units[i].rotation * (Math.PI / -180)) * units[i].speed;
+    //    }
+    //}
 
     stage.update();
 

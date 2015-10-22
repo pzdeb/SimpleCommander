@@ -1,5 +1,9 @@
 function sockets(){
     var socket = new WebSocket("ws://localhost:8765");
+    var frequency = 1;
+    var hero = {};
+    var heroId = '';
+    var units = [];
 
     socket.onopen = function(event) {
         console.log("Connected.");
@@ -16,7 +20,21 @@ function sockets(){
 
     socket.onmessage = function(event) {
         var answer = JSON.parse(event.data) || event.data;
-        console.log(answer)
+        console.log(answer);
+        if (answer.hasOwnProperty('frequency')) {
+            frequency = answer.frequency;
+            heroId = answer.id;
+        }
+        else if (units.length == 0) {
+            units = answer;
+            hero = units[heroId];
+            restart(hero, units);
+        }
+        else {
+            units = answer;
+            hero = units[heroId];
+            unitsUpdate(hero, units);
+        }
     };
 
     socket.onerror = function(error) {
