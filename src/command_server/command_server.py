@@ -11,7 +11,7 @@ from aiohttp import web
 from time import gmtime, strftime
 
 from src.core.generic import routes
-from src.simple_commander.controllers.main import GameController
+from src.simple_commander.controllers.main import GameController, STEP_INTERVAL
 
 
 class BaseCommandServer(object):
@@ -57,15 +57,16 @@ class StreamCommandServer(BaseCommandServer):
 
     @asyncio.coroutine
     def process_request(self, websocket, path):
-        self._game.set_hero()
-        my_hero = self._game.units[-1]
-        my_id = {'id': my_hero.id}
-        yield from websocket.send(json.dumps(my_id))
+        my_hero = self._game.set_hero()
+        start_conditions = {'id': my_hero.id,
+                            'frequency': STEP_INTERVAL,
+                            'field': self._game.game_field}
+        yield from websocket.send(json.dumps(start_conditions))
         while True:
             if not websocket.open:
                 break
-            yield from websocket.send(self._game.get_serialized_field())
-            yield from asyncio.sleep(1)
+            yield from websocket.send(self._game.get_serialized_units())
+            yield from asyncio.sleep(STEP_INTERVAL)
         yield from websocket.close()
 
 
