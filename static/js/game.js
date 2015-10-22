@@ -44,6 +44,13 @@ function gameStart() {
 function handleClick() {
     //prevent extra clicks and hide text
     canvas.onclick = null;
+    var socket = sockets();
+    try{
+        socket.send('start');
+    }
+    catch (InvalidStateError){
+        console.log('server started');
+    }
     stage.removeChild(messageField);
     restart();
 }

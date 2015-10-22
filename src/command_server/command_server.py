@@ -35,19 +35,18 @@ class BaseCommandServer(object):
         logging.info('%s has stopped.' % (self._server_type))
 
     @classmethod
-    def get_game_ctr(cls):
+    def get_game_ctr(cls, height=100, width=100, invaders=5):
         if not cls._controller:
-            cls._controller = GameController(100, 100, 5)
+            cls._controller = GameController(height, width, invaders)
         return cls._controller
 
 
 class StreamCommandServer(BaseCommandServer):
     _instance = None
+    _game = None
 
     def _init_server(self, host, port):
         self._app = web.Application(loop=self._loop)
-        self._game = self.get_game_ctr()
-        asyncio.async(self._game.run())
         self._server = websockets.serve(self.process_request, host, port)
 
     def __new__(cls, *args, **kwargs):
@@ -57,17 +56,25 @@ class StreamCommandServer(BaseCommandServer):
 
     @asyncio.coroutine
     def process_request(self, websocket, path):
-        my_hero = self._game.set_hero()
-        start_conditions = {'id': my_hero.id,
-                            'frequency': STEP_INTERVAL,
-                            'field': self._game.game_field}
-        yield from websocket.send(json.dumps(start_conditions))
-        while True:
-            if not websocket.open:
-                break
-            yield from websocket.send(self._game.get_serialized_units())
-            yield from asyncio.sleep(STEP_INTERVAL)
-        yield from websocket.close()
+        if not self._game:
+            while True:
+                message = yield from websocket.recv()
+                if message == 'start':
+                    self._game = self.get_game_ctr()
+                    asyncio.async(self._game.run())
+                    break
+        if self._game:
+            my_hero = self._game.set_hero()
+            start_conditions = {'id': my_hero.id,
+                                'frequency': STEP_INTERVAL,
+                                'field': self._game.game_field}
+            yield from websocket.send(json.dumps(start_conditions))
+            while True:
+                if not websocket.open:
+                    break
+                yield from websocket.send(self._game.get_serialized_units())
+                yield from asyncio.sleep(STEP_INTERVAL)
+            yield from websocket.close()
 
 
 class HttpCommandServer(BaseCommandServer):
