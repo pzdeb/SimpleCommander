@@ -61,8 +61,8 @@ class MainControllerTestCase(unittest.TestCase):
         while step < 3:
             bullet.compute_new_coordinate(self.game_object.game_field)
             step += STEP_INTERVAL
-        self.assertEqual(bullet.x, 0, 'Bullet coordinate x is incorrect!')
-        self.assertEqual(bullet.y, 15, 'Bullet coordinate y is incorrect!')
+        self.assertEqual(bullet.x1, 0, 'Bullet coordinate x is incorrect!')
+        self.assertEqual(bullet.y1, 15, 'Bullet coordinate y is incorrect!')
 
     def test_check_collision_with_kill(self):
         hero = Hero(0, 0, 90)
