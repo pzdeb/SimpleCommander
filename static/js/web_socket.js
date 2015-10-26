@@ -14,15 +14,9 @@ function sockets(){
             console.log('code: ' + event.code + ' reason: ' + event.reason);
     };
 
-    socket.onmessage = function(event) {
-        var answer = JSON.parse(event.data) || event.data;
-        console.log(answer)
-    };
-
     socket.onerror = function(error) {
         console.log("Error " + error.message);
     };
-
     return socket
 }
 
