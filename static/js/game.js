@@ -26,6 +26,11 @@ var newSpeed;
 //register key functions
 document.onkeydown = handleKeyDown;
 
+
+function send(){
+    sendAction('fire');
+}
+
 function gameStart() {
     canvas = document.getElementById("gameCanvas");
     stage = new createjs.Stage(canvas);
@@ -43,7 +48,14 @@ function gameStart() {
 function handleClick() {
     //prevent extra clicks and hide text
     canvas.onclick = null;
-    sockets();
+    var socket = sockets();
+    socket.onmessage = function(event) {
+        var data = JSON.parse(event.data);
+        if (data.id){
+            document.cookie = "hero_id=" + data.id;
+        }
+        console.log(data);
+    };
     stage.removeChild(messageField);
     restart();
 }

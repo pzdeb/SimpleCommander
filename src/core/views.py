@@ -22,15 +22,13 @@ class HelloWorldJsonView(JSONBaseView):
         return {'message': 'Hello! This is JSON'}
 
 
-@url_route('/action')
+@url_route('/api/hero/{hero_id:[a-z0-9-]+}/action/{action:[a-z]+}')
 class HeroAction(JSONBaseView):
 
     @asyncio.coroutine
-    def post(self, request, *args, **kwargs):
+    def post(self, request, hero_id=None, action=None, *args, **kwargs):
         data = yield from request.text()
         data = json.loads(data)
-        hero_id = data.get('id', '')
-        action = data.get('action', '')
         value = data.get('value', 0)
         game = GameController(get_old=True)
         hero = game.units.get(hero_id, '')
