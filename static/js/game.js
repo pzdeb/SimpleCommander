@@ -29,6 +29,11 @@ document.onkeydown = handleKeyDown;
 document.onkeyup = handleKeyUp;
 var socket = sockets();
 
+
+function send(){
+    sendAction('fire');
+}
+
 function gameStart() {
     canvas = document.getElementById("gameCanvas");
     stage = new createjs.Stage(canvas);
@@ -46,14 +51,14 @@ function gameStart() {
 function handleClick() {
     //prevent extra clicks and hide text
     canvas.onclick = null;
-    try{
-        socket.send('start');
-    }
-    catch (InvalidStateError){
-        console.log('server started');
-    }
+    socket.onmessage = function(event) {
+        var data = JSON.parse(event.data);
+        if (data.id){
+            document.cookie = "hero_id=" + data.id;
+        }
+        console.log(data);
+    };
     stage.removeChild(messageField);
-    //restart();
 }
 
 //reset all game logic
@@ -136,8 +141,6 @@ function unitsUpdate(heroObj, unitsObj) {
 
 
 function tick(event) {
-    //var currentdate = new Date();
-    //console.log(currentdate);
     //handle turning
     if (alive && leftPress) {
         hero.rotation -= TURN_ADDING;

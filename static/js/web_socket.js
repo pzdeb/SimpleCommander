@@ -44,7 +44,6 @@ function sockets(){
     socket.onerror = function(error) {
         console.log("Error " + error.message);
     };
-
     return socket
 }
 
