@@ -1,6 +1,8 @@
 function sockets(){
     var socket = new WebSocket("ws://localhost:8765");
-    var frequency = 1;
+    window.frequency = 1;
+    window.height = 0;
+    window.width = 0;
     var hero = {};
     var heroId = '';
     var units = [];
@@ -23,6 +25,8 @@ function sockets(){
         console.log(answer);
         if (answer.hasOwnProperty('frequency')) {
             frequency = answer.frequency;
+            height = answer.field.height;
+            width = answer.field.width;
             heroId = answer.id;
         }
         else if (units.length == 0) {

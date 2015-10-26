@@ -1,3 +1,4 @@
+var FPS = 60;
 var TURN_ADDING = 2;
 var SPEED_ADDING = 0.02;
 var MAX_SPEED = 4;
@@ -106,7 +107,7 @@ function restart(heroObj, unitsObj) {
 
     //start game timer
     if (!createjs.Ticker.hasEventListener("tick")) {
-        createjs.Ticker.setFPS(60);
+        createjs.Ticker.setFPS(FPS);
         createjs.Ticker.addEventListener("tick", tick);
     }
     console.log(createjs.Ticker.getInterval())
@@ -118,8 +119,18 @@ function ShowSpeed(value) {
 
 function unitsUpdate(heroObj, unitsObj) {
     for (var i = 0; i < units.length; i++) {
+        units[i].rotation = unitsObj[units[i].id].angle;
+
+        units[i].x0 = unitsObj[units[i].id].x0;
+        units[i].y0 = unitsObj[units[i].id].y0;
+
+        units[i].x1 = unitsObj[units[i].id].x1;
+        units[i].y1 = unitsObj[units[i].id].y1;
+
         units[i].x = unitsObj[units[i].id].x0;
         units[i].y = unitsObj[units[i].id].y0;
+
+        units[i].speedTick = units[i].speed / window.frequency / FPS
     }
 }
 
@@ -130,10 +141,8 @@ function tick(event) {
     //handle turning
     if (alive && leftPress) {
         hero.rotation -= TURN_ADDING;
-        //leftPress = false;
     } else if (alive && rightPress) {
         hero.rotation += TURN_ADDING;
-        //rightPress = false;
     }
 
     //handle speed
@@ -143,25 +152,26 @@ function tick(event) {
             hero.speed = newSpeed;
             ShowSpeed(hero.speed);
         }
-        //upPress = false;
     } else if (alive && downPress) {
         newSpeed = hero.speed - SPEED_ADDING;
         if (newSpeed >= -MAX_SPEED && newSpeed <= MAX_SPEED) {
             hero.speed = newSpeed;
             ShowSpeed(hero.speed);
         }
-        //downPress = false;
     }
 
-    //for (var i = 0; i < units.length; i++){
-    //    if ((units[i].x < 0) || (units[i].x > canvas.width) || (units[i].y < 0) || (units[i].y > canvas.height)) {
-    //        units[i].rotation = Math.random() * 360;
-    //    }
-    //    if (units[i].speed != 0){
-    //        units[i].x += Math.sin(units[i].rotation * (Math.PI / -180)) * units[i].speed;
-    //        units[i].y += Math.cos(units[i].rotation * (Math.PI / -180)) * units[i].speed;
-    //    }
-    //}
+    for (var i = 0; i < units.length; i++){
+        if (units[i].speed != 0 && units[i].speedTick) {
+            if (units[i].x != units[i].x1) {
+                units[i].x = window.width - units[i].x;
+                units[i].y = window.height - units[i].y;
+                units[i].x += Math.sin(units[i].rotation * (Math.PI / -180)) * units[i].speedTick;
+                units[i].y += Math.cos(units[i].rotation * (Math.PI / -180)) * units[i].speedTick;
+                units[i].x = window.width - units[i].x;
+                units[i].y = window.height - units[i].y;
+            }
+        }
+    }
 
     stage.update();
 

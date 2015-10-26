@@ -59,28 +59,33 @@ class Unit(object):
                 result[attr] = self.__dict__[attr]
         return result
 
+    def translate(self, x, y, game_field):
+        y = game_field.get('height', 0) - y
+        return x, y
+
     def compute_new_coordinate(self, game_field, force=None):
-        max_height = game_field.get('height', 0)
-        max_width = game_field.get('width', 0)
+        min_height = int(0 + self.height)
+        min_width = int(0 + self.width)
+        max_height = int(game_field.get('height', 0) - self.height)
+        max_width = int(game_field.get('width', 0) - self.width)
         if force and (datetime.datetime.now() - self.time_last_calculation).total_seconds() < STEP_INTERVAL:
-            last_calculation = (datetime.datetime.now() - self.time_last_calculation).total_seconds()
-            self.x0 = round(self.x0 +
-                            self.speed * last_calculation * math.cos(round(math.radians(self.angle), 2)))
-            self.y0 = round(self.x0 +
-                            self.speed * last_calculation * math.sin(round(math.radians(self.angle), 2)))
+            interval = (datetime.datetime.now() - self.time_last_calculation).total_seconds()
         else:
-            self.x0 = self.x1
-            self.y0 = self.y1
-        x = round(self.x0 + self.speed * STEP_INTERVAL * math.cos(round(math.radians(self.angle), 2)))
-        y = round(self.y0 + self.speed * STEP_INTERVAL * math.sin(round(math.radians(self.angle), 2)))
+            interval = STEP_INTERVAL
+        x0, y0 = self.translate(self.x0, self.y0, game_field)
+        x = round(x0 + self.speed * interval * math.sin(round(math.radians(self.angle), 2)))
+        y = round(y0 + self.speed * interval * math.cos(round(math.radians(self.angle), 2)))
+        x, y = self.translate(x, y, game_field)
         self.time_last_calculation = datetime.datetime.now()
-        if x in range(-max_height, max_height) and y in range(-max_width, max_width):
+        if x in range(min_width, max_width) and y in range(min_height, max_height):
             self.move_to(x, y)
         else:
             self.reset()
 
     def move_to(self, x, y):
         logging.info('Move %s to new coordinate - (%s, %s)' % (self.__class__.__name__, x, y))
+        self.x0 = self.x1
+        self.y0 = self.y1
         self.x1 = x
         self.y1 = y
 
