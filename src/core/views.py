@@ -1,8 +1,9 @@
 import asyncio
+import json
 
 from .generic.base import BaseView, StringBaseView, JSONBaseView, TemplateView
 from .generic.routes import url_route
-from src.command_server.command_server import BaseCommandServer
+from src.simple_commander.controllers.main import GameController
 
 
 @url_route('/hello/{name:\w+}')
@@ -21,17 +22,26 @@ class HelloWorldJsonView(JSONBaseView):
         return {'message': 'Hello! This is JSON'}
 
 
-@url_route('/action/{action:\w+}')
+@url_route('/action')
 class HeroAction(JSONBaseView):
-    @asyncio.coroutine
-    def get(self, request, action=None, *args, **kwargs):
-        game = BaseCommandServer.get_game_ctr()
-        game_action = getattr(game, action, None)
-        if game_action and callable(game_action):
-            game_action()
-            return{'message': 'Success'}
 
-        return {'message': 'Hello! This is JSON'}
+    @asyncio.coroutine
+    def post(self, request, *args, **kwargs):
+        data = yield from request.text()
+        data = json.loads(data)
+        hero_id = data.get('id', '')
+        action = data.get('action', '')
+        value = data.get('value', 0)
+        game = GameController(get_old=True)
+        hero = game.units.get(hero_id, '')
+        hero_action = getattr(hero, action, getattr(game, action, None))
+        if hero and hero_action and callable(hero_action) and isinstance(value, int):
+            parameter = hero if action == 'fire' else value
+            hero_action(parameter)
+            asyncio.async(game.run(loop=False))
+        else:
+            return {'error': 'bad request'}
+
 
 @url_route('/')
 class StreamTemplateView(TemplateView):

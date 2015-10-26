@@ -194,12 +194,21 @@ class Bullet(Unit):
 
 
 class GameController(object):
+    _instance = None
+    _launched = False
 
-    def __init__(self, height, width, invaders_count):
+    def __init__(self, height=None, width=None, invaders_count=None, get_old=False):
+        if get_old:
+            return
         self.game_field = {'image_filename': IMAGE_FILENAME.get('background', ''), 'height': height, 'width': width}
         self.invaders_count = invaders_count
         self.units = {}
         self.set_invaders()
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(GameController, cls).__new__(cls)
+        return cls._instance
 
     def set_hero(self):
         pos_x = randint(0, self.game_field['width'])
@@ -228,20 +237,22 @@ class GameController(object):
         return json.dumps(units)
 
     @asyncio.coroutine
-    def run(self):
-        logging.basicConfig(level=logging.DEBUG)
-        logging.info('Starting Space Invaders Game instance.')
+    def run(self, loop=True):
+        if not self._launched or not loop:
+            self._launched = True
+            logging.basicConfig(level=logging.DEBUG)
+            logging.info('Starting Space Invaders Game instance.')
 
-        '''this code for moving invaders. Work as a job.
-            We set moving_speed for positive - if reach the left coordinate of our game field
-            or negative  - if we reach the right coordinate of our game field '''
+            '''this code for moving invaders. Work as a job.
+                We set moving_speed for positive - if reach the left coordinate of our game field
+                or negative  - if we reach the right coordinate of our game field '''
 
-        while True:
-            for unit in list(self.units.keys()):
-                if self.units.get(unit):
-                    if self.units[unit].speed:
-                        self.units[unit].compute_new_coordinate(self.game_field)
-                    for key in list(self.units.keys()):
-                        if self.units.get(unit) and self.units.get(key):
-                            self.units[unit].check_collision(self.units[key], self.units)
-            yield from asyncio.sleep(STEP_INTERVAL)
+            while loop:
+                for unit in list(self.units.keys()):
+                    if self.units.get(unit):
+                        if self.units[unit].speed:
+                            self.units[unit].compute_new_coordinate(self.game_field)
+                        for key in list(self.units.keys()):
+                            if self.units.get(unit) and self.units.get(key):
+                                self.units[unit].check_collision(self.units[key], self.units)
+                yield from asyncio.sleep(STEP_INTERVAL)

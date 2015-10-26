@@ -15,15 +15,17 @@ function sockets(){
     };
 
     socket.onmessage = function(event) {
-        var answer = JSON.parse(event.data) || event.data;
-        console.log(answer)
+        var data = JSON.parse(event.data);
+        if (data.id){
+            document.cookie = "hero_id=" + data.id;
+        }
+        console.log(data)
     };
 
     socket.onerror = function(error) {
         console.log("Error " + error.message);
     };
 
-    return socket
 }
 
 
