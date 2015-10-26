@@ -28,7 +28,7 @@ IMAGE_FILENAME = {'background': 'images/bg.png',
                   'invader': ['images/invader1.png', 'images/invader2.png']
                   }
 
-DEFAULT_SPEED = 5
+DEFAULT_SPEED = 35
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
 UNIT_PROPERTIES = ['x0', 'y0', 'x1', 'y1', 'angle', 'bonus', 'speed', 'shift', 'width', 'height', 'id', 'life_count']
 
@@ -64,15 +64,15 @@ class Unit(object):
         return x, y
 
     def compute_new_coordinate(self, game_field, force=None):
-        min_height = int(0 + self.height)
-        min_width = int(0 + self.width)
-        max_height = int(game_field.get('height', 0) - self.height)
-        max_width = int(game_field.get('width', 0) - self.width)
+        min_height = int(0 + self.height / 2)
+        min_width = int(0 + self.width / 2)
+        max_height = int(game_field.get('height', 0) - self.height / 2)
+        max_width = int(game_field.get('width', 0) - self.width / 2)
         if force and (datetime.datetime.now() - self.time_last_calculation).total_seconds() < STEP_INTERVAL:
             interval = (datetime.datetime.now() - self.time_last_calculation).total_seconds()
         else:
             interval = STEP_INTERVAL
-        x0, y0 = self.translate(self.x0, self.y0, game_field)
+        x0, y0 = self.translate(self.x1, self.y1, game_field)
         x = round(x0 + self.speed * interval * math.sin(round(math.radians(self.angle), 2)))
         y = round(y0 + self.speed * interval * math.cos(round(math.radians(self.angle), 2)))
         x, y = self.translate(x, y, game_field)

@@ -162,7 +162,7 @@ function tick(event) {
 
     for (var i = 0; i < units.length; i++){
         if (units[i].speed != 0 && units[i].speedTick) {
-            if (units[i].x != units[i].x1) {
+            if (units[i].x != units[i].x1 || units[i].y != units[i].y1) {
                 units[i].x = window.width - units[i].x;
                 units[i].y = window.height - units[i].y;
                 units[i].x += Math.sin(units[i].rotation * (Math.PI / -180)) * units[i].speedTick;
