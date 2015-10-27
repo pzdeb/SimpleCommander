@@ -4,7 +4,7 @@ function sockets(){
     window.height = 0;
     window.width = 0;
     var hero = {};
-    var heroId = '';
+    window.heroId = '';
     var units = [];
 
     socket.onopen = function(event) {

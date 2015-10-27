@@ -1,6 +1,6 @@
 function sendAction(action, value){
     var http = new XMLHttpRequest();
-    var url = "api/hero/" + getCookie("hero_id") + "/action/" + action;
+    var url = "api/hero/" + window.heroId + "/action/" + action;
     http.open("POST", url, true);
     http.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
     http.onload = function () {

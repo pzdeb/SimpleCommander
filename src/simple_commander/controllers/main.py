@@ -30,7 +30,7 @@ IMAGE_FILENAME = {'background': 'images/bg.png',
 
 DEFAULT_SPEED = 35
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
-UNIT_PROPERTIES = ['x0', 'y0', 'x1', 'y1', 'angle', 'bonus', 'speed', 'shift', 'width', 'height', 'id', 'life_count']
+UNIT_PROPERTIES = ['x0', 'y0', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count']
 
 
 class Unit(object):
