@@ -107,21 +107,13 @@ class Unit(object):
                 getattr(other_unit, 'unit_id', '') != id(self):
             if (self.x1 > other_unit.x1 - other_unit.width / 2) and (self.x1 < other_unit.x1 + other_unit.width / 2) and \
                     (self.y1 > other_unit.y1 - other_unit.height / 2) and (self.y1 < other_unit.y1 + other_unit.height / 2):
-                self.kill(other_unit, all_units)
-
-            elif self. __class__.__name__ == "Bullet" and \
-                    (self.x1 <= 0 or self.y1 <= 0 or self.x1 >= width or self.y1 >= height):
-                self.kill_self(all_units)
+                self.kill(other_unit, all_units)  
 
     def reset(self):
         raise NotImplementedError
 
     def kill(self, other_unit, units):
         raise NotImplementedError
-
-    def kill_self(self, all_units):
-        logging.info('%s left the playing field' % self.__class__.__name__)
-        del all_units[self.id]
 
 
 class Invader(Unit):
@@ -186,6 +178,9 @@ class Bullet(Unit):
 
     def reset(self):
         self.is_dead = True
+        game = GameController(get_old=True)
+        if game.units.get(self.id, ''):
+            del game.units[self.id]
 
     def kill(self, other_unit, units):
         unit_class_name = other_unit. __class__.__name__
@@ -210,13 +205,14 @@ class GameController(object):
     _instance = None
     _launched = False
 
-    def __init__(self, height=None, width=None, invaders_count=None, get_old=False):
+    def __init__(self, height=None, width=None, invaders_count=None, notify_clients=None, get_old=False):
         if get_old:
             return
         self.game_field = {'image_filename': IMAGE_FILENAME.get('background', ''), 'height': height, 'width': width}
         self.invaders_count = invaders_count
         self.units = {}
         self.set_invaders()
+        self.notify_clients = notify_clients
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -270,4 +266,5 @@ class GameController(object):
                             if self.units.get(unit) and self.units.get(key):
                                 self.units[unit].check_collision(self.units[key], self.units, self.game_field['height'],
                                                                  self.game_field['width'])
+                yield from self.notify_clients(self.get_serialized_units())
                 yield from asyncio.sleep(STEP_INTERVAL)
