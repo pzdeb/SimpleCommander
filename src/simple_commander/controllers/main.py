@@ -28,9 +28,9 @@ IMAGE_FILENAME = {'background': 'images/bg.png',
                   'invader': ['images/invader1.png', 'images/invader2.png']
                   }
 
-DEFAULT_SPEED = 5
+DEFAULT_SPEED = 35
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
-UNIT_PROPERTIES = ['x0', 'y0', 'x1', 'y1', 'angle', 'bonus', 'speed', 'shift', 'id', 'life_count']
+UNIT_PROPERTIES = ['x0', 'y0', 'x1', 'y1', 'angle', 'bonus', 'speed', 'shift', 'width', 'height', 'id', 'life_count']
 
 
 class Unit(object):
@@ -59,23 +59,33 @@ class Unit(object):
                 result[attr] = self.__dict__[attr]
         return result
 
-    def compute_new_coordinate(self, game_field):
-        max_height = game_field.get('height', 0)
-        max_width = game_field.get('width', 0)
-        time_from_last_calculation = (datetime.datetime.now() - self.time_last_calculation).total_seconds()
-        interval = time_from_last_calculation if time_from_last_calculation < STEP_INTERVAL else STEP_INTERVAL
-        x = round(self.x0 + self.speed * interval * math.cos(round(math.radians(self.angle), 2)))
-        y = round(self.y0 + self.speed * interval * math.sin(round(math.radians(self.angle), 2)))
+    def translate(self, x, y, game_field):
+        y = game_field.get('height', 0) - y
+        return x, y
+
+    def compute_new_coordinate(self, game_field, force=None):
+        min_height = int(0 + self.height / 2)
+        min_width = int(0 + self.width / 2)
+        max_height = int(game_field.get('height', 0) - self.height / 2)
+        max_width = int(game_field.get('width', 0) - self.width / 2)
+        if force and (datetime.datetime.now() - self.time_last_calculation).total_seconds() < STEP_INTERVAL:
+            interval = (datetime.datetime.now() - self.time_last_calculation).total_seconds()
+        else:
+            interval = STEP_INTERVAL
+        x0, y0 = self.translate(self.x1, self.y1, game_field)
+        x = round(x0 + self.speed * interval * math.sin(round(math.radians(self.angle), 2)))
+        y = round(y0 + self.speed * interval * math.cos(round(math.radians(self.angle), 2)))
+        x, y = self.translate(x, y, game_field)
         self.time_last_calculation = datetime.datetime.now()
-        if x in range(-max_height, max_height) and y in range(-max_width, max_width):
-            self.x0 = x
-            self.y0 = y
+        if x in range(min_width, max_width) and y in range(min_height, max_height):
             self.move_to(x, y)
         else:
             self.reset()
 
     def move_to(self, x, y):
         logging.info('Move %s to new coordinate - (%s, %s)' % (self.__class__.__name__, x, y))
+        self.x0 = self.x1
+        self.y0 = self.y1
         self.x1 = x
         self.y1 = y
 
@@ -97,7 +107,7 @@ class Unit(object):
                 getattr(other_unit, 'unit_id', '') != id(self):
             if (self.x1 > other_unit.x1 - other_unit.width / 2) and (self.x1 < other_unit.x1 + other_unit.width / 2) and \
                     (self.y1 > other_unit.y1 - other_unit.height / 2) and (self.y1 < other_unit.y1 + other_unit.height / 2):
-                self.kill(other_unit, all_units)
+                self.kill(other_unit, all_units)  
 
     def reset(self):
         raise NotImplementedError
@@ -233,7 +243,7 @@ class GameController(object):
     def get_serialized_units(self):
         units = []
         if len(self.units):
-            units = [self.units[unit].to_dict() for unit in self.units]
+            units = {unit: self.units[unit].to_dict() for unit in self.units}
         return json.dumps(units)
 
     @asyncio.coroutine
