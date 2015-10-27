@@ -22,7 +22,7 @@ class HelloWorldJsonView(JSONBaseView):
         return {'message': 'Hello! This is JSON'}
 
 
-@url_route('/api/hero/{hero_id:[a-z0-9-]+}/action/{action:[a-z]+}')
+@url_route('/api/hero/{hero_id:[a-z0-9-]+}/action/{action:[a-z_]+}')
 class HeroAction(JSONBaseView):
 
     @asyncio.coroutine
@@ -33,7 +33,7 @@ class HeroAction(JSONBaseView):
         game = GameController(get_old=True)
         hero = game.units.get(hero_id, '')
         hero_action = getattr(hero, action, getattr(game, action, None))
-        if hero and hero_action and callable(hero_action) and isinstance(value, int):
+        if hero and hero_action and callable(hero_action) and isinstance(value, (int, float)):
             parameter = hero if action == 'fire' else value
             hero_action(parameter)
             asyncio.async(game.run(loop=False))

@@ -1,7 +1,7 @@
 var FPS = 60;
 var TURN_ADDING = 2;
-var SPEED_ADDING = 0.02;
-var MAX_SPEED = 4;
+var SPEED_ADDING = 0.2;
+var MAX_SPEED = 70;
 
 var KEYCODE_UP = 38;
 var KEYCODE_DOWN = 40;
@@ -137,8 +137,10 @@ function tick(event) {
     //handle turning
     if (alive && leftPress) {
         hero.rotation -= TURN_ADDING;
+        sendAction('rotate', -TURN_ADDING);
     } else if (alive && rightPress) {
         hero.rotation += TURN_ADDING;
+        sendAction('rotate', TURN_ADDING);
     }
 
     //handle speed
@@ -147,12 +149,14 @@ function tick(event) {
         if (newSpeed >= -MAX_SPEED && newSpeed <= MAX_SPEED) {
             hero.speed = newSpeed;
             ShowSpeed(hero.speed);
+            sendAction('change_speed', SPEED_ADDING);
         }
     } else if (alive && downPress) {
         newSpeed = hero.speed - SPEED_ADDING;
         if (newSpeed >= -MAX_SPEED && newSpeed <= MAX_SPEED) {
             hero.speed = newSpeed;
             ShowSpeed(hero.speed);
+            sendAction('change_speed', -SPEED_ADDING);
         }
     }
 
