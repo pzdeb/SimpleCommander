@@ -19,7 +19,6 @@ class BaseCommandServer(object):
     def __init__(self, server_type=None, host=None, port=None, loop=None, templates=None):
         logging.info('Init %s Server on host %s:%s' % (server_type, host, port))
         self._server_type = server_type
-        self._controller = GameController(100, 100, 5)
         self._loop = loop or asyncio.get_event_loop()
         self._init_server(host, port)
 
@@ -40,6 +39,7 @@ class StreamCommandServer(BaseCommandServer):
 
     def _init_server(self, host, port):
         self._app = web.Application(loop=self._loop)
+        self._controller = GameController(100, 100, 5, self.notify_clients)
         self._server = websockets.serve(self.process_request, host, port)
 
     def __new__(cls, *args, **kwargs):
@@ -58,9 +58,15 @@ class StreamCommandServer(BaseCommandServer):
         while True:
             if not websocket.open:
                 break
-            yield from websocket.send(self._controller.get_serialized_units())
             yield from asyncio.sleep(STEP_INTERVAL)
+        if self._controller.units.get(my_hero.id):
+            del self._controller.units[my_hero.id]
         yield from websocket.close()
+
+    @asyncio.coroutine
+    def notify_clients(self, data):
+        for socket in self._server.websockets:
+            yield from socket.send(data)
 
 
 class HttpCommandServer(BaseCommandServer):
