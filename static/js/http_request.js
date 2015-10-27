@@ -8,7 +8,6 @@ function sendAction(action, value){
     };
     http.send(JSON.stringify({'value': value}));
 }
-
 function getCookie(cname) {
     var name = cname + "=";
     var ca = document.cookie.split(';');
