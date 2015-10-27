@@ -19,7 +19,7 @@ class BaseCommandServer(object):
     def __init__(self, server_type=None, host=None, port=None, loop=None, templates=None):
         logging.info('Init %s Server on host %s:%s' % (server_type, host, port))
         self._server_type = server_type
-        self._controller = GameController(100, 100, 5)
+        self._controller = GameController(600, 600, 1)
         self._loop = loop or asyncio.get_event_loop()
         self._init_server(host, port)
 
@@ -34,11 +34,6 @@ class BaseCommandServer(object):
         self._server.close()
         logging.info('%s has stopped.' % (self._server_type))
 
-    @classmethod
-    def get_game_ctr(cls, height=600, width=600, invaders=1):
-        if not cls._controller:
-            cls._controller = GameController(height, width, invaders)
-        return cls._controller
 
 class StreamCommandServer(BaseCommandServer):
     _instance = None

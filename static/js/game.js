@@ -27,7 +27,6 @@ var newSpeed;
 //register key functions
 document.onkeydown = handleKeyDown;
 document.onkeyup = handleKeyUp;
-var socket = sockets();
 
 
 function send(){
@@ -51,13 +50,7 @@ function gameStart() {
 function handleClick() {
     //prevent extra clicks and hide text
     canvas.onclick = null;
-    socket.onmessage = function(event) {
-        var data = JSON.parse(event.data);
-        if (data.id){
-            document.cookie = "hero_id=" + data.id;
-        }
-        console.log(data);
-    };
+    var socket = sockets();
     stage.removeChild(messageField);
 }
 
