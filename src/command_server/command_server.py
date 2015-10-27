@@ -19,7 +19,7 @@ class BaseCommandServer(object):
     def __init__(self, server_type=None, host=None, port=None, loop=None, templates=None):
         logging.info('Init %s Server on host %s:%s' % (server_type, host, port))
         self._server_type = server_type
-        self._controller = GameController(100, 100, 5)
+        self._controller = GameController(600, 600, 1)
         self._loop = loop or asyncio.get_event_loop()
         self._init_server(host, port)
 
