@@ -31,6 +31,7 @@ IMAGE_FILENAME = {'background': 'images/bg.png',
 DEFAULT_SPEED = 35
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
 UNIT_PROPERTIES = ['x0', 'y0', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count']
+MAX_ANGLE = 360
 
 
 class Unit(object):
@@ -80,7 +81,7 @@ class Unit(object):
         if x in range(min_width, max_width) and y in range(min_height, max_height):
             self.move_to(x, y)
         else:
-            self.reset()
+            self.reset(game_field)
 
     def move_to(self, x, y):
         logging.info('Move %s to new coordinate - (%s, %s)' % (self.__class__.__name__, x, y))
@@ -90,8 +91,13 @@ class Unit(object):
         self.y1 = y
 
     def rotate(self, angle):
-        logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, self.angle+angle))
-        self.angle += angle
+        new_angle = self.angle + angle
+        if new_angle > MAX_ANGLE:
+            new_angle -= MAX_ANGLE
+        elif new_angle < 0:
+            new_angle += MAX_ANGLE
+        logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, new_angle))
+        self.angle = new_angle
 
     def change_speed(self, speed):
         new_speed = self.speed + speed
@@ -109,7 +115,7 @@ class Unit(object):
                     (self.y1 > other_unit.y1 - other_unit.height / 2) and (self.y1 < other_unit.y1 + other_unit.height / 2):
                 self.kill(other_unit, all_units)  
 
-    def reset(self):
+    def reset(self, game_field):
         raise NotImplementedError
 
     def kill(self, other_unit, units):
@@ -125,8 +131,9 @@ class Invader(Unit):
             unit_filename = IMAGE_FILENAME.get('invader', [])[random_number]
         super(Invader, self).__init__(x, y, angle, bonus, speed, unit_filename, bullet_filename)
 
-    def reset(self):
+    def reset(self, game_field):
         self.angle = randint(0, 360)
+        self.compute_new_coordinate(game_field)
         logging.info('Reset %s angle. New angle - %s' % (self.__class__.__name__, self.angle))
 
     def kill(self, other_unit, units):
@@ -156,8 +163,10 @@ class Hero(Unit):
             self.is_dead = True
             units.remove(self)
 
-    def reset(self):
+    def reset(self, game_field):
         self.speed = 0
+        self.x0 = self.x1
+        self.y0 = self.y1
 
     def kill(self, other_unit, units):
         unit_class_name = other_unit. __class__.__name__
@@ -176,7 +185,7 @@ class Bullet(Unit):
         super(Bullet, self).__init__(unit.x0, unit.y0, unit.angle, 0, unit.speed * 2 or DEFAULT_SPEED,
                                      unit.bullet_filename, unit.bullet_filename)
 
-    def reset(self):
+    def reset(self, game_field):
         self.is_dead = True
         game = GameController(get_old=True)
         if game.units.get(self.id, ''):
