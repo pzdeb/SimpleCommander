@@ -7,6 +7,8 @@ var KEYCODE_UP = 38;
 var KEYCODE_DOWN = 40;
 var KEYCODE_LEFT = 37;
 var KEYCODE_RIGHT = 39;
+var KEYCODE_SPACE = 32;
+
 
 var leftPress;
 var rightPress;
@@ -77,8 +79,8 @@ function restart(heroObj, unitsObj) {
     hero.rotation = heroObj.rotation;
 
     //create Units
-    units = [];
-    units.push(hero);
+    units = {};
+    units[hero.id] = hero;
 
     //ensure stage is blank and add the hero
     stage.clear();
@@ -93,7 +95,7 @@ function restart(heroObj, unitsObj) {
             unit.y = unitsObj[i].y0;
             unit.speed = unitsObj[i].speed;
             unit.rotation = unitsObj[i].angle;
-            units.push(unit);
+            units[unit.id] = unit;
             stage.addChild(unit);
         }
     }
@@ -116,31 +118,32 @@ function ShowSpeed(value) {
 }
 
 function unitsUpdate(heroObj, unitsObj) {
-    for (var i = 0; i < units.length; i++) {
-        units[i].rotation = unitsObj[units[i].id].angle;
-
-        units[i].x0 = unitsObj[units[i].id].x0;
-        units[i].y0 = unitsObj[units[i].id].y0;
-
-        units[i].x1 = unitsObj[units[i].id].x1;
-        units[i].y1 = unitsObj[units[i].id].y1;
-
-        units[i].x = unitsObj[units[i].id].x0;
-        units[i].y = unitsObj[units[i].id].y0;
-
-        units[i].speedTick = units[i].speed / window.frequency / FPS
+    for (var key in units) {
+        if (unitsObj.hasOwnProperty(key)){
+            units[key].rotation = unitsObj[key].angle;
+            units[key].x0 = unitsObj[key].x0;
+            units[key].y0 = unitsObj[key].y0;
+            units[key].x1 = unitsObj[key].x1;
+            units[key].y1 = unitsObj[key].y1;
+            units[key].x = unitsObj[key].x0;
+            units[key].y = unitsObj[key].y0;
+            units[key].speedTick = units[key].speed / window.frequency / FPS
+        }
     }
 }
-
+//
+//function unitUpdate(unitObj){
+//
+//}
 
 function tick(event) {
     //handle turning
     if (alive && leftPress) {
-        hero.rotation -= TURN_ADDING;
         sendAction('rotate', -TURN_ADDING);
+        //hero.rotation -= TURN_ADDING;
     } else if (alive && rightPress) {
-        hero.rotation += TURN_ADDING;
         sendAction('rotate', TURN_ADDING);
+        //hero.rotation += TURN_ADDING;
     }
 
     //handle speed
@@ -160,7 +163,7 @@ function tick(event) {
         }
     }
 
-    for (var i = 0; i < units.length; i++){
+    for (var i in units){
         if (units[i].speed != 0 && units[i].speedTick) {
             if (units[i].x != units[i].x1 || units[i].y != units[i].y1) {
                 units[i].x = window.width - units[i].x;
@@ -195,6 +198,9 @@ function handleKeyDown(e) {
             return false;
         case KEYCODE_DOWN:
             downPress = true;
+            return false;
+        case KEYCODE_SPACE:
+            console.log('space');
             return false;
     }
 }

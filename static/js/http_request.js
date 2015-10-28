@@ -3,9 +3,6 @@ function sendAction(action, value){
     var url = "api/hero/" + window.heroId + "/action/" + action;
     http.open("POST", url, true);
     http.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-    http.onload = function () {
-        console.log(this.responseText);
-    };
     http.send(JSON.stringify({'value': value}));
 }
 function getCookie(cname) {
