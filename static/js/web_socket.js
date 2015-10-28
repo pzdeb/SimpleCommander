@@ -29,6 +29,8 @@ function sockets(){
             frequency = answer.frequency;
             height = answer.field.height;
             width = answer.field.width;
+            document.getElementById('gameCanvas').width=width;
+            document.getElementById('gameCanvas').height=height;
             heroId = answer.id;
         }
         else if (units.length == 0) {
