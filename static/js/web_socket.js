@@ -21,10 +21,10 @@ function sockets(){
     };
 
     socket.onmessage = function(event) {
-        var answer = JSON.parse(event.data) || event.data;
+        var answer = JSON.parse(event.data);
         console.log(answer);
-        if (answer.id)
-            document.cookie = "hero_id=" + answer.id;
+        //if (answer.id)
+        //    document.cookie = "hero_id=" + answer.id;
         if (answer.hasOwnProperty('frequency')) {
             frequency = answer.frequency;
             height = answer.field.height;
@@ -36,6 +36,9 @@ function sockets(){
             hero = units[heroId];
             restart(hero, units);
         }
+        //else if (answer.hasOwnProperty('update')){
+        //    unitUpdate(answer['update']);
+        //}
         else {
             units = answer;
             hero = units[heroId];
