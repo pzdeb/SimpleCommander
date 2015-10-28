@@ -1,22 +1,29 @@
+import aiohttp_jinja2
 import asyncio
 import configparser
+import jinja2
+import json
 import logging
-import views
+import src.core.views
 import websockets
 
-from aiohttp import server, web
+from aiohttp import web
 from time import gmtime, strftime
 
-from generic import routes
-from controllers.main import run
+from src.core.generic import routes
+from src.simple_commander.controllers.main import GameController, STEP_INTERVAL
+
 
 class BaseCommandServer(object):
 
-    def __init__(self, server_type=None, host=None, port=None, loop=None):
+    def __init__(self, server_type=None, host=None, port=None, loop=None, templates=None):
         logging.info('Init %s Server on host %s:%s' % (server_type, host, port))
         self._server_type = server_type
         self._loop = loop or asyncio.get_event_loop()
         self._init_server(host, port)
+
+        if templates:
+            aiohttp_jinja2.setup(self._app, loader=jinja2.FileSystemLoader(templates))
 
     def start(self):
         self._server = self._loop.run_until_complete(self._server)
@@ -32,7 +39,8 @@ class StreamCommandServer(BaseCommandServer):
 
     def _init_server(self, host, port):
         self._app = web.Application(loop=self._loop)
-        self._server = websockets.serve(run, host, port)
+        self._controller = GameController(600, 600, 1, self.notify_clients)
+        self._server = websockets.serve(self.process_request, host, port)
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -41,10 +49,24 @@ class StreamCommandServer(BaseCommandServer):
 
     @asyncio.coroutine
     def process_request(self, websocket, path):
+        asyncio.async(self._controller.run())
+        my_hero = self._controller.set_hero()
+        start_conditions = {'id': my_hero.id,
+                            'frequency': STEP_INTERVAL,
+                            'field': self._controller.game_field}
+        yield from websocket.send(json.dumps(start_conditions))
         while True:
-            yield from websocket.send(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
-            yield from asyncio.sleep(2)
+            if not websocket.open:
+                break
+            yield from asyncio.sleep(STEP_INTERVAL)
+        if self._controller.units.get(my_hero.id):
+            del self._controller.units[my_hero.id]
         yield from websocket.close()
+
+    @asyncio.coroutine
+    def notify_clients(self, data):
+        for socket in self._server.websockets:
+            yield from socket.send(data)
 
 
 class HttpCommandServer(BaseCommandServer):
@@ -53,6 +75,7 @@ class HttpCommandServer(BaseCommandServer):
     def _init_server(self, host, port):
         self._app = web.Application()
         self._load_routes()
+        self._load_static()
         self._server = self._loop.create_server(self._app.make_handler(),
                                                 host, port)
 
@@ -66,16 +89,22 @@ class HttpCommandServer(BaseCommandServer):
         for route in routes.ROUTES:
             self._app.router.add_route(*route)
 
+    def _load_static(self):
+        self._app.router.add_static('/static', static_path)
+
 
 if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read('etc/command_server.conf')
     host = config.get('commandServer', 'host')
-    port = config.get('commandServer', 'port')
+    http_port = config.get('commandServer', 'http_port')
+    stream_port = config.get('commandServer', 'stream_port')
+    static_path = config.get('commandServer', 'static_path')
+    templates = config.get('commandServer', 'templates')
     logging.basicConfig(level=logging.DEBUG)
     loop = asyncio.get_event_loop()
-    server = HttpCommandServer(server_type='Http Server', host=host, port=port, loop=loop)
-    socket_server = StreamCommandServer(server_type='Stream Server', host=host, port=8765, loop=loop)
+    server = HttpCommandServer(server_type='Http Server', host=host, port=http_port, loop=loop, templates=templates)
+    socket_server = StreamCommandServer(server_type='Stream Server', host=host, port=stream_port, loop=loop)
     try:
         server.start()
         socket_server.start()
