@@ -118,6 +118,7 @@ function ShowSpeed(value) {
 }
 
 function unitsUpdate(heroObj, unitsObj) {
+    ShowSpeed(heroObj.speed);
     for (var key in units) {
         if (unitsObj.hasOwnProperty(key)){
             units[key].rotation = unitsObj[key].angle;
