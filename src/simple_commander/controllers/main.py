@@ -2,7 +2,6 @@
 import asyncio
 import datetime
 import json
-import time
 import uuid
 
 import logging
@@ -56,8 +55,8 @@ class Unit(object):
         self.id = str(uuid.uuid4())
         self.is_dead = False
         self.shift = 5
-        self.rotation = 0
-        self.direction = 0
+        self.stop_rotate = 'stop'
+        self.stop_change_speed = 'stop'
 
     def response(self, action, **kwargs):
         controller = GameController(get_old=True)
@@ -76,7 +75,7 @@ class Unit(object):
         y = game_field.get('height', 0) - y
         return x, y
 
-    def compute_new_coordinate(self, game_field, interval=None):
+    def compute_new_coordinate(self, game_field, interval):
         min_height = int(0 + self.height / 2)
         min_width = int(0 + self.width / 2)
         max_height = int(game_field.get('height', 0) - self.height / 2)
@@ -85,10 +84,9 @@ class Unit(object):
         #     interval = (datetime.datetime.now() - self.time_last_calculation).total_seconds()
         # else:
         #     interval = STEP_INTERVAL
-        real_interval = interval or ACTION_INTERVAL
         x0, y0 = self.translate(self.x1, self.y1, game_field)
-        x = round(x0 + self.speed * real_interval * math.sin(round(math.radians(self.angle), 2)))
-        y = round(y0 + self.speed * real_interval * math.cos(round(math.radians(self.angle), 2)))
+        x = round(x0 + self.speed * interval * math.sin(round(math.radians(self.angle), 2)))
+        y = round(y0 + self.speed * interval * math.cos(round(math.radians(self.angle), 2)))
         x, y = self.translate(x, y, game_field)
         self.time_last_calculation = datetime.datetime.now()
         if x in range(min_width, max_width) and y in range(min_height, max_height):
@@ -106,8 +104,8 @@ class Unit(object):
 
     @asyncio.coroutine
     def rotate(self, side):
-        while self.rotation:
-            new_angle = self.angle + ANGLE if side == 2 else self.angle - ANGLE
+        while self.stop_rotate != 'stop':
+            new_angle = self.angle + ANGLE if side == 'right' else self.angle - ANGLE
             if new_angle > MAX_ANGLE:
                 new_angle -= MAX_ANGLE
             elif new_angle < 0:
@@ -119,8 +117,8 @@ class Unit(object):
             yield from asyncio.sleep(ACTION_INTERVAL)
 
     def change_speed(self, direct):
-        while self.direction:
-            new_speed = self.speed + SPEED if direct == 2 else self.speed - SPEED
+        while self.stop_change_speed != 'stop':
+            new_speed = self.speed + SPEED if direct == 'front' else self.speed - SPEED
             self.speed = new_speed > 0 and new_speed or 0
             logging.info('Change %s speed to %s' % (self.__class__.__name__, self.speed))
             game = GameController(get_old=True)
@@ -156,7 +154,7 @@ class Invader(Unit):
 
     def reset(self, game_field):
         self.angle = randint(0, 360)
-        self.compute_new_coordinate(game_field)
+        self.compute_new_coordinate(game_field, STEP_INTERVAL)
         logging.info('Reset %s angle. New angle - %s' % (self.__class__.__name__, self.angle))
 
     def kill(self, other_unit, units):
@@ -236,7 +234,7 @@ class Bullet(Unit):
 class GameController(object):
     _instance = None
     _launched = False
-    stop = False
+    ignore_heroes = []
 
     def __init__(self, height=None, width=None, invaders_count=None, notify_clients=None, get_old=False):
         if get_old:
@@ -294,13 +292,14 @@ class GameController(object):
             '''this code for moving invaders. Work as a job.
                 We set moving_speed for positive - if reach the left coordinate of our game field
                 or negative  - if we reach the right coordinate of our game field '''
-            while not self.stop:
+            while True:
+                print(self.ignore_heroes)
                 for unit in list(self.units.keys()):
                     if self.units.get(unit):
-                        if self.units[unit].speed:
-                            self.units[unit].compute_new_coordinate(self.game_field)
+                        if self.units[unit].speed and unit not in self.ignore_heroes:
+                            print(unit)
+                            self.units[unit].compute_new_coordinate(self.game_field, STEP_INTERVAL)
                         for key in list(self.units.keys()):
                             if self.units.get(unit) and self.units.get(key):
                                 self.units[unit].check_collision(self.units[key], self.units)
-                # yield from self.notify_clients(self.get_serialized_units())
                 yield from asyncio.sleep(STEP_INTERVAL)

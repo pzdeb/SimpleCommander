@@ -22,25 +22,28 @@ class HelloWorldJsonView(JSONBaseView):
         return {'message': 'Hello! This is JSON'}
 
 
-@url_route('/api/hero/{hero_id:[a-z0-9-]+}/action/{action:[a-z_]+}/{run:[0-2]+}')
+@url_route('/api/hero/{hero_id:[a-z0-9-]+}/action/{action:[a-z_]+}/{direct:(stop)|(left)|(right)|(front)|(back)}')
 class HeroAction(JSONBaseView):
 
     @asyncio.coroutine
-    def post(self, request, hero_id=None, action=None, run=None, *args, **kwargs):
+    def post(self, request, hero_id=None, action=None, direct=None, *args, **kwargs):
         game = GameController(get_old=True)
         hero = game.units.get(hero_id, '')
         hero_action = getattr(hero, action, getattr(game, action, None))
         if hero and hero_action and callable(hero_action):
-            run = int(run)
-            parameter = hero if action == 'fire' else run
-            game.stop = True
+            if direct == 'stop':
+                try:
+                    game.ignore_heroes.remove(hero_id)
+                except ValueError:
+                    pass
+            else:
+                game.ignore_heroes.append(hero_id)
+            parameter = hero if action == 'fire' else direct
             if action == 'rotate':
-                hero.rotation = run
+                hero.stop_rotate = direct
             elif action == 'change_speed':
-                hero.direction = run
+                hero.stop_change_speed = direct
             asyncio.async(hero_action(parameter))
-            game.stop = False
-            asyncio.async(game.run())
         else:
             return {'error': 'bad request'}
 

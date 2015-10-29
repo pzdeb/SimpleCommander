@@ -161,25 +161,25 @@ function handleKeyDown(e) {
         case KEYCODE_LEFT:
             if (!leftPress){
                 leftPress = true;
-                sendAction('rotate', 1)
+                sendAction('rotate', 'left')
             }
             return false;
         case KEYCODE_RIGHT:
             if (!leftPress){
                 leftPress = true;
-                sendAction('rotate', 2)
+                sendAction('rotate', 'right')
             }
             return false;
         case KEYCODE_UP:
              if (!speed){
                 speed = true;
-                sendAction('change_speed', 2)
+                sendAction('change_speed', 'front')
              }
             return false;
         case KEYCODE_DOWN:
             if (!speed){
                 speed = true;
-                sendAction('change_speed', 1)
+                sendAction('change_speed', 'back')
             }
             return false;
         case KEYCODE_SPACE:
@@ -197,25 +197,25 @@ function handleKeyUp(e) {
         case KEYCODE_LEFT:
             if (leftPress){
                 leftPress = false;
-                sendAction('rotate', 0)
+                sendAction('rotate', 'stop')
             }
             break;
         case KEYCODE_RIGHT:
             if (leftPress){
                 leftPress = false;
-                sendAction('rotate', 0)
+                sendAction('rotate', 'stop')
             }
             break;
         case KEYCODE_UP:
            if (speed){
                 speed = false;
-                sendAction('change_speed', 0)
+                sendAction('change_speed', 'stop')
            }
             break;
         case KEYCODE_DOWN:
             if (speed){
                 speed = false;
-                sendAction('change_speed', 0)
+                sendAction('change_speed', 'stop')
             }
             break;
     }
