@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import asyncio
-import datetime
 import json
 import uuid
+from datetime import datetime
 
 import logging
 
@@ -42,7 +42,7 @@ class Unit(object):
     def __init__(self, x, y, angle, bonus, speed, unit_filename, bullet_filename):
         self.image_filename = unit_filename
         self.bullet_filename = bullet_filename
-        self.time_last_calculation = datetime.datetime.now()
+        self.time_last_calculation = datetime.now()
         self.x = x
         self.y = y
         self.x1 = x
@@ -80,15 +80,21 @@ class Unit(object):
         min_width = int(0 + self.width / 2)
         max_height = int(game_field.get('height', 0) - self.height / 2)
         max_width = int(game_field.get('width', 0) - self.width / 2)
-        # if (datetime.datetime.now() - self.time_last_calculation).total_seconds() < STEP_INTERVAL:
-        #     interval = (datetime.datetime.now() - self.time_last_calculation).total_seconds()
-        # else:
-        #     interval = STEP_INTERVAL
+
+        # Calculate real position
+        time_from_last_calculate = (datetime.now() - self.time_last_calculation).total_seconds()
+        x0, y0 = self.translate(self.x, self.y, game_field)
+        x = round(x0 + self.speed * time_from_last_calculate * math.sin(round(math.radians(self.angle), 2)))
+        y = round(y0 + self.speed * time_from_last_calculate * math.cos(round(math.radians(self.angle), 2)))
+        self.x1, self.y1 = self.translate(x, y, game_field)
+
+        # Calculate future position
         x0, y0 = self.translate(self.x1, self.y1, game_field)
         x = round(x0 + self.speed * interval * math.sin(round(math.radians(self.angle), 2)))
         y = round(y0 + self.speed * interval * math.cos(round(math.radians(self.angle), 2)))
         x, y = self.translate(x, y, game_field)
-        self.time_last_calculation = datetime.datetime.now()
+
+        self.time_last_calculation = datetime.now()
         if x in range(min_width, max_width) and y in range(min_height, max_height):
             self.move_to(x, y)
         else:
@@ -234,7 +240,6 @@ class Bullet(Unit):
 class GameController(object):
     _instance = None
     _launched = False
-    ignore_heroes = []
 
     def __init__(self, height=None, width=None, invaders_count=None, notify_clients=None, get_old=False):
         if get_old:
@@ -293,11 +298,10 @@ class GameController(object):
                 We set moving_speed for positive - if reach the left coordinate of our game field
                 or negative  - if we reach the right coordinate of our game field '''
             while True:
-                print(self.ignore_heroes)
                 for unit in list(self.units.keys()):
                     if self.units.get(unit):
-                        if self.units[unit].speed and unit not in self.ignore_heroes:
-                            print(unit)
+                        if self.units[unit].speed and (datetime.now() -
+                                                       self.units[unit].time_last_calculation).total_seconds() >= STEP_INTERVAL:
                             self.units[unit].compute_new_coordinate(self.game_field, STEP_INTERVAL)
                         for key in list(self.units.keys()):
                             if self.units.get(unit) and self.units.get(key):

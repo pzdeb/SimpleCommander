@@ -76,7 +76,7 @@ function restart(heroObj, unitsObj) {
     hero.x = heroObj.x;
     hero.y = heroObj.y;
     hero.speed = heroObj.speed;
-    hero.rotation = heroObj.rotation;
+    hero.rotation = heroObj.angle;
 
     //create Units
     units = {};

@@ -31,13 +31,6 @@ class HeroAction(JSONBaseView):
         hero = game.units.get(hero_id, '')
         hero_action = getattr(hero, action, getattr(game, action, None))
         if hero and hero_action and callable(hero_action):
-            if direct == 'stop':
-                try:
-                    game.ignore_heroes.remove(hero_id)
-                except ValueError:
-                    pass
-            else:
-                game.ignore_heroes.append(hero_id)
             parameter = hero if action == 'fire' else direct
             if action == 'rotate':
                 hero.stop_rotate = direct
