@@ -194,6 +194,7 @@ class Hero(Unit):
         self.speed = 0
         self.x = self.x1
         self.y = self.y1
+        self.response('update')
 
     def kill(self, other_unit, units):
         unit_class_name = other_unit. __class__.__name__
