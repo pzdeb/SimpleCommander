@@ -36,7 +36,7 @@ function sockets(){
             hero = units[heroId];
             restart(hero, units);
         }
-        else if (answer.hasOwnProperty('update')){
+        else if (answer && answer.hasOwnProperty('update')){
             unitUpdate(answer['update']);
         }
     };
