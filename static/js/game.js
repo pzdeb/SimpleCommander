@@ -89,8 +89,11 @@ function restart(heroObj, unitsObj) {
 
     for (var i in unitsObj) {
         if (unitsObj[i].id != hero.id) {
-            var unit = new createjs.Shape();
-            unit.graphics.beginFill("Black").drawRect(0, 0, 10, 15);
+            var unit = new createjs.Bitmap("static/images/invader2.jpg");
+            unit.scaleX = 0.3;
+            unit.scaleY = 0.3;
+            //var unit = new createjs.Shape();
+            //unit.graphics.beginFill("Black").drawRect(0, 0, 10, 15);
             unit.id = unitsObj[i].id;
             unit.x = unitsObj[i].x;
             unit.y = unitsObj[i].y;
