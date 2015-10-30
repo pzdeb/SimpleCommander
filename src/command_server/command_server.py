@@ -39,7 +39,7 @@ class StreamCommandServer(BaseCommandServer):
 
     def _init_server(self, host, port):
         self._app = web.Application(loop=self._loop)
-        self._controller = GameController(600, 600, 1, self.notify_clients)
+        self._controller = GameController(600, 600, 0, self.notify_clients)
         self._server = websockets.serve(self.process_request, host, port)
 
     def __new__(cls, *args, **kwargs):
@@ -55,6 +55,7 @@ class StreamCommandServer(BaseCommandServer):
                             'frequency': STEP_INTERVAL,
                             'field': self._controller.game_field}
         yield from websocket.send(json.dumps(start_conditions))
+        yield from websocket.send(self._controller.get_serialized_units())
         while True:
             if not websocket.open:
                 break
