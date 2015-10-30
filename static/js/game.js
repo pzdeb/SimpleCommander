@@ -132,6 +132,7 @@ function unitUpdate(unitObj){
 }
 
 function tick(event) {
+    ShowSpeed(hero.speed);
 
     for (var i in units){
         if (units[i].speed != 0 && units[i].speedTick) {
@@ -171,15 +172,15 @@ function handleKeyDown(e) {
             }
             return false;
         case KEYCODE_UP:
-             if (!speed){
+            if (!speed){
                 speed = true;
-                sendAction('change_speed', 'front')
-             }
+                sendAction('change_speed', 'front');
+            }
             return false;
         case KEYCODE_DOWN:
             if (!speed){
                 speed = true;
-                sendAction('change_speed', 'back')
+                sendAction('change_speed', 'back');
             }
             return false;
         case KEYCODE_SPACE:
