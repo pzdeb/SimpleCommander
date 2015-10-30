@@ -70,8 +70,9 @@ function restart(heroObj, unitsObj) {
 
     //create the player
     alive = true;
-    hero = new createjs.Shape();
-    hero.graphics.beginFill("DeepSkyBlue").drawRect(0, 0, 10, 15);
+    hero = new createjs.Bitmap("static/images/hero.png");
+    hero.scaleX = 0.2;
+    hero.scaleY = 0.2;
     hero.id = heroObj.id;
     hero.x = heroObj.x0;
     hero.y = heroObj.y0;
