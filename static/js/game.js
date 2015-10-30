@@ -73,10 +73,10 @@ function restart(heroObj, unitsObj) {
     hero = new createjs.Shape();
     hero.graphics.beginFill("DeepSkyBlue").drawRect(0, 0, 10, 15);
     hero.id = heroObj.id;
-    hero.x = heroObj.x0;
-    hero.y = heroObj.y0;
+    hero.x = heroObj.x;
+    hero.y = heroObj.y;
     hero.speed = heroObj.speed;
-    hero.rotation = heroObj.rotation;
+    hero.rotation = heroObj.angle;
 
     //create Units
     units = {};
@@ -91,8 +91,8 @@ function restart(heroObj, unitsObj) {
             var unit = new createjs.Shape();
             unit.graphics.beginFill("Black").drawRect(0, 0, 10, 15);
             unit.id = unitsObj[i].id;
-            unit.x = unitsObj[i].x0;
-            unit.y = unitsObj[i].y0;
+            unit.x = unitsObj[i].x;
+            unit.y = unitsObj[i].y;
             unit.speed = unitsObj[i].speed;
             unit.rotation = unitsObj[i].angle;
             units[unit.id] = unit;
@@ -117,52 +117,22 @@ function ShowSpeed(value) {
     scoreField.text = Number(value).toString();
 }
 
-function unitsUpdate(heroObj, unitsObj) {
-    ShowSpeed(heroObj.speed);
-    for (var key in units) {
-        if (unitsObj.hasOwnProperty(key)){
-            units[key].rotation = unitsObj[key].angle;
-            units[key].x0 = unitsObj[key].x0;
-            units[key].y0 = unitsObj[key].y0;
-            units[key].x1 = unitsObj[key].x1;
-            units[key].y1 = unitsObj[key].y1;
-            units[key].x = unitsObj[key].x0;
-            units[key].y = unitsObj[key].y0;
-            units[key].speedTick = units[key].speed / window.frequency / FPS
+function unitUpdate(unitObj){
+    var id = unitObj['id']
+    for (var key in unitObj){
+        if (units[id].hasOwnProperty(key)){
+            units[id][key] = unitObj[key]
+
+        }
+        else if(key = 'angle'){
+            units[id]['rotation'] = unitObj[key]
         }
     }
+    units[id].speedTick = units[id].speed / window.frequency / FPS
 }
-//
-//function unitUpdate(unitObj){
-//
-//}
 
 function tick(event) {
-    //handle turning
-    if (alive && leftPress) {
-        sendAction('rotate', -TURN_ADDING);
-        //hero.rotation -= TURN_ADDING;
-    } else if (alive && rightPress) {
-        sendAction('rotate', TURN_ADDING);
-        //hero.rotation += TURN_ADDING;
-    }
-
-    //handle speed
-    if (alive && upPress) {
-        newSpeed = hero.speed + SPEED_ADDING;
-        if (newSpeed >= -MAX_SPEED && newSpeed <= MAX_SPEED) {
-            hero.speed = newSpeed;
-            ShowSpeed(hero.speed);
-            sendAction('change_speed', SPEED_ADDING);
-        }
-    } else if (alive && downPress) {
-        newSpeed = hero.speed - SPEED_ADDING;
-        if (newSpeed >= -MAX_SPEED && newSpeed <= MAX_SPEED) {
-            hero.speed = newSpeed;
-            ShowSpeed(hero.speed);
-            sendAction('change_speed', -SPEED_ADDING);
-        }
-    }
+    ShowSpeed(hero.speed);
 
     for (var i in units){
         if (units[i].speed != 0 && units[i].speedTick) {
@@ -180,7 +150,8 @@ function tick(event) {
     stage.update();
 
 }
-
+var rotate = false;
+var speed = false;
 //allow for arrow control scheme
 function handleKeyDown(e) {
     //cross browser issues exist
@@ -189,16 +160,28 @@ function handleKeyDown(e) {
     }
     switch (e.keyCode) {
         case KEYCODE_LEFT:
-            leftPress = true;
+            if (!leftPress){
+                leftPress = true;
+                sendAction('rotate', 'left')
+            }
             return false;
         case KEYCODE_RIGHT:
-            rightPress = true;
+            if (!leftPress){
+                leftPress = true;
+                sendAction('rotate', 'right')
+            }
             return false;
         case KEYCODE_UP:
-            upPress = true;
+            if (!speed){
+                speed = true;
+                sendAction('change_speed', 'front');
+            }
             return false;
         case KEYCODE_DOWN:
-            downPress = true;
+            if (!speed){
+                speed = true;
+                sendAction('change_speed', 'back');
+            }
             return false;
         case KEYCODE_SPACE:
             console.log('space');
@@ -213,16 +196,28 @@ function handleKeyUp(e) {
     }
     switch (e.keyCode) {
         case KEYCODE_LEFT:
-            leftPress = false;
+            if (leftPress){
+                leftPress = false;
+                sendAction('rotate', 'stop')
+            }
             break;
         case KEYCODE_RIGHT:
-            rightPress = false;
+            if (leftPress){
+                leftPress = false;
+                sendAction('rotate', 'stop')
+            }
             break;
         case KEYCODE_UP:
-            upPress = false;
+           if (speed){
+                speed = false;
+                sendAction('change_speed', 'stop')
+           }
             break;
         case KEYCODE_DOWN:
-            downPress = false;
+            if (speed){
+                speed = false;
+                sendAction('change_speed', 'stop')
+            }
             break;
     }
 }
