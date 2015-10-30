@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import asyncio
-import json
 import uuid
 from datetime import datetime
 
@@ -59,10 +58,13 @@ class Unit(object):
         self.stop_change_speed = 'stop'
 
     def response(self, action, **kwargs):
-        controller = GameController(get_old=True)
+        controller = get_game()
+        if not controller:
+            return
         kwargs['id'] = self.id
         data = {action: self.to_dict()}
-        asyncio.async(controller.notify_clients(json.dumps(data)))
+
+        asyncio.async(controller.notify_clients(data))
 
     def to_dict(self):
         result = {}
@@ -118,7 +120,7 @@ class Unit(object):
                 new_angle += MAX_ANGLE
             logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, new_angle))
             self.angle = new_angle
-            game = GameController(get_old=True)
+            game = get_game()
             self.compute_new_coordinate(game.game_field, ACTION_INTERVAL)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
@@ -127,7 +129,7 @@ class Unit(object):
             new_speed = self.speed + SPEED if direct == 'front' else self.speed - SPEED
             self.speed = new_speed > 0 and new_speed or 0
             logging.info('Change %s speed to %s' % (self.__class__.__name__, self.speed))
-            game = GameController(get_old=True)
+            game = get_game()
             self.compute_new_coordinate(game.game_field, ACTION_INTERVAL)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
@@ -214,7 +216,7 @@ class Bullet(Unit):
 
     def reset(self, game_field):
         self.is_dead = True
-        game = GameController(get_old=True)
+        game = get_game()
         if game.units.get(self.id, ''):
             del game.units[self.id]
 
@@ -237,13 +239,23 @@ class Bullet(Unit):
         del units[self.id]
 
 
+__game = None
+
+def get_game(height=None, width=None, invaders_count=None, notify_clients=None):
+    global __game
+
+    if not __game and height and width and invaders_count is not None:
+        __game = GameController(height=height,
+                                width=width,
+                                invaders_count=invaders_count,
+                                notify_clients=notify_clients)
+    return __game
+
 class GameController(object):
     _instance = None
     _launched = False
 
-    def __init__(self, height=None, width=None, invaders_count=None, notify_clients=None, get_old=False):
-        if get_old:
-            return
+    def __init__(self, height=None, width=None, invaders_count=None, notify_clients=None):
         self.game_field = {'image_filename': IMAGE_FILENAME.get('background', ''), 'height': height, 'width': width}
         self.invaders_count = invaders_count
         self.units = {}
@@ -255,12 +267,16 @@ class GameController(object):
             cls._instance = super(GameController, cls).__new__(cls)
         return cls._instance
 
+    def new_unit(self, unit):
+        self.units[unit.id] = unit
+        unit.response('new')
+
     def set_hero(self):
         pos_x = randint(0, self.game_field['width'])
         pos_y = randint(0, self.game_field['height'])
         angle = randint(0, 360)
         hero = Hero(pos_x, pos_y, angle)
-        self.units[hero.id] = hero
+        self.new_unit(hero)
         return hero
 
     def set_invaders(self):
@@ -269,23 +285,18 @@ class GameController(object):
             pos_y = randint(0, self.game_field['height'])
             angle = randint(0, 360)
             invader = Invader(pos_x, pos_y, angle)
-            self.units[invader.id] = invader
+            self.new_unit(invader)
 
     def fire(self, unit):
         logging.info('Fire!! Creating bullet!')
         bullet = Bullet(unit)
-        self.units[bullet.id] = bullet
-        data = {
-            'fired_id': unit.id,
-            'bullet': bullet.to_dict()
-        }
-        asyncio.async(self.notify_clients(json.dumps(data)))
+        self.new_unit(bullet)
 
-    def get_serialized_units(self):
+    def get_units(self):
         units = []
         if len(self.units):
             units = {unit: self.units[unit].to_dict() for unit in self.units}
-        return json.dumps(units)
+        return units
 
     @asyncio.coroutine
     def run(self):

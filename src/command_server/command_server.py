@@ -55,7 +55,7 @@ class StreamCommandServer(BaseCommandServer):
                             'frequency': STEP_INTERVAL,
                             'field': self._controller.game_field}
         yield from websocket.send(json.dumps(start_conditions))
-        yield from websocket.send(self._controller.get_serialized_units())
+        yield from websocket.send(json.dumps(self._controller.get_units()))
         while True:
             if not websocket.open:
                 break
@@ -67,7 +67,7 @@ class StreamCommandServer(BaseCommandServer):
     @asyncio.coroutine
     def notify_clients(self, data):
         for socket in self._server.websockets:
-            yield from socket.send(data)
+            yield from socket.send(json.dumps(data))
 
 
 class HttpCommandServer(BaseCommandServer):
