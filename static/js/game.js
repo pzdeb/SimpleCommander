@@ -30,38 +30,44 @@ var newSpeed;
 
 
 function GameController(canvas) {
+    this.hero = null;
     this.units = {};
     this.rotate = false;
     this.speed = false;
     this.canvas = canvas;
 
-    document.onkeydown = this.handleKeyDown;
-    document.onkeyup = this.handleKeyUp;
+    var controller = this;
+    document.onkeydown = function(e) { controller.handleKeyDown(e); };
+    document.onkeyup = function(e) { controller.handleKeyUp(e); };
 
 
     this.prepareGame = function() {
-        this.stage = new createjs.Stage(canvas);
-        messageField = new createjs.Text("Welcome: Click to play", "bold 24px Arial", "#000");
-        messageField.maxWidth = 1000;
-        messageField.textAlign = "center";
-        messageField.textBaseline = "middle";
-        messageField.x = this.canvas.width / 2;
-        messageField.y = this.canvas.height / 2;
-        this.stage.addChild(messageField);
+        this.stage = new createjs.Stage(this.canvas);
+        this.messageField = new createjs.Text("Welcome: Click to play", "bold 24px Arial", "#000");
+        this.messageField.maxWidth = 1000;
+        this.messageField.textAlign = "center";
+        this.messageField.textBaseline = "middle";
+        this.messageField.x = this.canvas.width / 2;
+        this.messageField.y = this.canvas.height / 2;
+        this.stage.addChild(this.messageField);
         this.stage.update();     //update the stage to show text
     };
 
     this.startGame = function() {
-        var socket = createSocket(this.onMessage);
-        this.stage.removeChild(messageField);
+        var socket = createSocket(this);
+        this.stage.removeChild(this.messageField);
+        this.stage.update();
     };
 
-    this.onMessage = function (event) {
+    this.onData = function (event) {
         var answer = JSON.parse(event.data);
         console.log(answer);
 
         for (var key in answer){
             switch (key) {
+                case 'init':
+                    this.restart(answer.init.hero, answer.init.units);
+                    break;
                 case 'frequency':
                     //TODO: does it have any logic? Can we get gid of it?
                     frequency = answer.frequency;
@@ -87,35 +93,35 @@ function GameController(canvas) {
 
     this.restart = function(heroObj, unitsObj) {
         //hide anything on stage and show the score
-        stage.removeAllChildren();
+        this.stage.removeAllChildren();
         scoreField = new createjs.Text("0", "bold 18px Arial", "#FFFFFF");
         scoreField.textAlign = "right";
         scoreField.x = canvas.width - 20;
         scoreField.y = 20;
         scoreField.maxWidth = 1000;
         scoreField.text = (0).toString();
-        stage.addChild(scoreField);
+        this.stage.addChild(scoreField);
 
         //create the player
-        alive = true;
-        hero = new createjs.Shape();
-        hero.graphics.beginFill("DeepSkyBlue").drawRect(0, 0, 10, 15);
-        hero.id = heroObj.id;
-        hero.x = heroObj.x;
-        hero.y = heroObj.y;
-        hero.speed = heroObj.speed;
-        hero.rotation = heroObj.angle;
+        this.alive = true;
+        this.hero = new createjs.Shape();
+        this.hero.graphics.beginFill("DeepSkyBlue").drawRect(0, 0, 10, 15);
+        this.hero.id = heroObj.id;
+        this.hero.x = heroObj.x;
+        this.hero.y = heroObj.y;
+        this.hero.speed = heroObj.speed;
+        this.hero.rotation = heroObj.angle;
 
         //create Units
-        units = {};
-        units[hero.id] = hero;
+        this.units = {};
+        this.units[this.hero.id] = this.hero;
 
         //ensure stage is blank and add the hero
-        stage.clear();
-        stage.addChild(hero);
+        this.stage.clear();
+        this.stage.addChild(this.hero);
 
         for (var i in unitsObj) {
-            if (unitsObj[i].id != hero.id) {
+            if (unitsObj[i].id != this.hero.id) {
                 var unit = new createjs.Shape();
                 unit.graphics.beginFill("Black").drawRect(0, 0, 10, 15);
                 unit.id = unitsObj[i].id;
@@ -123,20 +129,21 @@ function GameController(canvas) {
                 unit.y = unitsObj[i].y;
                 unit.speed = unitsObj[i].speed;
                 unit.rotation = unitsObj[i].angle;
-                units[unit.id] = unit;
-                stage.addChild(unit);
+                this.units[unit.id] = unit;
+                this.stage.addChild(unit);
             }
         }
 
         //reset key presses
-        leftPress = rightPress = upPress = downPress = false;
+        this.leftPress = this.rightPress = this.upPress = this.downPress = false;
 
-        stage.update();
+        this.stage.update();
 
         //start game timer
         if (!createjs.Ticker.hasEventListener("tick")) {
             createjs.Ticker.setFPS(FPS);
-            createjs.Ticker.addEventListener("tick", tick);
+            var controller = this;
+            createjs.Ticker.addEventListener("tick", function() {controller.tick()});
         }
         console.log(createjs.Ticker.getInterval())
     };
@@ -153,20 +160,21 @@ function GameController(canvas) {
         var id = unitData['id'];
 
         for (var key in unitData){
-            if (units[id].hasOwnProperty(key)){
-                units[id][key] = unitData[key]
+            if (this.units[id].hasOwnProperty(key)){
+                this.units[id][key] = unitData[key]
 
             }
             else if(key = 'angle'){
-                units[id]['rotation'] = unitData[key]
+                this.units[id]['rotation'] = unitData[key]
             }
         }
-        units[id].speedTick = units[id].speed / window.frequency / FPS
+        this.units[id].speedTick = this.units[id].speed / window.frequency / FPS
     };
 
     this.tick = function(event) {
-        ShowSpeed(hero.speed);
+        this.showSpeed(this.hero.speed);
 
+        var units = this.units;
         for (var i in units){
             if (units[i].speed != 0 && units[i].speedTick) {
                 if (units[i].x != units[i].x1 || units[i].y != units[i].y1) {
@@ -180,7 +188,7 @@ function GameController(canvas) {
             }
         }
 
-        stage.update();
+        this.stage.update();
 
     };
 
@@ -191,27 +199,28 @@ function GameController(canvas) {
         }
         switch (e.keyCode) {
             case KEYCODE_LEFT:
-                if (!leftPress){
-                    leftPress = true;
-                    sendAction('rotate', 'left')
+                if (!this.leftPress){
+                    this.leftPress = true;
+                    this.sendAction('rotate', 'left')
                 }
                 return false;
             case KEYCODE_RIGHT:
-                if (!leftPress){
-                    leftPress = true;
-                    sendAction('rotate', 'right')
+                if (!this.leftPress){
+                    this.leftPress = true;
+                    this.sendAction('rotate', 'right')
                 }
                 return false;
             case KEYCODE_UP:
-                if (!speed){
-                    speed = true;
-                    sendAction('change_speed', 'front');
+                //TODO: What is the meaning of `speed` as boolean. Non sense to me
+                if (!this.speed){
+                    this.speed = true;
+                    this.sendAction('change_speed', 'front');
                 }
                 return false;
             case KEYCODE_DOWN:
-                if (!speed){
-                    speed = true;
-                    sendAction('change_speed', 'back');
+                if (!this.speed){
+                    this.speed = true;
+                    this.sendAction('change_speed', 'back');
                 }
                 return false;
             case KEYCODE_SPACE:
@@ -227,30 +236,39 @@ function GameController(canvas) {
         }
         switch (e.keyCode) {
             case KEYCODE_LEFT:
-                if (leftPress){
-                    leftPress = false;
-                    sendAction('rotate', 'stop')
+                if (this.leftPress){
+                    this.leftPress = false;
+                    this.sendAction('rotate', 'stop')
                 }
                 break;
             case KEYCODE_RIGHT:
-                if (leftPress){
-                    leftPress = false;
-                    sendAction('rotate', 'stop')
+                if (this.leftPress){
+                    this.leftPress = false;
+                    this.sendAction('rotate', 'stop')
                 }
                 break;
             case KEYCODE_UP:
-               if (speed){
-                    speed = false;
-                    sendAction('change_speed', 'stop')
+               if (this.speed){
+                    this.speed = false;
+                    this.sendAction('change_speed', 'stop')
                }
                 break;
             case KEYCODE_DOWN:
-                if (speed){
-                    speed = false;
-                    sendAction('change_speed', 'stop')
+                if (this.speed){
+                    this.speed = false;
+                    this.sendAction('change_speed', 'stop')
                 }
                 break;
         }
+    };
+
+    this.sendAction = function (action, value) {
+        var http = new XMLHttpRequest();
+        var url = "api/hero/" + this.hero.id + "/action/" + action + "/" + value;
+        http.open("POST", url, true);
+        http.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+        http.send(JSON.stringify({'value': value}));
     }
+
 }
 

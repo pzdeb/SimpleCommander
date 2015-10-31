@@ -5,7 +5,7 @@ function init() {
     theGame = new GameController(canvas);
 
     function handleCanvasClick(c) {
-        c.onclick = null;
+        this.onclick = null;
         theGame.startGame();
     }
     canvas.onclick = handleCanvasClick;

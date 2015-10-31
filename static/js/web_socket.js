@@ -1,6 +1,6 @@
 
 
-function createSocket(onMessage){
+function createSocket(controller){
     var host = window.location.hostname;
     var socket = new WebSocket('ws://' + host + ':8765');
 
@@ -17,7 +17,9 @@ function createSocket(onMessage){
             console.log('code: ' + event.code + ' reason: ' + event.reason);
     };
 
-    socket.onmessage = onMessage;
+    socket.onmessage = function(ans) {
+        controller.onData(ans);
+    };
 
     socket.onerror = function(error) {
         console.log("Error " + error.message);

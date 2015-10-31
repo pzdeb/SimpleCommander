@@ -1,17 +1,15 @@
-import aiohttp_jinja2
 import asyncio
 import configparser
-import jinja2
 import json
 import logging
-import src.core.views
+
+import aiohttp_jinja2
+import jinja2
 import websockets
-
 from aiohttp import web
-from time import gmtime, strftime
 
-from src.core.generic import routes
-from src.simple_commander.controllers.main import GameController, STEP_INTERVAL
+from core import routes, views
+from simple_commander.main import get_game, STEP_INTERVAL
 
 
 class BaseCommandServer(object):
@@ -39,7 +37,7 @@ class StreamCommandServer(BaseCommandServer):
 
     def _init_server(self, host, port):
         self._app = web.Application(loop=self._loop)
-        self._controller = GameController(600, 600, 0, self.notify_clients)
+        self._controller = get_game(600, 600, 0, self.notify_clients)
         self._server = websockets.serve(self.process_request, host, port)
 
     def __new__(cls, *args, **kwargs):
@@ -51,11 +49,11 @@ class StreamCommandServer(BaseCommandServer):
     def process_request(self, websocket, path):
         asyncio.async(self._controller.run())
         my_hero = self._controller.set_hero()
-        start_conditions = {'id': my_hero.id,
-                            'frequency': STEP_INTERVAL,
-                            'field': self._controller.game_field}
+        start_conditions = {'init': {
+                                'hero': my_hero.to_dict(),
+                                'game': self._controller.game_field,
+                                'units': self._controller.get_units()}}
         yield from websocket.send(json.dumps(start_conditions))
-        yield from websocket.send(json.dumps(self._controller.get_units()))
         while True:
             if not websocket.open:
                 break

@@ -1,5 +1,5 @@
 import asyncio
-from generic.game import REGISTERED_GAMES
+from simple_commander.game import REGISTERED_GAMES
 
 
 class BaseGame(object):

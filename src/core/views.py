@@ -1,9 +1,8 @@
 import asyncio
-import json
 
-from .generic.base import BaseView, StringBaseView, JSONBaseView, TemplateView
-from .generic.routes import url_route
-from src.simple_commander.controllers.main import GameController
+from core.base import StringBaseView, JSONBaseView, TemplateView
+from .routes import url_route
+from simple_commander.main import get_game
 
 
 @url_route('/hello/{name:\w+}')
@@ -27,7 +26,7 @@ class HeroAction(JSONBaseView):
 
     @asyncio.coroutine
     def post(self, request, hero_id=None, action=None, direct=None, *args, **kwargs):
-        game = GameController(get_old=True)
+        game = get_game()
         hero = game.units.get(hero_id, '')
         hero_action = getattr(hero, action, getattr(game, action, None))
         if hero and hero_action and callable(hero_action):
