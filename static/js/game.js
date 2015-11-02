@@ -89,6 +89,7 @@ function GameController(canvas) {
         var unitsObj = init['units'];
         var hero_id = init['hero_id'];
         var game_field = init['game'];
+        this.frequency = init['frequency'];
         this.canvas.width = game_field.width;
         this.canvas.hight = game_field.hight;
         this.stage.removeAllChildren();
@@ -164,7 +165,7 @@ function GameController(canvas) {
                 this.units[id]['rotation'] = unitData[key]
             }
         }
-        this.units[id].speedTick = this.units[id].speed / 1 / FPS
+        this.units[id].speedTick = this.units[id].speed / this.frequency / FPS
     };
 
     this.tick = function(event) {

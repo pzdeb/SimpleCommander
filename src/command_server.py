@@ -51,7 +51,8 @@ class StreamCommandServer(BaseCommandServer):
         start_conditions = {'init': {
             'hero_id': my_hero.id,
             'game': self._controller.game_field,
-            'units': self._controller.get_units()}}
+            'units': self._controller.get_units(),
+            'frequency': STEP_INTERVAL}}
         yield from websocket.send(json.dumps(start_conditions))
         while True:
             if not websocket.open:
