@@ -108,17 +108,7 @@ function GameController(canvas) {
         this.stage.addChild(this.hero);
 
         for (var i in unitsObj) {
-            var unit = new createjs.Bitmap("static/images/" + unitsObj[i].type + ".png");
-            for (var property in unitsObj[i]) {
-                if (property != 'angle') {
-                    unit[property] = unitsObj[i][property];
-                }
-                if (property == 'angle') {
-                    unit.rotation = unitsObj[i].angle;
-                }
-            }
-            this.units[unit.id] = unit;
-            this.stage.addChild(unit);
+            this.newUnit(unitsObj[i]);
         }
         this.hero = this.units[hero_id];
 
@@ -145,12 +135,7 @@ function GameController(canvas) {
     this.newUnit = function (unitData) {
         var unit = new createjs.Bitmap("static/images/" + unitData.type + ".png");
         for (var property in unitData) {
-            if (property != 'angle') {
-                unit[property] = unitData[property];
-            }
-            if (property == 'angle') {
-                unit.rotation = unitData.angle;
-            }
+            unit[property] = unitData[property];
         }
         this.units[unitData.id] = unit;
         this.stage.addChild(unit);
@@ -161,13 +146,10 @@ function GameController(canvas) {
     this.updateUnit = function (unitData) {
         var id = unitData['id'];
 
+        var unit = this.units[id];
         for (var key in unitData) {
-            if (this.units[id].hasOwnProperty(key)) {
-                this.units[id][key] = unitData[key]
-
-            }
-            else if (key = 'angle') {
-                this.units[id]['rotation'] = unitData[key]
+            if (unit.hasOwnProperty(key)) {
+                unit[key] = unitData[key]
             }
         }
         this.units[id].speedTick = this.units[id].speed / this.frequency / FPS
@@ -178,14 +160,15 @@ function GameController(canvas) {
 
         var units = this.units;
         for (var i in units) {
-            if (units[i].speed != 0 && units[i].speedTick) {
-                if (units[i].x != units[i].x1 || units[i].y != units[i].y1) {
-                    units[i].x = this.canvas.width - units[i].x;
-                    units[i].y = this.canvas.height - units[i].y;
-                    units[i].x += Math.sin(units[i].rotation * (Math.PI / -180)) * units[i].speedTick;
-                    units[i].y += Math.cos(units[i].rotation * (Math.PI / -180)) * units[i].speedTick;
-                    units[i].x = this.canvas.width - units[i].x;
-                    units[i].y = this.canvas.height - units[i].y;
+            var unit = units[i];
+            if (unit.speedTick && unit.speed != 0) {
+                if (unit.x != unit.x1 || unit.y != unit.y1) {
+                    unit.x = this.canvas.width - unit.x;
+                    unit.y = this.canvas.height - unit.y;
+                    unit.x += Math.sin(unit.rotation * (Math.PI / -180)) * unit.speedTick;
+                    unit.y += Math.cos(unit.rotation * (Math.PI / -180)) * unit.speedTick;
+                    unit.x = this.canvas.width - unit.x;
+                    unit.y = this.canvas.height - unit.y;
                 }
             }
         }

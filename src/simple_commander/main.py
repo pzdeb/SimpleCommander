@@ -29,18 +29,18 @@ UNITS = {'invader': [{'type': 'invader1', 'dimension': 50},
          'bullet_hero': {'type': 'bullet_hero', 'dimension': 10},
          'bullet_invader': {'type': 'bullet_invader', 'dimension': 10}}
 
-ANGLE = 1
+ANGLE = 2
 DEFAULT_SPEED = 35
-SPEED = 5
+SPEED = 2
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
-ACTION_INTERVAL = 0.1
-UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count', 'type']
+ACTION_INTERVAL = 0.05
+UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'rotation', 'bonus', 'speed', 'id', 'life_count', 'type']
 MAX_ANGLE = 360
 
 
 class Unit(object):
 
-    def __init__(self, x, y, angle, bonus, speed, type, bullet_type, dimension, controller=None):
+    def __init__(self, x, y, rotation, bonus, speed, type, bullet_type, dimension, controller=None):
         self.controller = controller
         self.type = type
         self.bullet_filename = bullet_type
@@ -49,7 +49,7 @@ class Unit(object):
         self.y = y
         self.x1 = x
         self.y1 = y
-        self.angle = angle
+        self.rotation = rotation
         self.width = dimension
         self.height = dimension
         self.bonus = bonus
@@ -87,14 +87,14 @@ class Unit(object):
         # Calculate real position
         time_from_last_calculate = (datetime.now() - self.time_last_calculation).total_seconds()
         x0, y0 = self.translate(self.x, self.y, game_field)
-        x = round(x0 + self.speed * time_from_last_calculate * math.sin(round(math.radians(self.angle), 2)))
-        y = round(y0 + self.speed * time_from_last_calculate * math.cos(round(math.radians(self.angle), 2)))
+        x = round(x0 + self.speed * time_from_last_calculate * math.sin(round(math.radians(self.rotation), 2)))
+        y = round(y0 + self.speed * time_from_last_calculate * math.cos(round(math.radians(self.rotation), 2)))
         self.x1, self.y1 = self.translate(x, y, game_field)
 
         # Calculate future position
         x0, y0 = self.translate(self.x1, self.y1, game_field)
-        x = round(x0 + self.speed * interval * math.sin(round(math.radians(self.angle), 2)))
-        y = round(y0 + self.speed * interval * math.cos(round(math.radians(self.angle), 2)))
+        x = round(x0 + self.speed * interval * math.sin(round(math.radians(self.rotation), 2)))
+        y = round(y0 + self.speed * interval * math.cos(round(math.radians(self.rotation), 2)))
         x, y = self.translate(x, y, game_field)
 
         self.time_last_calculation = datetime.now()
@@ -114,13 +114,13 @@ class Unit(object):
     @asyncio.coroutine
     def rotate(self, side):
         while self.stop_rotate != 'stop':
-            new_angle = self.angle + ANGLE if side == 'right' else self.angle - ANGLE
-            if new_angle > MAX_ANGLE:
-                new_angle -= MAX_ANGLE
-            elif new_angle < 0:
-                new_angle += MAX_ANGLE
-            logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, new_angle))
-            self.angle = new_angle
+            new_rotation = self.rotation + ANGLE if side == 'right' else self.rotation - ANGLE
+            if new_rotation > MAX_ANGLE:
+                new_rotation -= MAX_ANGLE
+            elif new_rotation < 0:
+                new_rotation += MAX_ANGLE
+            logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.rotation, new_rotation))
+            self.rotation = new_rotation
             self.compute_new_coordinate(self.controller.game_field, ACTION_INTERVAL)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
@@ -152,18 +152,18 @@ class Unit(object):
 
 class Invader(Unit):
 
-    def __init__(self, x, y, angle, bonus=10, speed=DEFAULT_SPEED, type='',
+    def __init__(self, x, y, rotation, bonus=10, speed=DEFAULT_SPEED, type='',
                  bullet_type=UNITS.get('bullet_invader', {}).get('type', ''), dimension=0, controller=None):
         if not type and len(UNITS.get('invader', [])):
             random_number = randint(0, len(UNITS.get('invader', [])) - 1)
             type = UNITS.get('invader', [])[random_number].get('type', '')
             dimension = UNITS.get('invader', [])[random_number].get('dimension', '')
-        super(Invader, self).__init__(x, y, angle, bonus, speed, type, bullet_type, dimension, controller=controller)
+        super(Invader, self).__init__(x, y, rotation, bonus, speed, type, bullet_type, dimension, controller=controller)
 
     def reset(self, game_field):
-        self.angle = randint(0, 360)
+        self.rotation = randint(0, 360)
         self.compute_new_coordinate(game_field, STEP_INTERVAL)
-        logging.info('Reset %s angle. New angle - %s' % (self.__class__.__name__, self.angle))
+        logging.info('Reset %s rotation. New rotation - %s' % (self.__class__.__name__, self.rotation))
 
     def kill(self, other_unit, units):
         unit_class_name = other_unit. __class__.__name__
@@ -179,13 +179,13 @@ class Invader(Unit):
 
 class Hero(Unit):
 
-    def __init__(self, x, y, angle, bonus=0, speed=0, life_count=3, type='',
+    def __init__(self, x, y, rotation, bonus=0, speed=0, life_count=3, type='',
                  bullet_type=UNITS.get('bullet_hero', {}).get('type', ''), dimension=0, controller=None):
         if not type and len(UNITS.get('hero', [])):
             random_number = randint(0, len(UNITS.get('hero', [])) - 1)
             type = UNITS.get('hero', [])[random_number].get('type', '')
             dimension = UNITS.get('hero', [])[random_number].get('dimension', '')
-        super(Hero, self).__init__(x, y, angle, bonus, speed, type, bullet_type, dimension, controller=controller)
+        super(Hero, self).__init__(x, y, rotation, bonus, speed, type, bullet_type, dimension, controller=controller)
         self.life_count = life_count
 
     def decrease_life(self, units):
@@ -218,7 +218,7 @@ class Bullet(Unit):
         self.unit_id = id(unit)
         dimension = unit.__class__.__name__ == 'Hero' and UNITS.get('bullet_hero', {}).get('dimension', 0)\
             or UNITS.get('bullet_invader', {}).get('dimension', 0)
-        super(Bullet, self).__init__(unit.x0, unit.y0, unit.angle, 0, unit.speed * 2 or DEFAULT_SPEED,
+        super(Bullet, self).__init__(unit.x0, unit.y0, unit.rotation, 0, unit.speed * 2 or DEFAULT_SPEED,
                                      unit.bullet_type, unit.bullet_type, dimension, controller=controller)
 
     def reset(self, game_field):
@@ -283,16 +283,16 @@ class GameController(object):
     def new_hero(self):
         pos_x = randint(0, self.game_field['width'])
         pos_y = randint(0, self.game_field['height'])
-        angle = randint(0, 360)
-        hero = self.new_unit(Hero, x=pos_x, y=pos_y, angle=angle)
+        rotation = randint(0, 360)
+        hero = self.new_unit(Hero, x=pos_x, y=pos_y, rotation=rotation)
         return hero
 
     def set_invaders(self):
         for count in range(self.invaders_count):
             pos_x = randint(0, self.game_field['width'])
             pos_y = randint(0, self.game_field['height'])
-            angle = randint(0, 360)
-            self.new_unit(Invader, x=pos_x, y=pos_y, angle=angle)
+            rotation = randint(0, 360)
+            self.new_unit(Invader, x=pos_x, y=pos_y, rotation=rotation)
 
     def fire(self, unit):
         logging.info('Fire!! Creating bullet!')
