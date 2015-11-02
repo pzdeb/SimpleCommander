@@ -1,8 +1,8 @@
 import asyncio
+from functools import wraps
 
 from aiohttp.web_urldispatcher import UrlDispatcher
-from .base import BaseView
-from functools import wraps
+from core.base import BaseView
 
 ROUTES = []
 
