@@ -52,6 +52,14 @@ function GameController(canvas) {
         this.stage.addChild(this.messageField);
         this.stage.update();     //update the stage to show text
     };
+    //create the player
+    alive = true;
+    hero = new createjs.Bitmap("static/images/" +heroObj.type+ ".png");
+    hero.id = heroObj.id;
+    hero.x = heroObj.x;
+    hero.y = heroObj.y;
+    hero.speed = heroObj.speed;
+    hero.rotation = heroObj.angle;
 
     this.startGame = function() {
         var socket = createSocket(this);
@@ -63,18 +71,17 @@ function GameController(canvas) {
         var answer = JSON.parse(event.data);
         console.log(answer);
 
-        for (var key in answer){
-            switch (key) {
-                case 'init':
-                    this.restart(answer.init);
-                    break;
-                case 'new':
-                    this.newUnit(answer.new);
-                    break;
-                case 'update':
-                    this.updateUnit(answer.update);
-                    break;
-            }
+    for (var i in unitsObj) {
+        if (unitsObj[i].id != hero.id) {
+            var unit = new createjs.Shape();
+            unit.graphics.beginFill("Black").drawRect(0, 0, 10, 15);
+            unit.id = unitsObj[i].id;
+            unit.x = unitsObj[i].x;
+            unit.y = unitsObj[i].y;
+            unit.speed = unitsObj[i].speed;
+            unit.rotation = unitsObj[i].angle;
+            units[unit.id] = unit;
+            stage.addChild(unit);
         }
 
         //else if (answer.length == 0) {
@@ -109,23 +116,23 @@ function GameController(canvas) {
         this.stage.addChild(this.hero);
 
         for (var i in unitsObj) {
-                var unit = new createjs.Shape();
-                if (unitsObj[i].id = hero_id){
-                    unit.graphics.beginFill("DeepSkyBlue").drawRect(0, 0, 10, 15);
+            var unit = new createjs.Bitmap("static/images/" + unitsObj[i].type + ".png");
+            if (unitsObj[i].id = hero_id){
+                unit.graphics.beginFill("DeepSkyBlue").drawRect(0, 0, 10, 15);
+            }
+            else{
+                unit.graphics.beginFill("Black").drawRect(0, 0, 10, 15);
+            }
+            for (var property in unitsObj[i]){
+                if (property != 'angle') {
+                    unit[property] = unitsObj[i][property];
                 }
-                else{
-                    unit.graphics.beginFill("Black").drawRect(0, 0, 10, 15);
+                if (property == 'angle'){
+                    unit.rotation = unitsObj[i].angle;
                 }
-                for (var property in unitsObj[i]){
-                    if (property != 'angle') {
-                        unit[property] = unitsObj[i][property];
-                    }
-                    if (property == 'angle'){
-                        unit.rotation = unitsObj[i].angle;
-                    }
-                }
-                this.units[unit.id] = unit;
-                this.stage.addChild(unit);
+            }
+            this.units[unit.id] = unit;
+            this.stage.addChild(unit);
         }
         this.hero = this.units[hero_id];
 
