@@ -1,7 +1,4 @@
 var FPS = 60;
-var TURN_ADDING = 2;
-var SPEED_ADDING = 0.2;
-var MAX_SPEED = 70;
 
 var KEYCODE_UP = 38;
 var KEYCODE_DOWN = 40;
@@ -24,8 +21,6 @@ var hero;                  //the actual hero
 var alive;                 //whether the player is alive
 
 var messageField;          //Message display field
-var scoreSpeedField;            //score Field
-var newSpeed;
 
 //register key functions
 
