@@ -21,35 +21,37 @@ If he bullet some invader, his bonus is grow.
 When invader bullet to main hero, the main hero's life is decrease.
 '''
 
-IMAGE_FILENAME = {'background': 'images/bg.png',
-                  'hero': 'images/hero.png',
-                  'bullet_hero': 'images/bullet_hero',
-                  'bullet_invader': 'images/bullet_invader',
-                  'invader': ['images/invader1.png', 'images/invader2.png']
-                  }
+UNITS = {'invader': [{'type': 'invader1', 'dimension': 50},
+                     {'type': 'invader2', 'dimension': 50},
+                     {'type': 'invader3', 'dimension': 46}],
+         'hero': [{'type': 'hero1', 'dimension': 52},
+                  {'type': 'hero2', 'dimension': 44},
+                  {'type': 'hero3', 'dimension': 53}],
+         'bullet_hero': {'type': 'bullet_hero', 'dimension': 10},
+         'bullet_invader': {'type': 'bullet_invader', 'dimension': 10}}
 
 ANGLE = 5
 DEFAULT_SPEED = 35
 SPEED = 5
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
 ACTION_INTERVAL = 0.1
-UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count']
+UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count', 'type']
 MAX_ANGLE = 360
 
 
 class Unit(object):
 
-    def __init__(self, x, y, angle, bonus, speed, unit_filename, bullet_filename):
-        self.image_filename = unit_filename
-        self.bullet_filename = bullet_filename
+    def __init__(self, x, y, angle, bonus, speed, type, bullet_type, dimension):
+        self.type = type
+        self.bullet_filename = bullet_type
         self.time_last_calculation = datetime.now()
         self.x = x
         self.y = y
         self.x1 = x
         self.y1 = y
         self.angle = angle
-        self.width = 10  # temporary when we don't have real images
-        self.height = 10  # must be height of real image
+        self.width = dimension
+        self.height = dimension
         self.bonus = bonus
         self.speed = speed
         self.id = str(uuid.uuid4())
@@ -151,12 +153,13 @@ class Unit(object):
 
 class Invader(Unit):
 
-    def __init__(self, x, y, angle, bonus=10, speed=DEFAULT_SPEED, unit_filename='',
-                 bullet_filename=IMAGE_FILENAME.get('bullet_invader', '')):
-        if not unit_filename and len(IMAGE_FILENAME.get('invader', [])):
-            random_number = randint(0, len(IMAGE_FILENAME.get('invader', [])) - 1)
-            unit_filename = IMAGE_FILENAME.get('invader', [])[random_number]
-        super(Invader, self).__init__(x, y, angle, bonus, speed, unit_filename, bullet_filename)
+    def __init__(self, x, y, angle, bonus=10, speed=DEFAULT_SPEED, type='',
+                 bullet_type=UNITS.get('bullet_invader', {}).get('type', ''), dimension=0):
+        if not type and len(UNITS.get('invader', [])):
+            random_number = randint(0, len(UNITS.get('invader', [])) - 1)
+            type = UNITS.get('invader', [])[random_number].get('type', '')
+            dimension = UNITS.get('invader', [])[random_number].get('dimension', '')
+        super(Invader, self).__init__(x, y, angle, bonus, speed, type, bullet_type, dimension)
 
     def reset(self, game_field):
         self.angle = randint(0, 360)
@@ -177,9 +180,13 @@ class Invader(Unit):
 
 class Hero(Unit):
 
-    def __init__(self, x, y, angle, bonus=0, speed=0, life_count=3, unit_filename=IMAGE_FILENAME.get('hero', ''),
-                 bullet_filename=IMAGE_FILENAME.get('bullet_hero', '')):
-        super(Hero, self).__init__(x, y, angle, bonus, speed, unit_filename, bullet_filename)
+    def __init__(self, x, y, angle, bonus=0, speed=0, life_count=3, type='',
+                 bullet_type=UNITS.get('bullet_hero', {}).get('type', ''), dimension=0):
+        if not type and len(UNITS.get('hero', [])):
+            random_number = randint(0, len(UNITS.get('hero', [])) - 1)
+            type = UNITS.get('hero', [])[random_number].get('type', '')
+            dimension = UNITS.get('hero', [])[random_number].get('dimension', '')
+        super(Hero, self).__init__(x, y, angle, bonus, speed, type, bullet_type, dimension)
         self.life_count = life_count
 
     def decrease_life(self, units):
@@ -210,8 +217,10 @@ class Hero(Unit):
 class Bullet(Unit):
     def __init__(self, unit):
         self.unit_id = id(unit)
+        dimension = unit.__class__.__name__ == 'Hero' and UNITS.get('bullet_hero', {}).get('dimension', 0)\
+            or UNITS.get('bullet_invader', {}).get('dimension', 0)
         super(Bullet, self).__init__(unit.x0, unit.y0, unit.angle, 0, unit.speed * 2 or DEFAULT_SPEED,
-                                     unit.bullet_filename, unit.bullet_filename)
+                                     unit.bullet_type, unit.bullet_type, dimension)
 
     def reset(self, game_field):
         self.is_dead = True
@@ -245,7 +254,7 @@ class GameController(object):
     def __init__(self, height=None, width=None, invaders_count=None, notify_clients=None, get_old=False):
         if get_old:
             return
-        self.game_field = {'image_filename': IMAGE_FILENAME.get('background', ''), 'height': height, 'width': width}
+        self.game_field = {'height': height, 'width': width}
         self.invaders_count = invaders_count
         self.units = {}
         self.set_invaders()

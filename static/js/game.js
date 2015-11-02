@@ -70,8 +70,7 @@ function restart(heroObj, unitsObj) {
 
     //create the player
     alive = true;
-    hero = new createjs.Shape();
-    hero.graphics.beginFill("DeepSkyBlue").drawRect(0, 0, 10, 15);
+    hero = new createjs.Bitmap("static/images/" +heroObj.type+ ".png");
     hero.id = heroObj.id;
     hero.x = heroObj.x;
     hero.y = heroObj.y;
@@ -88,8 +87,7 @@ function restart(heroObj, unitsObj) {
 
     for (var i in unitsObj) {
         if (unitsObj[i].id != hero.id) {
-            var unit = new createjs.Shape();
-            unit.graphics.beginFill("Black").drawRect(0, 0, 10, 15);
+            var unit = new createjs.Bitmap("static/images/" + unitsObj[i].type + ".png");
             unit.id = unitsObj[i].id;
             unit.x = unitsObj[i].x;
             unit.y = unitsObj[i].y;
