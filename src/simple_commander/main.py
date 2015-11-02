@@ -61,9 +61,8 @@ class Unit(object):
         controller = get_game()
         if not controller:
             return
-        kwargs['id'] = self.id
         data = {action: self.to_dict()}
-
+        data[action].update(kwargs)
         asyncio.async(controller.notify_clients(data))
 
     def to_dict(self):
@@ -108,7 +107,7 @@ class Unit(object):
         self.y = self.y1
         self.x1 = x
         self.y1 = y
-        self.response('update', x1=self.x1, y1=self.y1, x=self.x, y=self.y)
+        self.response('update', frequency=STEP_INTERVAL)
 
     @asyncio.coroutine
     def rotate(self, side):
