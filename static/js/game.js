@@ -37,11 +37,15 @@ function GameController(canvas) {
     this.canvas = canvas;
 
     var controller = this;
-    document.onkeydown = function(e) { controller.handleKeyDown(e); };
-    document.onkeyup = function(e) { controller.handleKeyUp(e); };
+    document.onkeydown = function (e) {
+        controller.handleKeyDown(e);
+    };
+    document.onkeyup = function (e) {
+        controller.handleKeyUp(e);
+    };
 
 
-    this.prepareGame = function() {
+    this.prepareGame = function () {
         this.stage = new createjs.Stage(this.canvas);
         this.messageField = new createjs.Text("Welcome: Click to play", "bold 24px Arial", "#000");
         this.messageField.maxWidth = 1000;
@@ -52,16 +56,8 @@ function GameController(canvas) {
         this.stage.addChild(this.messageField);
         this.stage.update();     //update the stage to show text
     };
-    //create the player
-    alive = true;
-    hero = new createjs.Bitmap("static/images/" +heroObj.type+ ".png");
-    hero.id = heroObj.id;
-    hero.x = heroObj.x;
-    hero.y = heroObj.y;
-    hero.speed = heroObj.speed;
-    hero.rotation = heroObj.angle;
 
-    this.startGame = function() {
+    this.startGame = function () {
         var socket = createSocket(this);
         this.stage.removeChild(this.messageField);
         this.stage.update();
@@ -71,27 +67,23 @@ function GameController(canvas) {
         var answer = JSON.parse(event.data);
         console.log(answer);
 
-    for (var i in unitsObj) {
-        if (unitsObj[i].id != hero.id) {
-            var unit = new createjs.Shape();
-            unit.graphics.beginFill("Black").drawRect(0, 0, 10, 15);
-            unit.id = unitsObj[i].id;
-            unit.x = unitsObj[i].x;
-            unit.y = unitsObj[i].y;
-            unit.speed = unitsObj[i].speed;
-            unit.rotation = unitsObj[i].angle;
-            units[unit.id] = unit;
-            stage.addChild(unit);
+        for (var key in answer){
+            switch (key) {
+                case 'init':
+                    this.restart(answer.init);
+                    break;
+                case 'new':
+                    this.newUnit(answer.new);
+                    break;
+                case 'update':
+                    this.updateUnit(answer.update);
+                    break;
+            }
         }
 
-        //else if (answer.length == 0) {
-        //    hero = answer[heroId];
-        //    restart(hero, answer);
-        //}
     };
 
-
-    this.restart = function(init) {
+    this.restart = function (init) {
         //hide anything on stage and show the score
         var unitsObj = init['units'];
         var hero_id = init['hero_id'];
@@ -117,17 +109,11 @@ function GameController(canvas) {
 
         for (var i in unitsObj) {
             var unit = new createjs.Bitmap("static/images/" + unitsObj[i].type + ".png");
-            if (unitsObj[i].id = hero_id){
-                unit.graphics.beginFill("DeepSkyBlue").drawRect(0, 0, 10, 15);
-            }
-            else{
-                unit.graphics.beginFill("Black").drawRect(0, 0, 10, 15);
-            }
-            for (var property in unitsObj[i]){
+            for (var property in unitsObj[i]) {
                 if (property != 'angle') {
                     unit[property] = unitsObj[i][property];
                 }
-                if (property == 'angle'){
+                if (property == 'angle') {
                     unit.rotation = unitsObj[i].angle;
                 }
             }
@@ -145,41 +131,53 @@ function GameController(canvas) {
         if (!createjs.Ticker.hasEventListener("tick")) {
             createjs.Ticker.setFPS(FPS);
             var controller = this;
-            createjs.Ticker.addEventListener("tick", function() {controller.tick()});
+            createjs.Ticker.addEventListener("tick", function () {
+                controller.tick()
+            });
         }
         console.log(createjs.Ticker.getInterval())
     };
 
-    this.showSpeed = function(value) {
+    this.showSpeed = function (value) {
         scoreField.text = Number(value).toString();
     };
 
-    this.newUnit = function(unitData) {
-        if (!this.units[unitData.id]){
-            this.units[unitData] = unitData;
+    this.newUnit = function (unitData) {
+        var unit = new createjs.Bitmap("static/images/" + unitData.type + ".png");
+        for (var property in unitData) {
+            if (property != 'angle') {
+                unit[property] = unitData[property];
+            }
+            if (property == 'angle') {
+                unit.rotation = unitData.angle;
+            }
         }
+        this.units[unitData.id] = unit;
+        this.stage.addChild(unit);
+        this.stage.update();
+
     };
 
-    this.updateUnit = function(unitData){
+    this.updateUnit = function (unitData) {
         var id = unitData['id'];
 
-        for (var key in unitData){
-            if (this.units[id].hasOwnProperty(key)){
+        for (var key in unitData) {
+            if (this.units[id].hasOwnProperty(key)) {
                 this.units[id][key] = unitData[key]
 
             }
-            else if(key = 'angle'){
+            else if (key = 'angle') {
                 this.units[id]['rotation'] = unitData[key]
             }
         }
         this.units[id].speedTick = this.units[id].speed / this.frequency / FPS
     };
 
-    this.tick = function(event) {
+    this.tick = function (event) {
         this.showSpeed(this.hero.speed);
 
         var units = this.units;
-        for (var i in units){
+        for (var i in units) {
             if (units[i].speed != 0 && units[i].speedTick) {
                 if (units[i].x != units[i].x1 || units[i].y != units[i].y1) {
                     units[i].x = this.canvas.width - units[i].x;
@@ -196,33 +194,33 @@ function GameController(canvas) {
 
     };
 
-    this.handleKeyDown = function(e) {
+    this.handleKeyDown = function (e) {
         //cross browser issues exist
         if (!e) {
             var e = window.event;
         }
         switch (e.keyCode) {
             case KEYCODE_LEFT:
-                if (!this.leftPress){
+                if (!this.leftPress) {
                     this.leftPress = true;
                     this.sendAction('rotate', 'left')
                 }
                 return false;
             case KEYCODE_RIGHT:
-                if (!this.leftPress){
+                if (!this.leftPress) {
                     this.leftPress = true;
                     this.sendAction('rotate', 'right')
                 }
                 return false;
             case KEYCODE_UP:
                 //TODO: What is the meaning of `speed` as boolean. Non sense to me
-                if (!this.speed){
+                if (!this.speed) {
                     this.speed = true;
                     this.sendAction('change_speed', 'front');
                 }
                 return false;
             case KEYCODE_DOWN:
-                if (!this.speed){
+                if (!this.speed) {
                     this.speed = true;
                     this.sendAction('change_speed', 'back');
                 }
@@ -233,32 +231,32 @@ function GameController(canvas) {
         }
     };
 
-    this.handleKeyUp = function(e) {
+    this.handleKeyUp = function (e) {
         //cross browser issues exist
         if (!e) {
             var e = window.event;
         }
         switch (e.keyCode) {
             case KEYCODE_LEFT:
-                if (this.leftPress){
+                if (this.leftPress) {
                     this.leftPress = false;
                     this.sendAction('rotate', 'stop')
                 }
                 break;
             case KEYCODE_RIGHT:
-                if (this.leftPress){
+                if (this.leftPress) {
                     this.leftPress = false;
                     this.sendAction('rotate', 'stop')
                 }
                 break;
             case KEYCODE_UP:
-               if (this.speed){
+                if (this.speed) {
                     this.speed = false;
                     this.sendAction('change_speed', 'stop')
-               }
+                }
                 break;
             case KEYCODE_DOWN:
-                if (this.speed){
+                if (this.speed) {
                     this.speed = false;
                     this.sendAction('change_speed', 'stop')
                 }
@@ -275,4 +273,3 @@ function GameController(canvas) {
     }
 
 }
-
