@@ -13,7 +13,6 @@ from simple_commander.main import get_game, STEP_INTERVAL
 
 
 class BaseCommandServer(object):
-
     def __init__(self, server_type=None, host=None, port=None, loop=None, templates=None):
         logging.info('Init %s Server on host %s:%s' % (server_type, host, port))
         self._server_type = server_type
@@ -50,9 +49,9 @@ class StreamCommandServer(BaseCommandServer):
         asyncio.async(self._controller.run())
         my_hero = self._controller.set_hero()
         start_conditions = {'init': {
-                                'hero': my_hero.to_dict(),
-                                'game': self._controller.game_field,
-                                'units': self._controller.get_units()}}
+            'hero_id': my_hero.id,
+            'game': self._controller.game_field,
+            'units': self._controller.get_units()}}
         yield from websocket.send(json.dumps(start_conditions))
         while True:
             if not websocket.open:
@@ -76,7 +75,7 @@ class HttpCommandServer(BaseCommandServer):
         self._load_routes()
         self._load_static()
         self._server = self._loop.create_server(self._app.make_handler(),
-                                                host, port)
+            host, port)
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:

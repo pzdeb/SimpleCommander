@@ -66,14 +66,7 @@ function GameController(canvas) {
         for (var key in answer){
             switch (key) {
                 case 'init':
-                    this.restart(answer.init.hero, answer.init.units);
-                    break;
-                case 'frequency':
-                    //TODO: does it have any logic? Can we get gid of it?
-                    frequency = answer.frequency;
-                    height = answer.field.height;
-                    width = answer.field.width;
-                    heroId = answer.id;
+                    this.restart(answer.init);
                     break;
                 case 'new':
                     this.newUnit(answer.new);
@@ -91,48 +84,49 @@ function GameController(canvas) {
     };
 
 
-    this.restart = function(heroObj, unitsObj) {
+    this.restart = function(init) {
         //hide anything on stage and show the score
+        var unitsObj = init['units'];
+        var hero_id = init['hero_id'];
+        var game_field = init['game'];
+        this.canvas.width = game_field.width;
+        this.canvas.hight = game_field.hight;
         this.stage.removeAllChildren();
         scoreField = new createjs.Text("0", "bold 18px Arial", "#FFFFFF");
         scoreField.textAlign = "right";
-        scoreField.x = canvas.width - 20;
+        scoreField.x = this.canvas.width - 20;
         scoreField.y = 20;
         scoreField.maxWidth = 1000;
         scoreField.text = (0).toString();
         this.stage.addChild(scoreField);
 
-        //create the player
-        this.alive = true;
-        this.hero = new createjs.Shape();
-        this.hero.graphics.beginFill("DeepSkyBlue").drawRect(0, 0, 10, 15);
-        this.hero.id = heroObj.id;
-        this.hero.x = heroObj.x;
-        this.hero.y = heroObj.y;
-        this.hero.speed = heroObj.speed;
-        this.hero.rotation = heroObj.angle;
-
         //create Units
         this.units = {};
-        this.units[this.hero.id] = this.hero;
 
         //ensure stage is blank and add the hero
         this.stage.clear();
         this.stage.addChild(this.hero);
 
         for (var i in unitsObj) {
-            if (unitsObj[i].id != this.hero.id) {
                 var unit = new createjs.Shape();
-                unit.graphics.beginFill("Black").drawRect(0, 0, 10, 15);
-                unit.id = unitsObj[i].id;
-                unit.x = unitsObj[i].x;
-                unit.y = unitsObj[i].y;
-                unit.speed = unitsObj[i].speed;
-                unit.rotation = unitsObj[i].angle;
+                if (unitsObj[i].id = hero_id){
+                    unit.graphics.beginFill("DeepSkyBlue").drawRect(0, 0, 10, 15);
+                }
+                else{
+                    unit.graphics.beginFill("Black").drawRect(0, 0, 10, 15);
+                }
+                for (var property in unitsObj[i]){
+                    if (property != 'angle') {
+                        unit[property] = unitsObj[i][property];
+                    }
+                    if (property == 'angle'){
+                        unit.rotation = unitsObj[i].angle;
+                    }
+                }
                 this.units[unit.id] = unit;
                 this.stage.addChild(unit);
-            }
         }
+        this.hero = this.units[hero_id];
 
         //reset key presses
         this.leftPress = this.rightPress = this.upPress = this.downPress = false;
@@ -153,7 +147,9 @@ function GameController(canvas) {
     };
 
     this.newUnit = function(unitData) {
-        this.units[unitData] = unitData;
+        if (!this.units[unitData.id]){
+            this.units[unitData] = unitData;
+        }
     };
 
     this.updateUnit = function(unitData){
@@ -168,7 +164,7 @@ function GameController(canvas) {
                 this.units[id]['rotation'] = unitData[key]
             }
         }
-        this.units[id].speedTick = this.units[id].speed / window.frequency / FPS
+        this.units[id].speedTick = this.units[id].speed / 1 / FPS
     };
 
     this.tick = function(event) {
@@ -178,12 +174,12 @@ function GameController(canvas) {
         for (var i in units){
             if (units[i].speed != 0 && units[i].speedTick) {
                 if (units[i].x != units[i].x1 || units[i].y != units[i].y1) {
-                    units[i].x = window.width - units[i].x;
-                    units[i].y = window.height - units[i].y;
+                    units[i].x = this.canvas.width - units[i].x;
+                    units[i].y = this.canvas.height - units[i].y;
                     units[i].x += Math.sin(units[i].rotation * (Math.PI / -180)) * units[i].speedTick;
                     units[i].y += Math.cos(units[i].rotation * (Math.PI / -180)) * units[i].speedTick;
-                    units[i].x = window.width - units[i].x;
-                    units[i].y = window.height - units[i].y;
+                    units[i].x = this.canvas.width - units[i].x;
+                    units[i].y = this.canvas.height - units[i].y;
                 }
             }
         }
