@@ -122,7 +122,7 @@ function GameController(canvas) {
                 var value = property + ": " + (this.hero[property]).toString();
                 shown_hero_properties[property].text = value;
                 this.stage.addChild(shown_hero_properties[property]);
-                height_property += height_property;
+                height_property += 20;
             }
             else{
                 console.log('Hero does not have property ' + property)

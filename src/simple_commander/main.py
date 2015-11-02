@@ -29,11 +29,11 @@ UNITS = {'invader': [{'type': 'invader1', 'dimension': 50},
          'bullet_hero': {'type': 'bullet_hero', 'dimension': 10},
          'bullet_invader': {'type': 'bullet_invader', 'dimension': 10}}
 
-ANGLE = 5
+ANGLE = 2
 DEFAULT_SPEED = 35
-SPEED = 5
+SPEED = 2
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
-ACTION_INTERVAL = 0.1
+ACTION_INTERVAL = 0.05
 UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count', 'type']
 MAX_ANGLE = 360
 
