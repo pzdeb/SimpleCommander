@@ -1,7 +1,4 @@
 var FPS = 60;
-var TURN_ADDING = 2;
-var SPEED_ADDING = 0.2;
-var MAX_SPEED = 70;
 
 var KEYCODE_UP = 38;
 var KEYCODE_DOWN = 40;
@@ -9,6 +6,8 @@ var KEYCODE_LEFT = 37;
 var KEYCODE_RIGHT = 39;
 var KEYCODE_SPACE = 32;
 
+var shown_hero_properties = {speed:'', life_count:''};
+var height_property = 20;
 
 var leftPress;
 var rightPress;
@@ -22,8 +21,6 @@ var hero;                  //the actual hero
 var alive;                 //whether the player is alive
 
 var messageField;          //Message display field
-var scoreField;            //score Field
-var newSpeed;
 
 //register key functions
 
@@ -95,13 +92,6 @@ function GameController(canvas) {
         this.canvas.width = game_field.width;
         this.canvas.hight = game_field.hight;
         this.stage.removeAllChildren();
-        scoreField = new createjs.Text("0", "bold 18px Arial", "#FFFFFF");
-        scoreField.textAlign = "right";
-        scoreField.x = this.canvas.width - 20;
-        scoreField.y = 20;
-        scoreField.maxWidth = 1000;
-        scoreField.text = (0).toString();
-        this.stage.addChild(scoreField);
 
         //create Units
         this.units = {};
@@ -125,6 +115,23 @@ function GameController(canvas) {
         }
         this.hero = this.units[hero_id];
 
+        //Show hero property
+        for (var property in shown_hero_properties){
+            if (property in this.hero){
+                shown_hero_properties[property] = new createjs.Text("", "bold 18px Arial", "#FFFFFF");
+                shown_hero_properties[property].x = this.canvas.width - 20;
+                shown_hero_properties[property].y = height_property;
+                shown_hero_properties[property].textAlign = "right";
+                var value = property + ": " + (this.hero[property]).toString();
+                shown_hero_properties[property].text = value;
+                this.stage.addChild(shown_hero_properties[property]);
+                height_property += 20;
+            }
+            else{
+                console.log('Hero does not have property ' + property)
+            }
+        }
+
         //reset key presses
         this.leftPress = this.rightPress = this.upPress = this.downPress = false;
 
@@ -141,24 +148,33 @@ function GameController(canvas) {
         console.log(createjs.Ticker.getInterval())
     };
 
-    this.showSpeed = function (value) {
-        scoreField.text = Number(value).toString();
+    this.update_shown_property = function(){
+        for(var property in shown_hero_properties){
+            if (property in this.hero){
+                var value = property + ": " + (this.hero[property]).toString();
+                shown_hero_properties[property].text = value;
+            }
+            else{
+                console.log('Hero does not have property ' + property)
+            }
+        }
     };
 
     this.newUnit = function (unitData) {
-        var unit = new createjs.Bitmap("static/images/" + unitData.type + ".png");
-        for (var property in unitData) {
-            if (property != 'angle') {
-                unit[property] = unitData[property];
+        if (!this.units[unitData.id]) {
+            var unit = new createjs.Bitmap("static/images/" + unitData.type + ".png");
+            for (var property in unitData) {
+                if (property != 'angle') {
+                    unit[property] = unitData[property];
+                }
+                if (property == 'angle') {
+                    unit.rotation = unitData.angle;
+                }
             }
-            if (property == 'angle') {
-                unit.rotation = unitData.angle;
-            }
+            this.units[unitData.id] = unit;
+            this.stage.addChild(unit);
+            this.stage.update();
         }
-        this.units[unitData.id] = unit;
-        this.stage.addChild(unit);
-        this.stage.update();
-
     };
 
     this.updateUnit = function (unitData) {
@@ -173,7 +189,8 @@ function GameController(canvas) {
                 this.units[id]['rotation'] = unitData[key]
             }
         }
-        this.units[id].speedTick = this.units[id].speed / this.frequency / FPS
+        this.units[id].speedTick = this.units[id].speed / this.frequency / FPS;
+        this.update_shown_property();
     };
 
     this.deleteUnit = function (unitData) {
@@ -184,7 +201,6 @@ function GameController(canvas) {
     };
 
     this.tick = function (event) {
-        this.showSpeed(this.hero.speed);
 
         var units = this.units;
         for (var i in units) {
