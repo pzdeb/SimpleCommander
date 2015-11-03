@@ -78,6 +78,9 @@ function GameController(canvas) {
                 case 'update':
                     this.updateUnit(answer.update);
                     break;
+                case 'delete':
+                    this.deleteUnit(answer.delete);
+                    break;
             }
         }
 
@@ -171,6 +174,13 @@ function GameController(canvas) {
             }
         }
         this.units[id].speedTick = this.units[id].speed / this.frequency / FPS
+    };
+
+    this.deleteUnit = function (unitData) {
+        var id = unitData['id'];
+        this.stage.removeChild(this.units[id]);
+        this.stage.update();
+        delete this.units[id];
     };
 
     this.tick = function (event) {

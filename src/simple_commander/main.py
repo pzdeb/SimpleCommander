@@ -172,11 +172,14 @@ class Invader(Unit):
         logging.info('In kill - %s and %s' % (self.__class__.__name__, unit_class_name))
         if unit_class_name == 'Hero':
             other_unit.decrease_life(units)
+            other_unit.response('update')
         else:
             other_unit.is_dead = True
             del units[other_unit.id]
+            other_unit.response('delete')
         self.is_dead = True
         del units[self.id]
+        self.response('delete')
 
 
 class Hero(Unit):
@@ -210,9 +213,11 @@ class Hero(Unit):
         self.decrease_life(units)
         if unit_class_name == 'Hero':
             other_unit.decrease_life(units)
+            self.response('update')
         else:
             other_unit.is_dead = True
             del units[other_unit.id]
+            other_unit.response('delete')
 
 
 class Bullet(Unit):
