@@ -6,7 +6,7 @@ var KEYCODE_LEFT = 37;
 var KEYCODE_RIGHT = 39;
 var KEYCODE_SPACE = 32;
 
-var shown_hero_properties = {speed:0, life_count:0};
+var shownHeroProperties = {speed:0, life_count:0};
 var height_property = 20;
 
 var leftPress;
@@ -113,15 +113,15 @@ function GameController(canvas) {
         this.hero = this.units[hero_id];
 
         //Show hero property
-        for (var property in shown_hero_properties){
+        for (var property in shownHeroProperties){
             if (property in this.hero){
-                shown_hero_properties[property] = new createjs.Text("", "bold 18px Arial", "#FFFFFF");
-                shown_hero_properties[property].x = this.canvas.width - 20;
-                shown_hero_properties[property].y = height_property;
-                shown_hero_properties[property].textAlign = "right";
+                shownHeroProperties[property] = new createjs.Text("", "bold 18px Arial", "#FFFFFF");
+                shownHeroProperties[property].x = this.canvas.width - 20;
+                shownHeroProperties[property].y = height_property;
+                shownHeroProperties[property].textAlign = "right";
                 var value = property + ": " + (this.hero[property]).toString();
-                shown_hero_properties[property].text = value;
-                this.stage.addChild(shown_hero_properties[property]);
+                shownHeroProperties[property].text = value;
+                this.stage.addChild(shownHeroProperties[property]);
                 height_property += 20;
             }
             else{
@@ -145,11 +145,11 @@ function GameController(canvas) {
         console.log(createjs.Ticker.getInterval())
     };
 
-    this.updateShownProperty = function(){
-        for(var property in shown_hero_properties){
+    this.updateShownProperties = function(){
+        for(var property in shownHeroProperties){
             if (property in this.hero){
                 var value = property + ": " + (this.hero[property]).toString();
-                shown_hero_properties[property].text = value;
+                shownHeroProperties[property].text = value;
             }
             else{
                 console.log('Hero does not have property ' + property)
@@ -187,7 +187,7 @@ function GameController(canvas) {
             }
         }
         this.units[id].speedTick = this.units[id].speed / this.frequency / FPS;
-        this.updateShownProperty();
+        this.updateShownProperties();
     };
 
     this.tick = function (event) {
