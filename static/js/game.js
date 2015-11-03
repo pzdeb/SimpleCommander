@@ -6,7 +6,7 @@ var KEYCODE_LEFT = 37;
 var KEYCODE_RIGHT = 39;
 var KEYCODE_SPACE = 32;
 
-var shown_hero_properties = {speed:'', life_count:''};
+var shown_hero_properties = {speed:0, life_count:0};
 var height_property = 20;
 
 var leftPress;
@@ -145,7 +145,7 @@ function GameController(canvas) {
         console.log(createjs.Ticker.getInterval())
     };
 
-    this.update_shown_property = function(){
+    this.updateShownProperty = function(){
         for(var property in shown_hero_properties){
             if (property in this.hero){
                 var value = property + ": " + (this.hero[property]).toString();
@@ -187,7 +187,7 @@ function GameController(canvas) {
             }
         }
         this.units[id].speedTick = this.units[id].speed / this.frequency / FPS;
-        this.update_shown_property();
+        this.updateShownProperty();
     };
 
     this.tick = function (event) {
