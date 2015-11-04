@@ -34,7 +34,7 @@ DEFAULT_SPEED = 35
 SPEED = 2
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
 ACTION_INTERVAL = 0.05
-UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count', 'type']
+UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count', 'type', 'width', 'height']
 MAX_ANGLE = 360
 
 
@@ -139,8 +139,8 @@ class Unit(object):
         # (other_unit.y - other_unit.height / 2 < self.y < other_unit.y + other_unit.height / 2)
         if id(self) != id(other_unit) and getattr(self, 'unit_id', '') != id(other_unit) and \
                 getattr(other_unit, 'unit_id', '') != id(self):
-            if (self.x1 > other_unit.x1 - other_unit.width / 2) and (self.x1 < other_unit.x1 + other_unit.width / 2) and \
-                    (self.y1 > other_unit.y1 - other_unit.height / 2) and (self.y1 < other_unit.y1 + other_unit.height / 2):
+            if (self.x + self.width / 2 > other_unit.x - other_unit.width / 2) and (self.x - self.width / 2 < other_unit.x + other_unit.width / 2) and \
+                    (self.y + self.height / 2 > other_unit.y - other_unit.height / 2) and (self.y - self.height / 2 < other_unit.y + other_unit.height / 2):
                 self.kill(other_unit, all_units)  
 
     def reset(self, game_field):
@@ -194,10 +194,13 @@ class Hero(Unit):
     def decrease_life(self, units):
         if self.life_count > 1:
             self.life_count -= 1
+            self.response('update')
         else:
             self.life_count = 0
             self.is_dead = True
-            units.remove(self)
+            del units[self.id]
+            self.response('update')
+            self.response('delete')
 
     def reset(self, game_field):
         self.speed = 0
