@@ -90,6 +90,10 @@ class Unit(object):
         x = round(x0 + self.speed * time_from_last_calculate * math.sin(round(math.radians(self.angle), 2)))
         y = round(y0 + self.speed * time_from_last_calculate * math.cos(round(math.radians(self.angle), 2)))
         self.x1, self.y1 = self.translate(x, y, game_field)
+        self.x1 = self.x1 if self.x1 > min_width else min_width
+        self.x1 = self.x1 if self.x1 < max_width else max_width
+        self.y1 = self.y1 if self.y1 > min_height else min_height
+        self.y1 = self.y1 if self.y1 < max_height else max_height
 
         # Calculate future position
         x0, y0 = self.translate(self.x1, self.y1, game_field)
@@ -98,7 +102,29 @@ class Unit(object):
         x, y = self.translate(x, y, game_field)
 
         self.time_last_calculation = datetime.now()
-        if x in range(min_width, max_width) and y in range(min_height, max_height):
+        if x in range(min_width, max_width+1) and y in range(min_height, max_height+1):
+            self.move_to(x, y)
+        elif min_width < self.x1 < max_height and min_height < self.y1 < max_height:
+            x, y = self.translate(x, y, game_field)
+            if x < min_width:
+                time_to_crash = math.fabs((min_width-x0) * interval / (x - x0))
+                x = min_width
+                y = round(y0 + self.speed * time_to_crash * math.cos(round(math.radians(self.angle), 2)))
+            if x > max_width:
+                time_to_crash = math.fabs((max_width-x0) * interval / (x - x0))
+                x = max_width
+                y = round(y0 + self.speed * time_to_crash * math.cos(round(math.radians(self.angle), 2)))
+            if y < min_height:
+                time_to_crash = math.fabs((min_height-y0) * interval / (y - y0))
+                y = min_height
+                x = round(x0 + self.speed * time_to_crash * math.sin(round(math.radians(self.angle), 2)))
+            if y > max_height:
+                time_to_crash = math.fabs((max_height-y0) * interval / (y - y0))
+                y = max_height
+                x = round(x0 + self.speed * time_to_crash * math.sin(round(math.radians(self.angle), 2)))
+            if self.__class__.__name__ != 'Invader':
+                self.speed = round(math.sqrt((x-x0)**2+(y-y0)**2)/interval)
+            x, y = self.translate(x, y, game_field)
             self.move_to(x, y)
         else:
             self.reset(game_field)
@@ -260,9 +286,11 @@ def get_game(height=None, width=None, invaders_count=None, notify_clients=None):
                                 notify_clients=notify_clients)
     return __game
 
+
 class GameController(object):
     _instance = None
     _launched = False
+    ignore_heroes = []
 
     def __init__(self, height=None, width=None, invaders_count=None, notify_clients=None):
         self.game_field = {'height': height, 'width': width}
@@ -320,8 +348,7 @@ class GameController(object):
             while True:
                 for unit in list(self.units.keys()):
                     if self.units.get(unit):
-                        if self.units[unit].speed and (datetime.now() -
-                                                       self.units[unit].time_last_calculation).total_seconds() >= STEP_INTERVAL:
+                        if self.units[unit].speed and unit not in self.ignore_heroes:
                             self.units[unit].compute_new_coordinate(self.game_field, STEP_INTERVAL)
                         for key in list(self.units.keys()):
                             if self.units.get(unit) and self.units.get(key):

@@ -2,7 +2,7 @@ import asyncio
 
 from core.base import StringBaseView, JSONBaseView, TemplateView
 from .routes import url_route
-from simple_commander.main import get_game
+from simple_commander.main import get_game, STEP_INTERVAL
 
 
 @url_route('/hello/{name:\w+}')
@@ -30,6 +30,14 @@ class HeroAction(JSONBaseView):
         hero = game.units.get(hero_id, '')
         hero_action = getattr(hero, action, getattr(game, action, None))
         if hero and hero_action and callable(hero_action):
+            if direct == 'stop':
+                hero.compute_new_coordinate(game.game_field, STEP_INTERVAL)
+                try:
+                    game.ignore_heroes.remove(hero.id)
+                except ValueError:
+                    pass
+            else:
+                game.ignore_heroes.append(hero.id)
             parameter = hero if action == 'fire' else direct
             if action == 'rotate':
                 hero.stop_rotate = direct
