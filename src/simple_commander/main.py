@@ -218,7 +218,7 @@ class Hero(Unit):
         else:
             self.life_count = 0
             self.is_dead = True
-            units.remove(self)
+            del units[self.id]
 
     def reset(self, game_field):
         self.speed = 0
