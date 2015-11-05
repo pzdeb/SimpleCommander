@@ -1,5 +1,8 @@
 """Module allow to find the point of intersection two lines defined in points."""
 
+import math
+
+
 def line_intersection(line1, line2):
     """Find the point of intersecting lines."""
     xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
@@ -13,8 +16,8 @@ def line_intersection(line1, line2):
         return
 
     d = (det(*line1), det(*line2))
-    x = det(d, xdiff) / div
-    y = det(d, ydiff) / div
+    x = round(det(d, xdiff) / div)
+    y = round(det(d, ydiff) / div)
 
     if point_in_area(line1, line2, x, y):
         return (x, y)
@@ -28,21 +31,32 @@ def point_in_area(line1, line2, x, y):
            or (y1 <= y and y2 >= y and y3 <= y  and y4 >= y)
 
 
+def point_distance(x, y):
+    return round(math.hypot(x[1] - x[0], y[1] - y[0]))
+
+
 if __name__ == '__main__':
     A = (1, 1)
     B = (3, 2)
     C = (1, 3)
     D = (3, 1)
-    print line_intersection((A, B), (C, D))
+    int_point = line_intersection((A, B), (C, D))
+    print(int_point)
+    print(point_distance(A, int_point))
+    print(point_distance(C, int_point))
 
     A = (1, 1)
     B = (0, 3)
     C = (1, 3)
     D = (0, 3)
-    print line_intersection((A, B), (C, D))
+    int_point = line_intersection((A, B), (C, D))
+    print(int_point)
+    print(point_distance(A, int_point))
+    print(point_distance(C, int_point))
 
     A = (1, 3)
     B = (3, 3)
     C = (0, 3)
     D = (0, 2)
-    print line_intersection((A, B), (C, D))
+    int_point = line_intersection((A, B), (C, D))
+    print(int_point)
