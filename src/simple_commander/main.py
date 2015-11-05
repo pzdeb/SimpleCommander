@@ -78,21 +78,21 @@ class Unit(object):
         y = game_field.get('height', 0) - y
         return x, y
 
-    def compute_new_coordinate(self, game_field, interval):
+    def compute_new_coordinate(self, interval):
         min_height = int(0 + self.height / 2)
         min_width = int(0 + self.width / 2)
-        max_height = int(game_field.get('height', 0) - self.height / 2)
-        max_width = int(game_field.get('width', 0) - self.width / 2)
+        max_height = int(self.controller.game_field.get('height', 0) - self.height / 2)
+        max_width = int(self.controller.game_field.get('width', 0) - self.width / 2)
 
         # Calculate real position
         time_from_last_calculate = (datetime.now() - self.time_last_calculation).total_seconds()
-        x0, y0 = self.translate(self.x, self.y, game_field)
+        x0, y0 = self.translate(self.x, self.y, self.controller.game_field)
         x = round(x0 + self.speed * time_from_last_calculate * math.sin(round(math.radians(self.angle), 2)))
         y = round(y0 + self.speed * time_from_last_calculate * math.cos(round(math.radians(self.angle), 2)))
-        self.x1, self.y1 = self.translate(x, y, game_field)
+        self.x1, self.y1 = self.translate(x, y, self.controller.game_field)
 
         # Calculate future position
-        x0, y0 = self.translate(self.x1, self.y1, game_field)
+        x0, y0 = self.translate(self.x1, self.y1, self.controller.game_field)
         x = round(x0 + self.speed * interval * math.sin(round(math.radians(self.angle), 2)))
         y = round(y0 + self.speed * interval * math.cos(round(math.radians(self.angle), 2)))
         x, y = self.translate(x, y, self.controller.game_field)
