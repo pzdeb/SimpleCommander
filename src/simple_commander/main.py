@@ -106,21 +106,17 @@ class Unit(object):
             self.move_to(x, y)
         elif min_width < self.x1 < max_height and min_height < self.y1 < max_height:
             x, y = self.translate(x, y, game_field)
-            if x < min_width:
-                time_to_crash = math.fabs((min_width-x0) * interval / (x - x0))
-                x = min_width
+            direct_x = x
+            direct_y = y
+            x = x if x > min_width else min_width
+            x = x if x < max_width else max_width
+            y = y if y > min_height else min_height
+            y = y if y < max_height else max_height
+            if x != direct_x:
+                time_to_crash = math.fabs((x-x0) * interval / (direct_x - x0))
                 y = round(y0 + self.speed * time_to_crash * math.cos(round(math.radians(self.angle), 2)))
-            if x > max_width:
-                time_to_crash = math.fabs((max_width-x0) * interval / (x - x0))
-                x = max_width
-                y = round(y0 + self.speed * time_to_crash * math.cos(round(math.radians(self.angle), 2)))
-            if y < min_height:
-                time_to_crash = math.fabs((min_height-y0) * interval / (y - y0))
-                y = min_height
-                x = round(x0 + self.speed * time_to_crash * math.sin(round(math.radians(self.angle), 2)))
-            if y > max_height:
-                time_to_crash = math.fabs((max_height-y0) * interval / (y - y0))
-                y = max_height
+            if y != direct_y:
+                time_to_crash = math.fabs((y-y0) * interval / (direct_y - y0))
                 x = round(x0 + self.speed * time_to_crash * math.sin(round(math.radians(self.angle), 2)))
             if self.__class__.__name__ != 'Invader':
                 self.speed = round(math.sqrt((x-x0)**2+(y-y0)**2)/interval)
