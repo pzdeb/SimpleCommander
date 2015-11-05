@@ -90,6 +90,10 @@ class Unit(object):
         x = round(x0 + self.speed * time_from_last_calculate * math.sin(round(math.radians(self.angle), 2)))
         y = round(y0 + self.speed * time_from_last_calculate * math.cos(round(math.radians(self.angle), 2)))
         self.x1, self.y1 = self.translate(x, y, self.controller.game_field)
+        self.x1 = self.x1 if self.x1 > min_width else min_width
+        self.x1 = self.x1 if self.x1 < max_width else max_width
+        self.y1 = self.y1 if self.y1 > min_height else min_height
+        self.y1 = self.y1 if self.y1 < max_height else max_height
 
         # Calculate future position
         x0, y0 = self.translate(self.x1, self.y1, self.controller.game_field)
@@ -102,17 +106,17 @@ class Unit(object):
             self.move_to(x, y)
         elif min_width < self.x1 < max_height and min_height < self.y1 < max_height:
             x, y = self.translate(x, y, self.controller.game_field)
-            direct_x = x
-            direct_y = y
+            target_x = x
+            target_y = y
             x = x if x > min_width else min_width
             x = x if x < max_width else max_width
             y = y if y > min_height else min_height
             y = y if y < max_height else max_height
-            if x != direct_x:
-                time_to_crash = math.fabs((x-x0) * interval / (direct_x - x0))
+            if x != target_x:
+                time_to_crash = math.fabs((x-x0) * interval / (target_x - x0))
                 y = round(y0 + self.speed * time_to_crash * math.cos(round(math.radians(self.angle), 2)))
-            if y != direct_y:
-                time_to_crash = math.fabs((y-y0) * interval / (direct_y - y0))
+            if y != target_y:
+                time_to_crash = math.fabs((y-y0) * interval / (target_y - y0))
                 x = round(x0 + self.speed * time_to_crash * math.sin(round(math.radians(self.angle), 2)))
 
             if self.__class__.__name__ == 'Hero':
