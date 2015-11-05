@@ -130,7 +130,7 @@ function GameController(canvas) {
         }
 
         //reset key presses
-        this.leftPress = this.rightPress = this.upPress = this.downPress = false;
+        this.leftPress = this.rightPress = this.upPress = this.downPress = this.spascePress = false;
 
         this.stage.update();
 
@@ -242,8 +242,10 @@ function GameController(canvas) {
                 }
                 return false;
             case KEYCODE_SPACE:
-                console.log('space');
-                return false;
+                if (!this.spascePress){
+                    this.spascePress = true;
+                    this.sendAction('fire', 'start');
+                }
         }
     };
 
@@ -275,6 +277,11 @@ function GameController(canvas) {
                 if (this.speed) {
                     this.speed = false;
                     this.sendAction('change_speed', 'stop')
+                }
+                break;
+            case KEYCODE_SPACE:
+                if (this.spascePress){
+                    this.spascePress = false;
                 }
                 break;
         }

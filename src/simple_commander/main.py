@@ -78,34 +78,34 @@ class Unit(object):
         y = game_field.get('height', 0) - y
         return x, y
 
-    def compute_new_coordinate(self, game_field, interval):
+    def compute_new_coordinate(self, interval):
         min_height = int(0 + self.height / 2)
         min_width = int(0 + self.width / 2)
-        max_height = int(game_field.get('height', 0) - self.height / 2)
-        max_width = int(game_field.get('width', 0) - self.width / 2)
+        max_height = int(self.controller.game_field.get('height', 0) - self.height / 2)
+        max_width = int(self.controller.game_field.get('width', 0) - self.width / 2)
 
         # Calculate real position
         time_from_last_calculate = (datetime.now() - self.time_last_calculation).total_seconds()
-        x0, y0 = self.translate(self.x, self.y, game_field)
+        x0, y0 = self.translate(self.x, self.y, self.controller.game_field)
         x = round(x0 + self.speed * time_from_last_calculate * math.sin(round(math.radians(self.angle), 2)))
         y = round(y0 + self.speed * time_from_last_calculate * math.cos(round(math.radians(self.angle), 2)))
-        self.x1, self.y1 = self.translate(x, y, game_field)
+        self.x1, self.y1 = self.translate(x, y, self.controller.game_field)
         self.x1 = self.x1 if self.x1 > min_width else min_width
         self.x1 = self.x1 if self.x1 < max_width else max_width
         self.y1 = self.y1 if self.y1 > min_height else min_height
         self.y1 = self.y1 if self.y1 < max_height else max_height
 
         # Calculate future position
-        x0, y0 = self.translate(self.x1, self.y1, game_field)
+        x0, y0 = self.translate(self.x1, self.y1, self.controller.game_field)
         x = round(x0 + self.speed * interval * math.sin(round(math.radians(self.angle), 2)))
         y = round(y0 + self.speed * interval * math.cos(round(math.radians(self.angle), 2)))
-        x, y = self.translate(x, y, game_field)
+        x, y = self.translate(x, y, self.controller.game_field)
 
         self.time_last_calculation = datetime.now()
         if x in range(min_width, max_width+1) and y in range(min_height, max_height+1):
             self.move_to(x, y)
         elif min_width < self.x1 < max_height and min_height < self.y1 < max_height:
-            x, y = self.translate(x, y, game_field)
+            x, y = self.translate(x, y, self.controller.game_field)
             direct_x = x
             direct_y = y
             x = x if x > min_width else min_width
@@ -119,14 +119,13 @@ class Unit(object):
                 time_to_crash = math.fabs((y-y0) * interval / (direct_y - y0))
                 x = round(x0 + self.speed * time_to_crash * math.sin(round(math.radians(self.angle), 2)))
 
-            # TODO we should remove this check when units can randomly change the speed
-            if self.__class__.__name__ != 'Invader':
+            if self.__class__.__name__ == 'Hero':
                 self.speed = round(math.sqrt((x-x0)**2+(y-y0)**2)/interval)
 
-            x, y = self.translate(x, y, game_field)
+            x, y = self.translate(x, y, self.controller.game_field)
             self.move_to(x, y)
         else:
-            self.reset(game_field)
+            self.reset(self.controller.game_field)
 
     def move_to(self, x, y):
         logging.info('Move %s to new coordinate - (%s, %s)' % (self.__class__.__name__, x, y))
@@ -146,7 +145,7 @@ class Unit(object):
                 new_angle += MAX_ANGLE
             logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, new_angle))
             self.angle = new_angle
-            self.compute_new_coordinate(self.controller.game_field, ACTION_INTERVAL)
+            self.compute_new_coordinate(ACTION_INTERVAL)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
     def change_speed(self, direct):
@@ -154,7 +153,7 @@ class Unit(object):
             new_speed = self.speed + SPEED if direct == 'front' else self.speed - SPEED
             self.speed = new_speed > 0 and new_speed or 0
             logging.info('Change %s speed to %s' % (self.__class__.__name__, self.speed))
-            self.compute_new_coordinate(self.controller.game_field, ACTION_INTERVAL)
+            self.compute_new_coordinate(ACTION_INTERVAL)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
     def check_collision(self, other_unit, all_units):
@@ -187,7 +186,7 @@ class Invader(Unit):
 
     def reset(self, game_field):
         self.angle = randint(0, 360)
-        self.compute_new_coordinate(game_field, STEP_INTERVAL)
+        self.compute_new_coordinate(STEP_INTERVAL)
         logging.info('Reset %s angle. New angle - %s' % (self.__class__.__name__, self.angle))
 
     def kill(self, other_unit, units):
@@ -243,8 +242,8 @@ class Bullet(Unit):
         self.unit_id = id(unit)
         dimension = unit.__class__.__name__ == 'Hero' and UNITS.get('bullet_hero', {}).get('dimension', 0)\
             or UNITS.get('bullet_invader', {}).get('dimension', 0)
-        super(Bullet, self).__init__(unit.x0, unit.y0, unit.angle, 0, unit.speed * 2 or DEFAULT_SPEED,
-                                     unit.bullet_type, unit.bullet_type, dimension, controller=controller)
+        super(Bullet, self).__init__(unit.x, unit.y, unit.angle, 0, unit.speed * 2 or DEFAULT_SPEED,
+                                     unit.bullet_filename, unit.bullet_filename, dimension, controller=controller)
 
     def reset(self, game_field):
         self.is_dead = True
@@ -271,6 +270,7 @@ class Bullet(Unit):
 
 
 __game = None
+
 
 def get_game(height=None, width=None, invaders_count=None, notify_clients=None):
     global __game
@@ -305,6 +305,7 @@ class GameController(object):
         unit = unit_class(*args, **kwargs)
         self.units[unit.id] = unit
         unit.response('new')
+        unit.compute_new_coordinate(STEP_INTERVAL)
         return unit
 
     def new_hero(self):
@@ -323,8 +324,9 @@ class GameController(object):
 
     def fire(self, unit):
         logging.info('Fire!! Creating bullet!')
-        bullet = self.new_unit(Bullet, unit=unit, controller=self)
-        self.new_unit(bullet)
+        # bullet = self.new_unit(Bullet, unit=unit, controller=self)
+        unit.compute_new_coordinate(STEP_INTERVAL)
+        self.new_unit(Bullet, unit=unit, controller=self)
 
     def get_units(self):
         units = []
@@ -346,7 +348,7 @@ class GameController(object):
                 for unit in list(self.units.keys()):
                     if self.units.get(unit):
                         if self.units[unit].speed and unit not in self.ignore_heroes:
-                            self.units[unit].compute_new_coordinate(self.game_field, STEP_INTERVAL)
+                            self.units[unit].compute_new_coordinate(STEP_INTERVAL)
                         for key in list(self.units.keys()):
                             if self.units.get(unit) and self.units.get(key):
                                 self.units[unit].check_collision(self.units[key], self.units)

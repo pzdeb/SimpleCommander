@@ -21,7 +21,8 @@ class HelloWorldJsonView(JSONBaseView):
         return {'message': 'Hello! This is JSON'}
 
 
-@url_route('/api/hero/{hero_id:[a-z0-9-]+}/action/{action:[a-z_]+}/{direct:(stop)|(left)|(right)|(front)|(back)}')
+@url_route('/api/hero/{hero_id:[a-z0-9-]+}/action/{action:[a-z_]+}/{direct:'
+           '(stop)|(start)|(left)|(right)|(front)|(back)}')
 class HeroAction(JSONBaseView):
 
     @asyncio.coroutine
@@ -30,8 +31,8 @@ class HeroAction(JSONBaseView):
         hero = game.units.get(hero_id, '')
         hero_action = getattr(hero, action, getattr(game, action, None))
         if hero and hero_action and callable(hero_action):
-            if direct == 'stop':
-                hero.compute_new_coordinate(game.game_field, STEP_INTERVAL)
+            if direct == 'stop' and direct != 'start':
+                hero.compute_new_coordinate(STEP_INTERVAL)
                 try:
                     game.ignore_heroes.remove(hero.id)
                 except ValueError:
@@ -43,7 +44,10 @@ class HeroAction(JSONBaseView):
                 hero.stop_rotate = direct
             elif action == 'change_speed':
                 hero.stop_change_speed = direct
-            asyncio.async(hero_action(parameter))
+            if action != 'fire':
+                asyncio.async(hero_action(parameter))
+            else:
+                hero_action(parameter)
         else:
             return {'error': 'bad request'}
 

@@ -36,7 +36,7 @@ class StreamCommandServer(BaseCommandServer):
 
     def _init_server(self, host, port):
         self._app = web.Application(loop=self._loop)
-        self._controller = get_game(600, 800, 4, self.notify_clients)
+        self._controller = get_game(600, 800, 0, self.notify_clients)
         self._server = websockets.serve(self.process_request, host, port)
 
     def __new__(cls, *args, **kwargs):
