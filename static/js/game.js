@@ -76,7 +76,7 @@ function GameController(canvas) {
                     this.updateUnit(answer.update);
                     break;
                 case 'delete':
-                    this.deleteUnit(answer.delete);
+                    this.killUnit(answer.delete);
                     break;
             }
         }
@@ -197,7 +197,7 @@ function GameController(canvas) {
         this.update_shown_property();
     };
 
-    this.deleteUnit = function (unitData) {
+    this.killUnit = function (unitData) {
         var id = unitData['id'];
         this.stage.removeChild(this.units[id]);
         this.stage.update();
