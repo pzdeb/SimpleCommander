@@ -173,9 +173,7 @@ class Invader(Unit):
             other_unit.response('update')
         else:
             other_unit.is_dead = True
-            get_game().remove_unit(other_unit.id)
         self.is_dead = True
-        get_game().remove_unit(self.id)
 
 
 class Hero(Unit):
@@ -197,7 +195,6 @@ class Hero(Unit):
             self.life_count = 0
             self.is_dead = True
             self.response('update')
-            get_game().remove_unit(self.id)
 
     def reset(self, game_field):
         self.speed = 0
@@ -214,7 +211,6 @@ class Hero(Unit):
             self.response('update')
         else:
             other_unit.is_dead = True
-            get_game().remove_unit(other_unit.id)
 
 
 class Bullet(Unit):
@@ -238,11 +234,9 @@ class Bullet(Unit):
         elif unit_class_name == 'Invader':
             get_game().add_bonus(self)
             other_unit.is_dead = True
-            get_game().remove_unit(other_unit.id)
         else:
             other_unit.is_dead = True
         self.is_dead = True
-        get_game().remove_unit(self.id)
 
 
 __game = None
@@ -289,9 +283,15 @@ class GameController(object):
         hero = self.new_unit(Hero, x=pos_x, y=pos_y, angle=angle)
         return hero
 
-    def remove_unit(self, unit_id):
-        self.units[unit_id].response('delete')
-        del self.units[unit_id]
+    def check_if_remove_units(self, units):
+        for unit in units:
+            if unit.is_dead:
+                self.remove_unit(unit.id)
+
+    def remove_unit(self, id):
+        self.units[id].response('delete')
+        del self.units[id]
+        logging.info('Length of units - %s' % len(self.units))
 
     def add_bonus(self, bullet):
         for unit in self.units:
@@ -337,4 +337,5 @@ class GameController(object):
                         for key in list(self.units.keys()):
                             if self.units.get(unit) and self.units.get(key):
                                 self.units[unit].check_collision(self.units[key])
+                                self.check_if_remove_units([self.units[unit], self.units[key]])
                 yield from asyncio.sleep(STEP_INTERVAL)
