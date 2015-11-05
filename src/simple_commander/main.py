@@ -141,13 +141,17 @@ class Unit(object):
                 getattr(other_unit, 'unit_id', '') != id(self):
             if (self.x + self.width / 2 > other_unit.x - other_unit.width / 2) and (self.x - self.width / 2 < other_unit.x + other_unit.width / 2) and \
                     (self.y + self.height / 2 > other_unit.y - other_unit.height / 2) and (self.y - self.height / 2 < other_unit.y + other_unit.height / 2):
-                self.kill(other_unit)
+                self.hit(other_unit)
 
     def reset(self, game_field):
         raise NotImplementedError
 
-    def kill(self, other_unit):
+    def hit(self, other_unit):
         raise NotImplementedError
+
+    def kill(self):
+        logging.info('Killing - %s ' % self.__class__.__name__)
+        self.is_dead = True
 
 
 class Invader(Unit):
@@ -165,15 +169,15 @@ class Invader(Unit):
         self.compute_new_coordinate(game_field, STEP_INTERVAL)
         logging.info('Reset %s angle. New angle - %s' % (self.__class__.__name__, self.angle))
 
-    def kill(self, other_unit):
+    def hit(self, other_unit):
         unit_class_name = other_unit. __class__.__name__
-        logging.info('In kill - %s and %s' % (self.__class__.__name__, unit_class_name))
+        logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
         if unit_class_name == 'Hero':
             other_unit.decrease_life()
             other_unit.response('update')
         else:
-            other_unit.is_dead = True
-        self.is_dead = True
+            other_unit.kill()
+        self.kill()
 
 
 class Hero(Unit):
@@ -193,7 +197,7 @@ class Hero(Unit):
             self.response('update')
         else:
             self.life_count = 0
-            self.is_dead = True
+            self.kill()
             self.response('update')
 
     def reset(self, game_field):
@@ -202,15 +206,15 @@ class Hero(Unit):
         self.y = self.y1
         self.response('update')
 
-    def kill(self, other_unit):
+    def hit(self, other_unit):
         unit_class_name = other_unit. __class__.__name__
-        logging.info('In kill - %s and %s' % (self.__class__.__name__, unit_class_name))
+        logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
         self.decrease_life()
         if unit_class_name == 'Hero':
             other_unit.decrease_life()
             self.response('update')
         else:
-            other_unit.is_dead = True
+            other_unit.kill()
 
 
 class Bullet(Unit):
@@ -222,21 +226,21 @@ class Bullet(Unit):
                                      unit.bullet_type, unit.bullet_type, dimension, controller=controller)
 
     def reset(self, game_field):
-        self.is_dead = True
+        self.kill()
         if self.controller.units.get(self.id, ''):
             del self.controller.units[self.id]
 
-    def kill(self, other_unit):
+    def hit(self, other_unit):
         unit_class_name = other_unit. __class__.__name__
-        logging.info('In kill - %s and %s' % (self.__class__.__name__, unit_class_name))
+        logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
         if unit_class_name == 'Hero':
             other_unit.decrease_life()
         elif unit_class_name == 'Invader':
             get_game().add_bonus(self)
-            other_unit.is_dead = True
+            other_unit.kill()
         else:
-            other_unit.is_dead = True
-        self.is_dead = True
+            other_unit.kill()
+        self.kill()
 
 
 __game = None
