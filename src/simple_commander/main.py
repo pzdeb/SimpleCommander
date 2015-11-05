@@ -20,12 +20,12 @@ If he bullet some invader, his bonus is grow.
 When invader bullet to main hero, the main hero's life is decrease.
 '''
 
-UNITS = {'invader': [{'type': 'invader1', 'dimension': 50},
-                     {'type': 'invader2', 'dimension': 50},
-                     {'type': 'invader3', 'dimension': 46}],
-         'hero': [{'type': 'hero1', 'dimension': 52},
-                  {'type': 'hero2', 'dimension': 44},
-                  {'type': 'hero3', 'dimension': 53}],
+UNITS = {'invader': [{'type': 'invader1', 'dimension': 28},
+                     {'type': 'invader2', 'dimension': 28},
+                     {'type': 'invader3', 'dimension': 28}],
+         'hero': [{'type': 'hero1', 'dimension': 28},
+                  {'type': 'hero2', 'dimension': 28},
+                  {'type': 'hero3', 'dimension': 28}],
          'bullet_hero': {'type': 'bullet_hero', 'dimension': 10},
          'bullet_invader': {'type': 'bullet_invader', 'dimension': 10}}
 
