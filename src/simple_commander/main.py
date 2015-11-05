@@ -34,7 +34,7 @@ DEFAULT_SPEED = 35
 SPEED = 2
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
 ACTION_INTERVAL = 0.05
-UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count', 'type']
+UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count', 'type', 'width', 'height']
 MAX_ANGLE = 360
 
 
@@ -132,22 +132,26 @@ class Unit(object):
             self.compute_new_coordinate(self.controller.game_field, ACTION_INTERVAL)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
-    def check_collision(self, other_unit, all_units):
+    def check_collision(self, other_unit):
         # check if coordinate for two units is the same
         # for this check we also include width and height of unit's image
         # (other_unit.x - other_unit.width / 2 < self.x < other_unit.x + other_unit.width / 2)
         # (other_unit.y - other_unit.height / 2 < self.y < other_unit.y + other_unit.height / 2)
         if id(self) != id(other_unit) and getattr(self, 'unit_id', '') != id(other_unit) and \
                 getattr(other_unit, 'unit_id', '') != id(self):
-            if (self.x1 > other_unit.x1 - other_unit.width / 2) and (self.x1 < other_unit.x1 + other_unit.width / 2) and \
-                    (self.y1 > other_unit.y1 - other_unit.height / 2) and (self.y1 < other_unit.y1 + other_unit.height / 2):
-                self.kill(other_unit, all_units)  
+            if (self.x + self.width / 2 > other_unit.x - other_unit.width / 2) and (self.x - self.width / 2 < other_unit.x + other_unit.width / 2) and \
+                    (self.y + self.height / 2 > other_unit.y - other_unit.height / 2) and (self.y - self.height / 2 < other_unit.y + other_unit.height / 2):
+                self.hit(other_unit)
 
     def reset(self, game_field):
         raise NotImplementedError
 
-    def kill(self, other_unit, units):
+    def hit(self, other_unit):
         raise NotImplementedError
+
+    def kill(self):
+        logging.info('Killing - %s ' % self.__class__.__name__)
+        self.is_dead = True
 
 
 class Invader(Unit):
@@ -165,16 +169,15 @@ class Invader(Unit):
         self.compute_new_coordinate(game_field, STEP_INTERVAL)
         logging.info('Reset %s angle. New angle - %s' % (self.__class__.__name__, self.angle))
 
-    def kill(self, other_unit, units):
+    def hit(self, other_unit):
         unit_class_name = other_unit. __class__.__name__
-        logging.info('In kill - %s and %s' % (self.__class__.__name__, unit_class_name))
+        logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
         if unit_class_name == 'Hero':
-            other_unit.decrease_life(units)
+            other_unit.decrease_life()
+            other_unit.response('update')
         else:
-            other_unit.is_dead = True
-            del units[other_unit.id]
-        self.is_dead = True
-        del units[self.id]
+            other_unit.kill()
+        self.kill()
 
 
 class Hero(Unit):
@@ -188,13 +191,14 @@ class Hero(Unit):
         super(Hero, self).__init__(x, y, angle, bonus, speed, type, bullet_type, dimension, controller=controller)
         self.life_count = life_count
 
-    def decrease_life(self, units):
+    def decrease_life(self):
         if self.life_count > 1:
             self.life_count -= 1
+            self.response('update')
         else:
             self.life_count = 0
-            self.is_dead = True
-            units.remove(self)
+            self.kill()
+            self.response('update')
 
     def reset(self, game_field):
         self.speed = 0
@@ -202,15 +206,15 @@ class Hero(Unit):
         self.y = self.y1
         self.response('update')
 
-    def kill(self, other_unit, units):
+    def hit(self, other_unit):
         unit_class_name = other_unit. __class__.__name__
-        logging.info('In kill - %s and %s' % (self.__class__.__name__, unit_class_name))
-        self.decrease_life(units)
+        logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
+        self.decrease_life()
         if unit_class_name == 'Hero':
-            other_unit.decrease_life(units)
+            other_unit.decrease_life()
+            self.response('update')
         else:
-            other_unit.is_dead = True
-            del units[other_unit.id]
+            other_unit.kill()
 
 
 class Bullet(Unit):
@@ -222,30 +226,25 @@ class Bullet(Unit):
                                      unit.bullet_type, unit.bullet_type, dimension, controller=controller)
 
     def reset(self, game_field):
-        self.is_dead = True
+        self.kill()
         if self.controller.units.get(self.id, ''):
             del self.controller.units[self.id]
 
-    def kill(self, other_unit, units):
+    def hit(self, other_unit):
         unit_class_name = other_unit. __class__.__name__
-        logging.info('In kill - %s and %s' % (self.__class__.__name__, unit_class_name))
+        logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
         if unit_class_name == 'Hero':
             other_unit.decrease_life()
         elif unit_class_name == 'Invader':
-            for unit in units:
-                if id(units[unit]) == self.unit_id and units[unit].__class__.__name__ == 'Hero':
-                    units[unit].bonus += other_unit.bonus
-                    logging.info('Add %s bonus for %s. Now he has %s bonus'
-                                 % (other_unit.bonus, unit.__class__.__name__, unit.bonus))
-            other_unit.is_dead = True
-            del units[other_unit.id]
+            get_game().add_bonus(self)
+            other_unit.kill()
         else:
-            other_unit.is_dead = True
-        self.is_dead = True
-        del units[self.id]
+            other_unit.kill()
+        self.kill()
 
 
 __game = None
+
 
 def get_game(height=None, width=None, invaders_count=None, notify_clients=None):
     global __game
@@ -256,6 +255,7 @@ def get_game(height=None, width=None, invaders_count=None, notify_clients=None):
                                 invaders_count=invaders_count,
                                 notify_clients=notify_clients)
     return __game
+
 
 class GameController(object):
     _instance = None
@@ -286,6 +286,23 @@ class GameController(object):
         angle = randint(0, 360)
         hero = self.new_unit(Hero, x=pos_x, y=pos_y, angle=angle)
         return hero
+
+    def check_if_remove_units(self, units):
+        for unit in units:
+            if unit.is_dead:
+                self.remove_unit(unit.id)
+
+    def remove_unit(self, id):
+        self.units[id].response('delete')
+        del self.units[id]
+        logging.info('Length of units - %s' % len(self.units))
+
+    def add_bonus(self, bullet):
+        for unit in self.units:
+            if id(self.units[unit]) == bullet.unit_id and self.units[unit].__class__.__name__ == 'Hero':
+                self.units[unit].bonus += bullet.bonus
+                logging.info('Add %s bonus for %s. Now he has %s bonus'
+                             % (bullet.bonus, unit.__class__.__name__, unit.bonus))
 
     def set_invaders(self):
         for count in range(self.invaders_count):
@@ -323,5 +340,6 @@ class GameController(object):
                             self.units[unit].compute_new_coordinate(self.game_field, STEP_INTERVAL)
                         for key in list(self.units.keys()):
                             if self.units.get(unit) and self.units.get(key):
-                                self.units[unit].check_collision(self.units[key], self.units)
+                                self.units[unit].check_collision(self.units[key])
+                                self.check_if_remove_units([self.units[unit], self.units[key]])
                 yield from asyncio.sleep(STEP_INTERVAL)

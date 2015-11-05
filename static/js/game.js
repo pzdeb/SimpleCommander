@@ -75,6 +75,9 @@ function GameController(canvas) {
                 case 'update':
                     this.updateUnit(answer.update);
                     break;
+                case 'delete':
+                    this.killUnit(answer.delete);
+                    break;
             }
         }
 
@@ -87,7 +90,7 @@ function GameController(canvas) {
         var game_field = init['game'];
         this.frequency = init['frequency'];
         this.canvas.width = game_field.width;
-        this.canvas.hight = game_field.hight;
+        this.canvas.height = game_field.height;
         this.stage.removeAllChildren();
 
         //create Units
@@ -107,6 +110,8 @@ function GameController(canvas) {
                     unit.rotation = unitsObj[i].angle;
                 }
             }
+            unit.regX = unit.width / 2;
+            unit.regY = unit.height / 2;
             this.units[unit.id] = unit;
             this.stage.addChild(unit);
         }
@@ -186,8 +191,17 @@ function GameController(canvas) {
                 this.units[id]['rotation'] = unitData[key]
             }
         }
+        this.units[id].regX = this.units[id].width / 2;
+        this.units[id].regY = this.units[id].height / 2;
         this.units[id].speedTick = this.units[id].speed / this.frequency / FPS;
         this.update_shown_property();
+    };
+
+    this.killUnit = function (unitData) {
+        var id = unitData['id'];
+        this.stage.removeChild(this.units[id]);
+        this.stage.update();
+        delete this.units[id];
     };
 
     this.tick = function (event) {
