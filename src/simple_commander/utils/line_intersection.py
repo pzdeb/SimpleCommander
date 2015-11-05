@@ -22,7 +22,7 @@ def line_intersection(line1, line2):
 
 def point_in_area(line1, line2, x, y):
     """Check if intersection point is on defined area."""
-    x1, x2, x3, x4 = line1[0][0], line1[1][0], line2[0][0], line1[1][0]
+    x1, x2, x3, x4 = line1[0][0], line1[1][0], line2[0][0], line2[1][0]
     y1, y2, y3, y4 = line1[0][1], line1[1][1], line2[0][1], line2[1][1]
     return (x1 <= x and x2 >= x and x3 <= x and x4 >= x)\
            or (y1 <= y and y2 >= y and y3 <= y  and y4 >= y)
