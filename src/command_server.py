@@ -64,8 +64,9 @@ class StreamCommandServer(BaseCommandServer):
 
     @asyncio.coroutine
     def notify_clients(self, data):
-        for socket in self._server.websockets:
-            yield from socket.send(json.dumps(data))
+        if hasattr(self._server, 'websockets'):
+            for socket in self._server.websockets:
+                yield from socket.send(json.dumps(data))
 
 
 class HttpCommandServer(BaseCommandServer):

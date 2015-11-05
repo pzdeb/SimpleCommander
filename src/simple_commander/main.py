@@ -118,8 +118,11 @@ class Unit(object):
             if y != direct_y:
                 time_to_crash = math.fabs((y-y0) * interval / (direct_y - y0))
                 x = round(x0 + self.speed * time_to_crash * math.sin(round(math.radians(self.angle), 2)))
+
+            # TODO we should remove this check when units can randomly change the speed
             if self.__class__.__name__ != 'Invader':
                 self.speed = round(math.sqrt((x-x0)**2+(y-y0)**2)/interval)
+
             x, y = self.translate(x, y, game_field)
             self.move_to(x, y)
         else:
