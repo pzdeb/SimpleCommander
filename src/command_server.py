@@ -47,7 +47,7 @@ class StreamCommandServer(BaseCommandServer):
     @asyncio.coroutine
     def process_request(self, websocket, path):
         asyncio.async(self._controller.run())
-        my_hero = self._controller.set_hero()
+        my_hero = self._controller.new_hero()
         start_conditions = {'init': {
             'hero_id': my_hero.id,
             'game': self._controller.game_field,
