@@ -246,13 +246,13 @@ function GameController(canvas) {
                 //TODO: What is the meaning of `speed` as boolean. Non sense to me
                 if (!this.speed) {
                     this.speed = true;
-                    this.sendAction('change_speed', 'front');
+                    this.sendAction('change_speed', 'up');
                 }
                 return false;
             case KEYCODE_DOWN:
                 if (!this.speed) {
                     this.speed = true;
-                    this.sendAction('change_speed', 'back');
+                    this.sendAction('change_speed', 'down');
                 }
                 return false;
             case KEYCODE_SPACE:
@@ -296,6 +296,7 @@ function GameController(canvas) {
             case KEYCODE_SPACE:
                 if (this.spascePress){
                     this.spascePress = false;
+                    this.sendAction('fire', 'stop')
                 }
                 break;
         }
@@ -303,7 +304,7 @@ function GameController(canvas) {
 
     this.sendAction = function (action, value) {
         var http = new XMLHttpRequest();
-        var url = "api/hero/" + this.hero.id + "/action/" + action + "/" + value;
+        var url = "api/hero/" + this.hero.id + "/action/" + action;
         http.open("POST", url, true);
         http.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
         http.send(JSON.stringify({'value': value}));
