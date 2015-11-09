@@ -1,5 +1,4 @@
 import asyncio
-import re
 
 from core.base import StringBaseView, JSONBaseView, TemplateView
 from .routes import url_route
@@ -31,13 +30,13 @@ class HeroAction(JSONBaseView):
         hero = game.units.get(hero_id, '')
         hero_action = getattr(self, action, None)
         if hero_action and action:
-            if re.match('^stop', action):
+            if action.startswith('stop'):
                 hero.compute_new_coordinate(STEP_INTERVAL)
                 try:
                     game.ignore_heroes.remove(hero.id)
                 except ValueError:
                     pass
-            elif not re.match('fire', action):
+            elif not action.endswith('fire'):
                 game.ignore_heroes.append(hero.id)
             hero_action(hero)
         else:
