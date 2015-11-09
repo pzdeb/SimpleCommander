@@ -58,8 +58,8 @@ class Unit(object):
         self.id = str(uuid.uuid4())
         self.is_dead = False
         self.shift = 5
-        self.stop_rotate = True
-        self.stop_change_speed = True
+        self.rotate_is_pressing = False
+        self.change_speed_is_pressing = False
         self.min_height = int(0 + self.height / 2)
         self.min_width = int(0 + self.width / 2)
         self.max_height = int(self.controller.game_field.get('height', 0) - self.height / 2)
@@ -130,7 +130,7 @@ class Unit(object):
 
     @asyncio.coroutine
     def rotate(self, side):
-        while not self.stop_rotate:
+        while self.rotate_is_pressing:
             new_angle = self.angle + ANGLE if side == 'right' else self.angle - ANGLE
             if new_angle > MAX_ANGLE:
                 new_angle -= MAX_ANGLE
@@ -142,7 +142,7 @@ class Unit(object):
             yield from asyncio.sleep(ACTION_INTERVAL)
 
     def change_speed(self, direct):
-        while not self.stop_change_speed:
+        while self.change_speed_is_pressing:
             new_speed = self.speed + SPEED if direct == 'up' else self.speed - SPEED
             self.speed = new_speed > 0 and new_speed or 0
             logging.info('Change %s speed to %s' % (self.__class__.__name__, self.speed))
@@ -206,9 +206,10 @@ class Hero(Unit):
             type = UNITS.get('hero', [])[random_number].get('type', '')
             dimension = UNITS.get('hero', [])[random_number].get('dimension', '')
         super(Hero, self).__init__(x, y, angle, bonus, speed, type, bullet_type, dimension, controller=controller)
-        self.life_count = life_count
-        self.frequency_fire = frequency_fire
         self.last_fire = datetime.now()
+        self.life_count = life_count
+        self.fire_is_pressing = False
+        self.frequency_fire = frequency_fire
 
     def decrease_life(self):
         if self.life_count > 1:
@@ -221,7 +222,7 @@ class Hero(Unit):
 
     @asyncio.coroutine
     def fire(self):
-        while not self.stop_fire and (datetime.now() - self.last_fire).total_seconds() >= self.frequency_fire:
+        while self.fire_is_pressing and (datetime.now() - self.last_fire).total_seconds() >= self.frequency_fire:
             logging.info('Fire!! Creating bullet!')
             self.compute_new_coordinate(STEP_INTERVAL)
             self.controller.new_unit(Bullet, unit=self, controller=self.controller)

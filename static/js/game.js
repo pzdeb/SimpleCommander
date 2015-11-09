@@ -6,7 +6,7 @@ var KEYCODE_LEFT = 37;
 var KEYCODE_RIGHT = 39;
 var KEYCODE_SPACE = 32;
 
-var shownHeroProperties = {speed:0, life_count:0};
+var tableScorecards = {speed:0, life_count:0};
 var height_property = 20;
 
 var leftPress;
@@ -118,15 +118,15 @@ function GameController(canvas) {
         this.hero = this.units[hero_id];
 
         //Show hero property
-        for (var property in shownHeroProperties){
+        for (var property in tableScorecards){
             if (property in this.hero){
-                shownHeroProperties[property] = new createjs.Text("", "bold 18px Arial", "#FFFFFF");
-                shownHeroProperties[property].x = this.canvas.width - 20;
-                shownHeroProperties[property].y = height_property;
-                shownHeroProperties[property].textAlign = "right";
+                tableScorecards[property] = new createjs.Text("", "bold 18px Arial", "#FFFFFF");
+                tableScorecards[property].x = this.canvas.width - 20;
+                tableScorecards[property].y = height_property;
+                tableScorecards[property].textAlign = "right";
                 var value = property + ": " + (this.hero[property]).toString();
-                shownHeroProperties[property].text = value;
-                this.stage.addChild(shownHeroProperties[property]);
+                tableScorecards[property].text = value;
+                this.stage.addChild(tableScorecards[property]);
                 height_property += 20;
             }
             else{
@@ -150,11 +150,11 @@ function GameController(canvas) {
         console.log(createjs.Ticker.getInterval())
     };
 
-    this.updateShownProperties = function(){
-        for(var property in shownHeroProperties){
+    this.updateTableScorecards = function(){
+        for(var property in tableScorecards){
             if (property in this.hero){
                 var value = property + ": " + (this.hero[property]).toString();
-                shownHeroProperties[property].text = value;
+                tableScorecards[property].text = value;
             }
             else{
                 console.log('Hero does not have property ' + property)
@@ -194,7 +194,7 @@ function GameController(canvas) {
         this.units[id].regX = this.units[id].width / 2;
         this.units[id].regY = this.units[id].height / 2;
         this.units[id].speedTick = this.units[id].speed / this.frequency / FPS;
-        this.updateShownProperties();
+        this.updateTableScorecards();
     };
 
     this.killUnit = function (unitData) {
@@ -233,32 +233,32 @@ function GameController(canvas) {
             case KEYCODE_LEFT:
                 if (!this.leftPress) {
                     this.leftPress = true;
-                    this.sendAction('rotate', 'left')
+                    this.sendAction('rotate_left')
                 }
                 return false;
             case KEYCODE_RIGHT:
                 if (!this.leftPress) {
                     this.leftPress = true;
-                    this.sendAction('rotate', 'right')
+                    this.sendAction('rotate_right')
                 }
                 return false;
             case KEYCODE_UP:
                 //TODO: What is the meaning of `speed` as boolean. Non sense to me
                 if (!this.speed) {
                     this.speed = true;
-                    this.sendAction('change_speed', 'up');
+                    this.sendAction('change_speed_up');
                 }
                 return false;
             case KEYCODE_DOWN:
                 if (!this.speed) {
                     this.speed = true;
-                    this.sendAction('change_speed', 'down');
+                    this.sendAction('change_speed_down');
                 }
                 return false;
             case KEYCODE_SPACE:
                 if (!this.spascePress){
                     this.spascePress = true;
-                    this.sendAction('fire', 'start');
+                    this.sendAction('start_fire');
                 }
         }
     };
@@ -272,42 +272,42 @@ function GameController(canvas) {
             case KEYCODE_LEFT:
                 if (this.leftPress) {
                     this.leftPress = false;
-                    this.sendAction('rotate', 'stop')
+                    this.sendAction('stop_rotate')
                 }
                 break;
             case KEYCODE_RIGHT:
                 if (this.leftPress) {
                     this.leftPress = false;
-                    this.sendAction('rotate', 'stop')
+                    this.sendAction('stop_rotate')
                 }
                 break;
             case KEYCODE_UP:
                 if (this.speed) {
                     this.speed = false;
-                    this.sendAction('change_speed', 'stop')
+                    this.sendAction('stop_change_speed')
                 }
                 break;
             case KEYCODE_DOWN:
                 if (this.speed) {
                     this.speed = false;
-                    this.sendAction('change_speed', 'stop')
+                    this.sendAction('stop_change_speed')
                 }
                 break;
             case KEYCODE_SPACE:
                 if (this.spascePress){
                     this.spascePress = false;
-                    this.sendAction('fire', 'stop')
+                    this.sendAction('stop_fire')
                 }
                 break;
         }
     };
 
-    this.sendAction = function (action, value) {
+    this.sendAction = function (action) {
         var http = new XMLHttpRequest();
         var url = "api/hero/" + this.hero.id + "/action/" + action;
         http.open("POST", url, true);
         http.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-        http.send(JSON.stringify({'value': value}));
+        http.send();
     }
 
 }

@@ -1,5 +1,5 @@
 import asyncio
-import json
+import re
 
 from core.base import StringBaseView, JSONBaseView, TemplateView
 from .routes import url_route
@@ -30,51 +30,55 @@ class HeroAction(JSONBaseView):
         game = get_game()
         hero = game.units.get(hero_id, '')
         hero_action = getattr(self, action, None)
-        data = yield from request.text()
-        data = json.loads(data)
-        value = data.get('value', '')
-        if hero_action and action and value:
-            if value == 'stop':
+        if hero_action and action:
+            if re.match('^stop', action):
                 hero.compute_new_coordinate(STEP_INTERVAL)
                 try:
                     game.ignore_heroes.remove(hero.id)
                 except ValueError:
                     pass
-            elif action != 'fire':
+            elif re.match('fire', action):
                 game.ignore_heroes.append(hero.id)
-            hero_action(hero, value)
+            hero_action(hero)
         else:
             return {'error': 'bad request'}
 
     @staticmethod
-    def change_speed(hero, direct='stop'):
-        if direct == 'stop':
-            hero.stop_change_speed = True
-        elif direct == 'up':
-            hero.stop_change_speed = False
-            asyncio.async(hero.change_speed(direct))
-        elif direct == 'down':
-            hero.stop_change_speed = False
-            asyncio.async(hero.change_speed(direct))
+    def change_speed_up(hero):
+        hero.change_speed_is_pressing = True
+        asyncio.async(hero.change_speed('up'))
 
     @staticmethod
-    def fire(hero, status='stop'):
-        if status == 'stop':
-            hero.stop_fire = True
-        elif status == 'start':
-            hero.stop_fire = False
-            asyncio.async(hero.fire())
+    def change_speed_down(hero):
+        hero.change_speed_is_pressing = True
+        asyncio.async(hero.change_speed('down'))
 
     @staticmethod
-    def rotate(hero, direct='stop'):
-        if direct == 'stop':
-            hero.stop_rotate = True
-        elif direct == 'right':
-            hero.stop_rotate = False
-            asyncio.async(hero.rotate(direct))
-        elif direct == 'left':
-            hero.stop_rotate = False
-            asyncio.async(hero.rotate(direct))
+    def stop_change_speed(hero):
+        hero.change_speed_is_pressing = False
+
+    @staticmethod
+    def start_fire(hero):
+        hero.fire_is_pressing = True
+        asyncio.async(hero.fire())
+
+    @staticmethod
+    def stop_fire(hero):
+        hero.fire_is_pressing = False
+
+    @staticmethod
+    def rotate_right(hero):
+        hero.rotate_is_pressing = True
+        asyncio.async(hero.rotate('right'))
+
+    @staticmethod
+    def rotate_left(hero):
+        hero.rotate_is_pressing = True
+        asyncio.async(hero.rotate('left'))
+
+    @staticmethod
+    def stop_rotate(hero):
+        hero.rotate_is_pressing = False
 
 
 @url_route('/')
