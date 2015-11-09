@@ -6,7 +6,7 @@ var KEYCODE_LEFT = 37;
 var KEYCODE_RIGHT = 39;
 var KEYCODE_SPACE = 32;
 
-var shown_hero_properties = {speed:'', life_count:''};
+var shownHeroProperties = {speed:0, life_count:0};
 var height_property = 20;
 
 var leftPress;
@@ -118,15 +118,15 @@ function GameController(canvas) {
         this.hero = this.units[hero_id];
 
         //Show hero property
-        for (var property in shown_hero_properties){
+        for (var property in shownHeroProperties){
             if (property in this.hero){
-                shown_hero_properties[property] = new createjs.Text("", "bold 18px Arial", "#FFFFFF");
-                shown_hero_properties[property].x = this.canvas.width - 20;
-                shown_hero_properties[property].y = height_property;
-                shown_hero_properties[property].textAlign = "right";
+                shownHeroProperties[property] = new createjs.Text("", "bold 18px Arial", "#FFFFFF");
+                shownHeroProperties[property].x = this.canvas.width - 20;
+                shownHeroProperties[property].y = height_property;
+                shownHeroProperties[property].textAlign = "right";
                 var value = property + ": " + (this.hero[property]).toString();
-                shown_hero_properties[property].text = value;
-                this.stage.addChild(shown_hero_properties[property]);
+                shownHeroProperties[property].text = value;
+                this.stage.addChild(shownHeroProperties[property]);
                 height_property += 20;
             }
             else{
@@ -135,7 +135,7 @@ function GameController(canvas) {
         }
 
         //reset key presses
-        this.leftPress = this.rightPress = this.upPress = this.downPress = false;
+        this.leftPress = this.rightPress = this.upPress = this.downPress = this.spascePress = false;
 
         this.stage.update();
 
@@ -150,11 +150,11 @@ function GameController(canvas) {
         console.log(createjs.Ticker.getInterval())
     };
 
-    this.update_shown_property = function(){
-        for(var property in shown_hero_properties){
+    this.updateShownProperties = function(){
+        for(var property in shownHeroProperties){
             if (property in this.hero){
                 var value = property + ": " + (this.hero[property]).toString();
-                shown_hero_properties[property].text = value;
+                shownHeroProperties[property].text = value;
             }
             else{
                 console.log('Hero does not have property ' + property)
@@ -194,7 +194,7 @@ function GameController(canvas) {
         this.units[id].regX = this.units[id].width / 2;
         this.units[id].regY = this.units[id].height / 2;
         this.units[id].speedTick = this.units[id].speed / this.frequency / FPS;
-        this.update_shown_property();
+        this.updateShownProperties();
     };
 
     this.killUnit = function (unitData) {
@@ -246,18 +246,20 @@ function GameController(canvas) {
                 //TODO: What is the meaning of `speed` as boolean. Non sense to me
                 if (!this.speed) {
                     this.speed = true;
-                    this.sendAction('change_speed', 'front');
+                    this.sendAction('change_speed', 'up');
                 }
                 return false;
             case KEYCODE_DOWN:
                 if (!this.speed) {
                     this.speed = true;
-                    this.sendAction('change_speed', 'back');
+                    this.sendAction('change_speed', 'down');
                 }
                 return false;
             case KEYCODE_SPACE:
-                console.log('space');
-                return false;
+                if (!this.spascePress){
+                    this.spascePress = true;
+                    this.sendAction('fire', 'start');
+                }
         }
     };
 
@@ -291,12 +293,18 @@ function GameController(canvas) {
                     this.sendAction('change_speed', 'stop')
                 }
                 break;
+            case KEYCODE_SPACE:
+                if (this.spascePress){
+                    this.spascePress = false;
+                    this.sendAction('fire', 'stop')
+                }
+                break;
         }
     };
 
     this.sendAction = function (action, value) {
         var http = new XMLHttpRequest();
-        var url = "api/hero/" + this.hero.id + "/action/" + action + "/" + value;
+        var url = "api/hero/" + this.hero.id + "/action/" + action;
         http.open("POST", url, true);
         http.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
         http.send(JSON.stringify({'value': value}));
