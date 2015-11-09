@@ -37,7 +37,7 @@ class HeroAction(JSONBaseView):
                     game.ignore_heroes.remove(hero.id)
                 except ValueError:
                     pass
-            elif re.match('fire', action):
+            elif not re.match('fire', action):
                 game.ignore_heroes.append(hero.id)
             hero_action(hero)
         else:
