@@ -36,7 +36,7 @@ DEFAULT_SPEED_BULLETS = 70
 MAX_ANGLE = 360
 SPEED = 2
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
-UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count', 'type', 'width', 'height']
+UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count', 'type', 'width', 'height', 'name']
 
 
 class Unit(object):
@@ -206,10 +206,11 @@ class Hero(Unit):
             type = UNITS.get('hero', [])[random_number].get('type', '')
             dimension = UNITS.get('hero', [])[random_number].get('dimension', '')
         super(Hero, self).__init__(x, y, angle, bonus, speed, type, bullet_type, dimension, controller=controller)
-        self.last_fire = datetime.now()
-        self.life_count = life_count
         self.fire_is_pressing = False
         self.frequency_fire = frequency_fire
+        self.last_fire = datetime.now()
+        self.life_count = life_count
+        self.name = None
 
     def decrease_life(self):
         if self.life_count > 1:

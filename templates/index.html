@@ -4,5 +4,7 @@
     {{ super() }}
 {% endblock %}
 {% block content %}
-    <canvas class='bg-canvas' id="gameCanvas" width="800" height="600"></canvas>
+    <canvas class='bg-canvas' id="gameCanvas" width="0" height="0"></canvas>
+    <input type="text" id="heroName"></input>
+    <button id="send">Send name</button>
 {% endblock %}

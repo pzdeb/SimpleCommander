@@ -6,7 +6,7 @@ var KEYCODE_LEFT = 37;
 var KEYCODE_RIGHT = 39;
 var KEYCODE_SPACE = 32;
 
-var tableScorecards = {speed:0, life_count:0};
+var tableScorecards = {name:'', speed:0, life_count:0};
 var height_property = 20;
 
 var leftPress;
@@ -32,6 +32,7 @@ function GameController(canvas) {
     this.rotate = false;
     this.speed = false;
     this.canvas = canvas;
+    this.socket = createSocket(this);
 
     var controller = this;
     document.onkeydown = function (e) {
@@ -41,23 +42,8 @@ function GameController(canvas) {
         controller.handleKeyUp(e);
     };
 
-
-    this.prepareGame = function () {
-        this.stage = new createjs.Stage(this.canvas);
-        this.messageField = new createjs.Text("Welcome: Click to play", "bold 24px Arial", "#000");
-        this.messageField.maxWidth = 1000;
-        this.messageField.textAlign = "center";
-        this.messageField.textBaseline = "middle";
-        this.messageField.x = this.canvas.width / 2;
-        this.messageField.y = this.canvas.height / 2;
-        this.stage.addChild(this.messageField);
-        this.stage.update();     //update the stage to show text
-    };
-
-    this.startGame = function () {
-        var socket = createSocket(this);
-        this.stage.removeChild(this.messageField);
-        this.stage.update();
+    this.sendName = function (name) {
+        this.socket.send(name);
     };
 
     this.onData = function (event) {
@@ -67,7 +53,10 @@ function GameController(canvas) {
         for (var key in answer){
             switch (key) {
                 case 'init':
-                    this.restart(answer.init);
+                    this.start(answer.init);
+                    break;
+                case 'error':
+                    this.error(answer.error);
                     break;
                 case 'new':
                     this.newUnit(answer.new);
@@ -83,7 +72,11 @@ function GameController(canvas) {
 
     };
 
-    this.restart = function (init) {
+    this.error = function(error) {
+        console.log(error)
+    };
+
+    this.start = function (init) {
         //hide anything on stage and show the score
         var unitsObj = init['units'];
         var hero_id = init['hero_id'];
@@ -91,7 +84,7 @@ function GameController(canvas) {
         this.frequency = init['frequency'];
         this.canvas.width = game_field.width;
         this.canvas.height = game_field.height;
-        this.stage.removeAllChildren();
+        this.stage = new createjs.Stage(this.canvas);
 
         //create Units
         this.units = {};
