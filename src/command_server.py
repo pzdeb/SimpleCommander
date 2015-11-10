@@ -63,15 +63,13 @@ class StreamCommandServer(BaseCommandServer):
             else:
                 data = {'error': 'enter your name'}
                 yield from websocket.send(json.dumps(data))
-        while True:
+        while websocket.open:
             name = yield from websocket.recv()
             if name:
                 my_hero.name = name
-            if not websocket.open:
-                break
             yield from asyncio.sleep(STEP_INTERVAL)
         if self._controller.units.get(my_hero.id):
-            del self._controller.units[my_hero.id]
+            self._controller.remove_unit(my_hero.id)
         yield from websocket.close()
 
     @asyncio.coroutine

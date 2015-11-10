@@ -187,7 +187,10 @@ function GameController(canvas) {
         this.units[id].regX = this.units[id].width / 2;
         this.units[id].regY = this.units[id].height / 2;
         this.units[id].speedTick = this.units[id].speed / this.frequency / FPS;
-        this.updateTableScorecards();
+        if (id == this.hero['id']){
+            this.updateTableScorecards()
+        }
+
     };
 
     this.killUnit = function (unitData) {
