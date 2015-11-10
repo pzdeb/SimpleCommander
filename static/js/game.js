@@ -78,6 +78,9 @@ function GameController(canvas) {
                 case 'delete':
                     this.killUnit(answer.delete);
                     break;
+                case 'update_life':
+                    this.updateLife(answer.update_life);
+                    break;
             }
         }
 
@@ -202,6 +205,12 @@ function GameController(canvas) {
         this.stage.removeChild(this.units[id]);
         this.stage.update();
         delete this.units[id];
+    };
+
+    this.updateLife = function (unitData) {
+        var id = unitData['id'];
+        this.units[id].life_count = unitData.life_count;
+        this.updateShownProperties();
     };
 
     this.tick = function (event) {

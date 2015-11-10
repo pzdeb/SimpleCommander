@@ -172,7 +172,8 @@ class Unit(object):
                 A_B_distance = point_distance(A, B)
                 A_P_distance = point_distance(A, int_point)
                 time_to_point = round(STEP_INTERVAL * A_P_distance / A_B_distance, 2)
-                asyncio.Task(self.notify_collision(other_unit, 0.1))
+                if time_to_point < STEP_INTERVAL:
+                    asyncio.Task(self.notify_collision(other_unit, time_to_point))
             # if (self.x + self.width / 2 > other_unit.x - other_unit.width / 2) and (self.x - self.width / 2 < other_unit.x + other_unit.width / 2) and \
             #         (self.y + self.height / 2 > other_unit.y - other_unit.height / 2) and (self.y - self.height / 2 < other_unit.y + other_unit.height / 2):
             #     self.hit(other_unit)
@@ -208,7 +209,6 @@ class Invader(Unit):
         logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
         if unit_class_name == 'Hero':
             other_unit.decrease_life()
-            other_unit.response('update')
         else:
             other_unit.kill()
         self.kill()
@@ -230,11 +230,10 @@ class Hero(Unit):
     def decrease_life(self):
         if self.life_count > 1:
             self.life_count -= 1
-            self.response('update')
         else:
             self.life_count = 0
             self.kill()
-            self.response('update')
+        self.response('update_life')
 
     @asyncio.coroutine
     def fire(self):
@@ -257,7 +256,6 @@ class Hero(Unit):
         self.decrease_life()
         if unit_class_name == 'Hero':
             other_unit.decrease_life()
-            self.response('update')
         else:
             other_unit.kill()
 

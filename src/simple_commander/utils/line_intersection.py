@@ -6,11 +6,15 @@ import math
 def line_intersection(line1, line2, width1, width2):
     """Find the point of intersecting lines."""
     line_1_array = [line1,
-                    ((line1[0][0] - width1, line1[0][1] - width1), (line1[1][0] - width1, line1[1][1] - width1)),
-                    ((line1[0][0] + width1, line1[0][1] + width1), (line1[1][0] + width1, line1[1][1] + width1))]
+                    ((line1[0][0] - width1, line1[0][1] + width1), (line1[1][0] - width1, line1[1][1] - width1)),
+                    ((line1[0][0] + width1, line1[0][1] + width1), (line1[1][0] + width1, line1[1][1] - width1)),
+                    ((line1[0][0] + width1, line1[0][1] - width1), (line1[1][0] + width1, line1[1][1] + width1)),
+                    ((line1[0][0] - width1, line1[0][1] - width1), (line1[1][0] + width1, line1[1][1] - width1))]
     line_2_array = [line2,
                     ((line2[0][0] - width2, line2[0][1] - width2), (line2[1][0] - width2, line2[1][1] - width2)),
-                    ((line2[0][0] + width2, line2[0][1] + width2), (line2[1][0] + width2, line2[1][1] + width2))]
+                    ((line2[0][0] + width2, line2[0][1] + width2), (line2[1][0] + width2, line2[1][1] + width2)),
+                    ((line2[0][0] + width2, line2[0][1] - width2), (line2[1][0] + width2, line2[1][1] + width2)),
+                    ((line2[0][0] - width2, line2[0][1] - width2), (line2[1][0] + width2, line2[1][1] - width2))]
     for l1 in line_1_array:
         for l2 in line_2_array:
             xdiff = (l1[0][0] - l1[1][0], l2[0][0] - l2[1][0])
@@ -40,8 +44,8 @@ def point_in_area(line1, line2, x, y, width1, width2):
             y in range(min(y1, y2), max(y1, y2) + 1) and y in range(min(y3, y4), max(y3, y4) + 1))
 
 
-def point_distance(x, y):
-    return round(math.hypot(x[1] - x[0], y[1] - y[0]))
+def point_distance(p0, p1):
+    return math.sqrt((p0[0] - p1[0])**2 + (p0[1] - p1[1])**2)
 
 
 if __name__ == '__main__':
