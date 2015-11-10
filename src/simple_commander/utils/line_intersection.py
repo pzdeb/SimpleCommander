@@ -3,32 +3,41 @@
 import math
 
 
-def line_intersection(line1, line2):
+def line_intersection(line1, line2, width1, width2):
     """Find the point of intersecting lines."""
-    xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
-    ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
+    line_1_array = [line1,
+                    ((line1[0][0] - width1, line1[0][1] - width1), (line1[1][0] - width1, line1[1][1] - width1)),
+                    ((line1[0][0] + width1, line1[0][1] + width1), (line1[1][0] + width1, line1[1][1] + width1))]
+    line_2_array = [line2,
+                    ((line2[0][0] - width2, line2[0][1] - width2), (line2[1][0] - width2, line2[1][1] - width2)),
+                    ((line2[0][0] + width2, line2[0][1] + width2), (line2[1][0] + width2, line2[1][1] + width2))]
+    for l1 in line_1_array:
+        for l2 in line_2_array:
+            xdiff = (l1[0][0] - l1[1][0], l2[0][0] - l2[1][0])
+            ydiff = (l1[0][1] - l1[1][1], l2[0][1] - l2[1][1])
 
-    def det(a, b):
-        return a[0] * b[1] - a[1] * b[0]
+            def det(a, b):
+                return a[0] * b[1] - a[1] * b[0]
 
-    div = det(xdiff, ydiff)
-    if div == 0:
-        return
+            div = det(xdiff, ydiff)
+            if div == 0:
+                continue
 
-    d = (det(*line1), det(*line2))
-    x = round(det(d, xdiff) / div)
-    y = round(det(d, ydiff) / div)
+            d = (det(*l1), det(*l2))
+            x = round(det(d, xdiff) / div)
+            y = round(det(d, ydiff) / div)
 
-    if point_in_area(line1, line2, x, y):
-        return (x, y)
+            if point_in_area(l1, l2, x, y, width1, width2):
+                return (x, y)
+    return
 
 
-def point_in_area(line1, line2, x, y):
+def point_in_area(line1, line2, x, y, width1, width2):
     """Check if intersection point is on defined area."""
     x1, x2, x3, x4 = line1[0][0], line1[1][0], line2[0][0], line2[1][0]
     y1, y2, y3, y4 = line1[0][1], line1[1][1], line2[0][1], line2[1][1]
-    return (x1 <= x and x2 >= x and x3 <= x and x4 >= x)\
-           or (y1 <= y and y2 >= y and y3 <= y  and y4 >= y)
+    return (x in range(min(x1, x2), max(x1, x2) + 1) and x in range(min(x3, x4), max(x3, x4) + 1) and
+            y in range(min(y1, y2), max(y1, y2) + 1) and y in range(min(y3, y4), max(y3, y4) + 1))
 
 
 def point_distance(x, y):

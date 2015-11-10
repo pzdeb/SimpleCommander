@@ -8,6 +8,7 @@ import logging
 import math
 
 from random import randint
+from src.simple_commander.utils.line_intersection import line_intersection, point_distance
 
 '''
 In this game we have two role - invader and hero. Both can bullet.
@@ -132,6 +133,12 @@ class Unit(object):
             self.compute_new_coordinate(self.controller.game_field, ACTION_INTERVAL)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
+    @asyncio.coroutine
+    def notify_collision(self, other_unit, time_interval):
+        yield from asyncio.sleep(time_interval)
+        self.hit(other_unit)
+        self.controller.check_if_remove_units([self, other_unit])
+
     def check_collision(self, other_unit):
         # check if coordinate for two units is the same
         # for this check we also include width and height of unit's image
@@ -139,9 +146,19 @@ class Unit(object):
         # (other_unit.y - other_unit.height / 2 < self.y < other_unit.y + other_unit.height / 2)
         if id(self) != id(other_unit) and getattr(self, 'unit_id', '') != id(other_unit) and \
                 getattr(other_unit, 'unit_id', '') != id(self):
-            if (self.x + self.width / 2 > other_unit.x - other_unit.width / 2) and (self.x - self.width / 2 < other_unit.x + other_unit.width / 2) and \
-                    (self.y + self.height / 2 > other_unit.y - other_unit.height / 2) and (self.y - self.height / 2 < other_unit.y + other_unit.height / 2):
-                self.hit(other_unit)
+            A = (self.x, self.y)
+            B = (self.x1, self.y1)
+            C = (other_unit.x, other_unit.y)
+            D = (other_unit.x1, other_unit.y1)
+            int_point = line_intersection((A, B), (C, D), round(self.width / 2), round(other_unit.width / 2))
+            if int_point:
+                A_B_distance = point_distance(A, B)
+                A_P_distance = point_distance(A, int_point)
+                time_to_point = round(STEP_INTERVAL * A_P_distance / A_B_distance, 2)
+                asyncio.Task(self.notify_collision(other_unit, 0.1))
+            # if (self.x + self.width / 2 > other_unit.x - other_unit.width / 2) and (self.x - self.width / 2 < other_unit.x + other_unit.width / 2) and \
+            #         (self.y + self.height / 2 > other_unit.y - other_unit.height / 2) and (self.y - self.height / 2 < other_unit.y + other_unit.height / 2):
+            #     self.hit(other_unit)
 
     def reset(self, game_field):
         raise NotImplementedError
@@ -188,7 +205,7 @@ class Hero(Unit):
             random_number = randint(0, len(UNITS.get('hero', [])) - 1)
             type = UNITS.get('hero', [])[random_number].get('type', '')
             dimension = UNITS.get('hero', [])[random_number].get('dimension', '')
-        super(Hero, self).__init__(x, y, angle, bonus, speed, type, bullet_type, dimension, controller=controller)
+        super(Hero, self).__init__(55, 60, 90, bonus, speed, type, bullet_type, dimension, controller=controller)
         self.life_count = life_count
 
     def decrease_life(self):
@@ -285,6 +302,7 @@ class GameController(object):
         pos_y = randint(0, self.game_field['height'])
         angle = randint(0, 360)
         hero = self.new_unit(Hero, x=pos_x, y=pos_y, angle=angle)
+        # self.units[hero.id] = hero
         return hero
 
     def check_if_remove_units(self, units):
@@ -332,7 +350,7 @@ class GameController(object):
             '''this code for moving invaders. Work as a job.
                 We set moving_speed for positive - if reach the left coordinate of our game field
                 or negative  - if we reach the right coordinate of our game field '''
-            while True:
+            while len(self.units) > 0:
                 for unit in list(self.units.keys()):
                     if self.units.get(unit):
                         if self.units[unit].speed and (datetime.now() -
@@ -341,5 +359,4 @@ class GameController(object):
                         for key in list(self.units.keys()):
                             if self.units.get(unit) and self.units.get(key):
                                 self.units[unit].check_collision(self.units[key])
-                                self.check_if_remove_units([self.units[unit], self.units[key]])
                 yield from asyncio.sleep(STEP_INTERVAL)
