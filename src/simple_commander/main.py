@@ -65,6 +65,7 @@ class Unit(object):
         self.min_width = int(0 + self.width / 2)
         self.max_height = int(self.controller.game_field.get('height', 0) - self.height / 2)
         self.max_width = int(self.controller.game_field.get('width', 0) - self.width / 2)
+        self.is_checking = False
 
     def response(self, action, **kwargs):
         if not self.controller:
@@ -152,9 +153,13 @@ class Unit(object):
 
     @asyncio.coroutine
     def notify_collision(self, other_unit, time_interval):
+        self.is_checking = True
+        other_unit.is_checking = True
         yield from asyncio.sleep(time_interval)
         self.hit(other_unit)
         self.controller.check_if_remove_units([self, other_unit])
+        self.is_checking = False
+        other_unit.is_checking = False
 
     def check_collision(self, other_unit):
         # check if coordinate for two units is the same
@@ -379,6 +384,7 @@ class GameController(object):
                         if self.units[unit].speed and unit not in self.ignore_heroes:
                             self.units[unit].compute_new_coordinate(STEP_INTERVAL)
                         for key in list(self.units.keys()):
-                            if self.units.get(unit) and self.units.get(key):
+                            if self.units.get(unit) and self.units.get(key) and \
+                                    not self.units.get(unit).is_checking and not self.units.get(key).is_checking:
                                 self.units[unit].check_collision(self.units[key])
                 yield from asyncio.sleep(STEP_INTERVAL)
