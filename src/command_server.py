@@ -80,15 +80,6 @@ class StreamCommandServer(BaseCommandServer):
             for socket in self._server.websockets:
                 yield from socket.send(json.dumps(data))
 
-    # def get_action(self, data):
-    #     result = None
-    #     data = json.loads(data)
-    #     if len(data):
-    #         for key in data:
-    #             if hasattr(self, key):
-    #                 result = key
-    #     return result
-
 
 class HttpCommandServer(BaseCommandServer):
     _instance = None
