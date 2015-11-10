@@ -46,27 +46,29 @@ class StreamCommandServer(BaseCommandServer):
 
     @asyncio.coroutine
     def process_request(self, websocket, path):
-        name = False
-        while not name:
-            name = yield from websocket.recv()
-            if name:
-                asyncio.async(self._controller.run())
-                my_hero = self._controller.new_hero()
-                my_hero.name = name
-                start_conditions = {'init': {
-                    'hero_id': my_hero.id,
-                    'game': self._controller.game_field,
-                    'units': self._controller.get_units(),
-                    'frequency': STEP_INTERVAL}}
-                yield from websocket.send(json.dumps(start_conditions))
-                break
-            else:
-                data = {'error': 'enter your name'}
-                yield from websocket.send(json.dumps(data))
+        while not self._controller.launched:
+            data = yield from websocket.recv()
+            if data:
+                data = json.loads(data)
+                if 'start' in data:
+                    asyncio.async(self._controller.run())
+                    my_hero = self._controller.new_hero()
+                    my_hero.set_name(data['start'])
+                    start_conditions = {'init': {
+                        'hero_id': my_hero.id,
+                        'game': self._controller.game_field,
+                        'units': self._controller.get_units(),
+                        'frequency': STEP_INTERVAL}}
+                    yield from websocket.send(json.dumps(start_conditions))
+                    break
         while websocket.open:
-            name = yield from websocket.recv()
-            if name:
-                my_hero.name = name
+            data = yield from websocket.recv()
+            if data:
+                data = json.loads(data)
+                for key in data:
+                    action = getattr(my_hero, key, '')
+                    if action:
+                        action(data[key])
             yield from asyncio.sleep(STEP_INTERVAL)
         if self._controller.units.get(my_hero.id):
             self._controller.remove_unit(my_hero.id)
@@ -77,6 +79,15 @@ class StreamCommandServer(BaseCommandServer):
         if hasattr(self._server, 'websockets'):
             for socket in self._server.websockets:
                 yield from socket.send(json.dumps(data))
+
+    # def get_action(self, data):
+    #     result = None
+    #     data = json.loads(data)
+    #     if len(data):
+    #         for key in data:
+    #             if hasattr(self, key):
+    #                 result = key
+    #     return result
 
 
 class HttpCommandServer(BaseCommandServer):

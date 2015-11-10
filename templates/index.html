@@ -5,6 +5,9 @@
 {% endblock %}
 {% block content %}
     <canvas class='bg-canvas' id="gameCanvas" width="0" height="0"></canvas>
-    <input type="text" id="heroName"></input>
-    <button id="send">Send name</button>
+    <form id="formStartGame">
+        <input type="text" id="heroName" required></input>
+        <button type="submit">Set name and start</button>
+    </form>
+
 {% endblock %}

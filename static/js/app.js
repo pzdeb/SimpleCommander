@@ -2,12 +2,19 @@ var theGame = null;
 
 function init() {
     var canvas = document.getElementById("gameCanvas");
+    var form = document.getElementById("formStartGame");
     var name = document.getElementById("heroName");
-    var send = document.getElementById("send");
     theGame = new GameController(canvas);
 
-    send.onclick = function(){
-        theGame.sendName(name.value)
-    };
+    form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (!theGame.socket){
+            theGame.createConnection(name.value)
+        }
+        else{
+            theGame.sendToServer('set_name', name.value)
+        }
+
+    }, false)
 
 }

@@ -32,7 +32,7 @@ function GameController(canvas) {
     this.rotate = false;
     this.speed = false;
     this.canvas = canvas;
-    this.socket = createSocket(this);
+    this.socket = null;
 
     var controller = this;
     document.onkeydown = function (e) {
@@ -42,8 +42,15 @@ function GameController(canvas) {
         controller.handleKeyUp(e);
     };
 
-    this.sendName = function (name) {
-        this.socket.send(name);
+    this.createConnection = function () {
+        this.socket = createSocket(this);
+    };
+
+    this.sendToServer = function (heroAction, value) {
+        var data = {};
+        data[heroAction] = value;
+        var data = JSON.stringify(data);
+        this.socket.send(data);
     };
 
     this.onData = function (event) {
@@ -77,7 +84,6 @@ function GameController(canvas) {
     };
 
     this.start = function (init) {
-        //hide anything on stage and show the score
         var unitsObj = init['units'];
         var hero_id = init['hero_id'];
         var game_field = init['game'];

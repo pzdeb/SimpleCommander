@@ -236,6 +236,9 @@ class Hero(Unit):
         self.y = self.y1
         self.response('update')
 
+    def set_name(self, name='User'):
+        self.name = name
+
     def hit(self, other_unit):
         unit_class_name = other_unit. __class__.__name__
         logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
@@ -289,7 +292,7 @@ def get_game(height=None, width=None, invaders_count=None, notify_clients=None):
 
 class GameController(object):
     _instance = None
-    _launched = False
+    launched = False
     ignore_heroes = []
 
     def __init__(self, height=None, width=None, invaders_count=None, notify_clients=None):
@@ -351,8 +354,8 @@ class GameController(object):
 
     @asyncio.coroutine
     def run(self):
-        if not self._launched:
-            self._launched = True
+        if not self.launched:
+            self.launched = True
             logging.basicConfig(level=logging.DEBUG)
             logging.info('Starting Space Invaders Game instance.')
 
