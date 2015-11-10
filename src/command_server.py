@@ -36,7 +36,7 @@ class StreamCommandServer(BaseCommandServer):
 
     def _init_server(self, host, port):
         self._app = web.Application(loop=self._loop)
-        self._controller = get_game(600, 600, 5, self.notify_clients)
+        self._controller = get_game(600, 800, 5, self.notify_clients)
         self._server = websockets.serve(self.process_request, host, port)
 
     def __new__(cls, *args, **kwargs):
@@ -64,8 +64,9 @@ class StreamCommandServer(BaseCommandServer):
 
     @asyncio.coroutine
     def notify_clients(self, data):
-        for socket in self._server.websockets:
-            yield from socket.send(json.dumps(data))
+        if hasattr(self._server, 'websockets'):
+            for socket in self._server.websockets:
+                yield from socket.send(json.dumps(data))
 
 
 class HttpCommandServer(BaseCommandServer):
