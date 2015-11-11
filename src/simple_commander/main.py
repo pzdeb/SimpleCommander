@@ -101,7 +101,7 @@ class Unit(object):
         self.time_last_calculation = datetime.now()
         if x in range(self.min_width, self.max_width+1) and y in range(self.min_height, self.max_height+1):
             self.move_to(x, y)
-        elif self.min_width < self.x1 < self.max_height and self.min_height < self.y1 < self.max_height:
+        elif self.min_width < self.x1 < self.max_width and self.min_height < self.y1 < self.max_height:
             target_x = x
             target_y = y
             x, y = self.set_in_limit(x, y)

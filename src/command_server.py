@@ -46,7 +46,7 @@ class StreamCommandServer(BaseCommandServer):
 
     @asyncio.coroutine
     def process_request(self, websocket, path):
-        while not self._controller.launched:
+        while True:
             data = yield from websocket.recv()
             if data:
                 data = json.loads(data)
