@@ -212,7 +212,7 @@ function GameController(canvas) {
     this.updateLife = function (unitData) {
         var id = unitData['id'];
         this.units[id].life_count = unitData.life_count;
-        this.updateShownProperties();
+        this.updateTableScorecards();
     };
 
     this.tick = function (event) {
