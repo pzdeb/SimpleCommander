@@ -4,7 +4,10 @@ import math
 
 
 def line_intersection(line1, line2, width1, width2):
-    """Find the point of intersecting lines."""
+    """Find the point of intersecting lines.
+       width1 - width of first unit
+       width2 - width of second unit
+    """
     line_1_array = [line1,
                     ((line1[0][0] - width1, line1[0][1] + width1), (line1[1][0] - width1, line1[1][1] - width1)),
                     ((line1[0][0] + width1, line1[0][1] + width1), (line1[1][0] + width1, line1[1][1] - width1)),
