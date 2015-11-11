@@ -9,7 +9,8 @@ class MainControllerTestCase(unittest.TestCase):
         self.unit2 = {'width': 2}
 
     def tearDown(self):
-        del self
+        del self.unit1
+        del self.unit2
 
     def test_intersection_1(self):
         A = (1, 1)
