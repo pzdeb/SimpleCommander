@@ -65,7 +65,6 @@ class Unit(object):
         self.min_width = int(0 + self.width / 2)
         self.max_height = int(self.controller.game_field.get('height', 0) - self.height / 2)
         self.max_width = int(self.controller.game_field.get('width', 0) - self.width / 2)
-        self.is_checking = False
 
     def response(self, action, **kwargs):
         if not self.controller:
@@ -153,13 +152,11 @@ class Unit(object):
 
     @asyncio.coroutine
     def notify_collision(self, other_unit, time_interval):
-        self.is_checking = True
-        other_unit.is_checking = True
         yield from asyncio.sleep(time_interval)
+        if not self.controller.units.get(self.id) or not self.controller.units.get(other_unit.id):
+            return
         self.hit(other_unit)
         self.controller.check_if_remove_units([self, other_unit])
-        self.is_checking = False
-        other_unit.is_checking = False
 
     def check_collision(self, other_unit):
         # check if coordinate for two units is the same
@@ -174,9 +171,13 @@ class Unit(object):
             D = (other_unit.x1, other_unit.y1)
             int_point = line_intersection((A, B), (C, D), round(self.width / 2), round(other_unit.width / 2))
             if int_point:
-                A_B_distance = point_distance(A, B)
-                A_P_distance = point_distance(A, int_point)
-                time_to_point = round(STEP_INTERVAL * A_P_distance / A_B_distance, 2)
+                if self.x != self.y:
+                    A_B_distance = point_distance(A, B)
+                    A_P_distance = point_distance(A, int_point)
+                else:
+                    A_B_distance = point_distance(C, D)
+                    A_P_distance = point_distance(C, int_point)
+                time_to_point = A_B_distance > 0 and round(STEP_INTERVAL * A_P_distance / A_B_distance, 2) or 0
                 if time_to_point < STEP_INTERVAL:
                     asyncio.Task(self.notify_collision(other_unit, time_to_point))
             # if (self.x + self.width / 2 > other_unit.x - other_unit.width / 2) and (self.x - self.width / 2 < other_unit.x + other_unit.width / 2) and \
@@ -360,7 +361,8 @@ class GameController(object):
             pos_x = randint(0, self.game_field['width'])
             pos_y = randint(0, self.game_field['height'])
             angle = randint(0, 360)
-            self.new_unit(Invader, x=pos_x, y=pos_y, angle=angle)
+            speed = randint(30, 70)
+            self.new_unit(Invader, x=pos_x, y=pos_y, angle=angle, speed=speed)
 
     def get_units(self):
         units = []
@@ -384,7 +386,6 @@ class GameController(object):
                         if self.units[unit].speed and unit not in self.ignore_heroes:
                             self.units[unit].compute_new_coordinate(STEP_INTERVAL)
                         for key in list(self.units.keys()):
-                            if self.units.get(unit) and self.units.get(key) and \
-                                    not self.units.get(unit).is_checking and not self.units.get(key).is_checking:
+                            if self.units.get(unit) and self.units.get(key):
                                 self.units[unit].check_collision(self.units[key])
                 yield from asyncio.sleep(STEP_INTERVAL)
