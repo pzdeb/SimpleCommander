@@ -321,7 +321,7 @@ class GameController(object):
         self.notify_clients = notify_clients
         self.invaders_count = invaders_count
         self.units = {}
-        self.set_invaders()
+        self.set_invaders(self.invaders_count)
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -349,9 +349,12 @@ class GameController(object):
                 self.remove_unit(unit.id)
 
     def remove_unit(self, id):
-        self.units[id].response('delete')
-        del self.units[id]
-        logging.info('Length of units - %s' % len(self.units))
+        if self.units[id]:
+            class_name = self.units[id].__class__.__name__
+            self.units[id].response('delete')
+            del self.units[id]
+            if class_name == 'Invader':
+                self.set_invaders(1)
 
     def add_bonus(self, bullet):
         for unit in self.units:
@@ -360,8 +363,8 @@ class GameController(object):
                 logging.info('Add %s bonus for %s. Now he has %s bonus'
                              % (bullet.bonus, unit.__class__.__name__, unit.bonus))
 
-    def set_invaders(self):
-        for count in range(self.invaders_count):
+    def set_invaders(self, count):
+        for count in range(count):
             pos_x = randint(0, self.game_field['width'])
             pos_y = randint(0, self.game_field['height'])
             angle = randint(0, 360)
