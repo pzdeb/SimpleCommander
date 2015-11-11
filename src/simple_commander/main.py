@@ -381,6 +381,12 @@ class GameController(object):
         unit.compute_new_coordinate(STEP_INTERVAL)
         return unit
 
+    def del_web_socket(self, socket):
+        try:
+            self.websockets.remove(socket)
+        except ValueError:
+            pass
+
     @asyncio.coroutine
     def notify_clients(self, data):
         if self.websockets:

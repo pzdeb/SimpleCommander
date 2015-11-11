@@ -63,6 +63,7 @@ class HttpCommandServer(object):
             if msg.tp == MsgType.text:
                 if msg.data == 'close':
                     yield from ws.close()
+                    self._controller.del_web_socket(ws)
                     if self._controller.units.get(my_hero.id):
                         self._controller.remove_unit(my_hero.id)
                 else:
@@ -95,10 +96,12 @@ class HttpCommandServer(object):
                                 action(my_hero)
             elif msg.tp == MsgType.close:
                 logging.info('websocket connection closed')
+                self._controller.del_web_socket(ws)
                 if self._controller.units.get(my_hero.id):
                         self._controller.remove_unit(my_hero.id)
             elif msg.tp == MsgType.error:
                 logging.info('ws connection closed with exception %s', ws.exception())
+                self._controller.del_web_socket(ws)
                 if self._controller.units.get(my_hero.id):
                         self._controller.remove_unit(my_hero.id)
 
@@ -109,8 +112,7 @@ if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read('etc/command_server.conf')
     host = config.get('commandServer', 'host')
-    http_port = os.environ.get('PORT', config.get('commandServer', 'http_port'))
-    stream_port = config.get('commandServer', 'stream_port')
+    port = os.environ.get('PORT', config.get('commandServer', 'port'))
     static_path = config.get('commandServer', 'static_path')
     templates = config.get('commandServer', 'templates')
     logging.basicConfig(level=logging.DEBUG)
