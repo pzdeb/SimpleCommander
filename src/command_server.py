@@ -46,20 +46,32 @@ class StreamCommandServer(BaseCommandServer):
 
     @asyncio.coroutine
     def process_request(self, websocket, path):
-        asyncio.async(self._controller.run())
-        my_hero = self._controller.new_hero()
-        start_conditions = {'init': {
-            'hero_id': my_hero.id,
-            'game': self._controller.game_field,
-            'units': self._controller.get_units(),
-            'frequency': STEP_INTERVAL}}
-        yield from websocket.send(json.dumps(start_conditions))
         while True:
-            if not websocket.open:
-                break
+            data = yield from websocket.recv()
+            if data:
+                data = json.loads(data)
+                if 'start' in data:
+                    asyncio.async(self._controller.run())
+                    my_hero = self._controller.new_hero()
+                    my_hero.set_name(data['start'])
+                    start_conditions = {'init': {
+                        'hero_id': my_hero.id,
+                        'game': self._controller.game_field,
+                        'units': self._controller.get_units(),
+                        'frequency': STEP_INTERVAL}}
+                    yield from websocket.send(json.dumps(start_conditions))
+                    break
+        while websocket.open:
+            data = yield from websocket.recv()
+            if data:
+                data = json.loads(data)
+                for key in data:
+                    action = getattr(my_hero, key, '')
+                    if action:
+                        action(data[key])
             yield from asyncio.sleep(STEP_INTERVAL)
         if self._controller.units.get(my_hero.id):
-            del self._controller.units[my_hero.id]
+            self._controller.remove_unit(my_hero.id)
         yield from websocket.close()
 
     @asyncio.coroutine

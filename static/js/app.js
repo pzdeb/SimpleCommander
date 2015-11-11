@@ -2,15 +2,19 @@ var theGame = null;
 
 function init() {
     var canvas = document.getElementById("gameCanvas");
+    var form = document.getElementById("formStartGame");
+    var name = document.getElementById("heroName");
     theGame = new GameController(canvas);
 
-    function handleCanvasClick(c) {
-        this.onclick = null;
-        theGame.startGame();
-    }
-    canvas.onclick = handleCanvasClick;
+    form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (!theGame.socket){
+            theGame.createConnection(name.value)
+        }
+        else{
+            theGame.sendToServer('set_name', name.value)
+        }
 
-    theGame.prepareGame();
+    }, false)
 
 }
-

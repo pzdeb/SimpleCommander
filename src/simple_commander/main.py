@@ -37,7 +37,7 @@ DEFAULT_SPEED_BULLETS = 70
 MAX_ANGLE = 360
 SPEED = 2
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
-UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count', 'type', 'width', 'height']
+UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count', 'type', 'width', 'height', 'name']
 
 
 class Unit(object):
@@ -59,8 +59,8 @@ class Unit(object):
         self.id = str(uuid.uuid4())
         self.is_dead = False
         self.shift = 5
-        self.stop_rotate = True
-        self.stop_change_speed = True
+        self.rotate_is_pressing = False
+        self.change_speed_is_pressing = False
         self.min_height = int(0 + self.height / 2)
         self.min_width = int(0 + self.width / 2)
         self.max_height = int(self.controller.game_field.get('height', 0) - self.height / 2)
@@ -102,7 +102,7 @@ class Unit(object):
         self.time_last_calculation = datetime.now()
         if x in range(self.min_width, self.max_width+1) and y in range(self.min_height, self.max_height+1):
             self.move_to(x, y)
-        elif self.min_width < self.x1 < self.max_height and self.min_height < self.y1 < self.max_height:
+        elif self.min_width < self.x1 < self.max_width and self.min_height < self.y1 < self.max_height:
             target_x = x
             target_y = y
             x, y = self.set_in_limit(x, y)
@@ -131,7 +131,7 @@ class Unit(object):
 
     @asyncio.coroutine
     def rotate(self, side):
-        while not self.stop_rotate:
+        while self.rotate_is_pressing:
             new_angle = self.angle + ANGLE if side == 'right' else self.angle - ANGLE
             if new_angle > MAX_ANGLE:
                 new_angle -= MAX_ANGLE
@@ -143,7 +143,7 @@ class Unit(object):
             yield from asyncio.sleep(ACTION_INTERVAL)
 
     def change_speed(self, direct):
-        while not self.stop_change_speed:
+        while self.change_speed_is_pressing:
             new_speed = self.speed + SPEED if direct == 'up' else self.speed - SPEED
             self.speed = new_speed > 0 and new_speed or 0
             logging.info('Change %s speed to %s' % (self.__class__.__name__, self.speed))
@@ -228,10 +228,12 @@ class Hero(Unit):
             random_number = randint(0, len(UNITS.get('hero', [])) - 1)
             type = UNITS.get('hero', [])[random_number].get('type', '')
             dimension = UNITS.get('hero', [])[random_number].get('dimension', '')
-        super(Hero, self).__init__(55, 60, 90, bonus, speed, type, bullet_type, dimension, controller=controller)
-        self.life_count = life_count
+        super(Hero, self).__init__(x, y, angle, bonus, speed, type, bullet_type, dimension, controller=controller)
+        self.fire_is_pressing = False
         self.frequency_fire = frequency_fire
         self.last_fire = datetime.now()
+        self.life_count = life_count
+        self.name = None
 
     def decrease_life(self):
         if self.life_count > 1:
@@ -243,7 +245,7 @@ class Hero(Unit):
 
     @asyncio.coroutine
     def fire(self):
-        while not self.stop_fire and (datetime.now() - self.last_fire).total_seconds() >= self.frequency_fire:
+        while self.fire_is_pressing and (datetime.now() - self.last_fire).total_seconds() >= self.frequency_fire:
             logging.info('Fire!! Creating bullet!')
             self.compute_new_coordinate(STEP_INTERVAL)
             self.controller.new_unit(Bullet, unit=self, controller=self.controller)
@@ -255,6 +257,9 @@ class Hero(Unit):
         self.x = self.x1
         self.y = self.y1
         self.response('update')
+
+    def set_name(self, name='User'):
+        self.name = name
 
     def hit(self, other_unit):
         unit_class_name = other_unit. __class__.__name__
@@ -308,7 +313,7 @@ def get_game(height=None, width=None, invaders_count=None, notify_clients=None):
 
 class GameController(object):
     _instance = None
-    _launched = False
+    launched = False
     ignore_heroes = []
 
     def __init__(self, height=None, width=None, invaders_count=None, notify_clients=None):
@@ -336,7 +341,6 @@ class GameController(object):
         pos_y = randint(0, self.game_field['height'])
         angle = randint(0, 360)
         hero = self.new_unit(Hero, x=pos_x, y=pos_y, angle=angle)
-        # self.units[hero.id] = hero
         return hero
 
     def check_if_remove_units(self, units):
@@ -372,8 +376,8 @@ class GameController(object):
 
     @asyncio.coroutine
     def run(self):
-        if not self._launched:
-            self._launched = True
+        if not self.launched:
+            self.launched = True
             logging.basicConfig(level=logging.DEBUG)
             logging.info('Starting Space Invaders Game instance.')
 

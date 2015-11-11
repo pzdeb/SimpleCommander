@@ -3,9 +3,11 @@
 function createSocket(controller){
     var host = window.location.hostname;
     var socket = new WebSocket('ws://' + host + ':8765');
+    var hero_name = document.getElementById("heroName");
 
     socket.onopen = function(event) {
         console.log("Connected.");
+        controller.sendToServer('start', hero_name.value)
     };
 
     socket.onclose = function(event) {
@@ -24,6 +26,7 @@ function createSocket(controller){
     socket.onerror = function(error) {
         console.log("Error " + error.message);
     };
+    return socket
 }
 
 
