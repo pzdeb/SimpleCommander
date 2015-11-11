@@ -2,7 +2,7 @@
 
 function createSocket(controller){
     var host = window.location.hostname;
-    var socket = new WebSocket('ws://' + host + ':8765');
+    var socket = new WebSocket('ws://' + host + ':8000/ws_stream');
     var hero_name = document.getElementById("heroName");
 
     socket.onopen = function(event) {

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import asyncio
 import uuid
+import json
 from datetime import datetime
 
 import logging
@@ -8,7 +9,7 @@ import logging
 import math
 
 from random import randint
-from src.simple_commander.utils.line_intersection import object_intersection, point_distance
+from simple_commander.utils.line_intersection import object_intersection, point_distance
 
 '''
 In this game we have two role - invader and hero. Both can bullet.
@@ -357,10 +358,11 @@ class GameController(object):
     _instance = None
     launched = False
     ignore_heroes = []
+    websockets = []
 
     def __init__(self, height=None, width=None, invaders_count=None, notify_clients=None):
         self.game_field = {'height': height, 'width': width}
-        self.notify_clients = notify_clients
+        # self.notify_clients = notify_clients
         self.invaders_count = invaders_count
         self.units = {}
         self.set_invaders()
@@ -377,6 +379,12 @@ class GameController(object):
         unit.response('new')
         unit.compute_new_coordinate(STEP_INTERVAL)
         return unit
+
+    @asyncio.coroutine
+    def notify_clients(self, data):
+        if self.websockets:
+            for socket in self.websockets:
+                socket.send_str(json.dumps(data))
 
     def new_hero(self):
         pos_x = randint(0, self.game_field['width'])
