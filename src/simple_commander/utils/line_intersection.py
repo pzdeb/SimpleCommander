@@ -48,7 +48,7 @@ def point_in_area(line1, line2, x, y, width1, width2):
 
 
 def point_distance(p0, p1):
-    return math.sqrt((p0[0] - p1[0])**2 + (p0[1] - p1[1])**2)
+    return round(math.hypot(p0[0] - p1[0], p0[1] - p1[1]))
 
 
 if __name__ == '__main__':
