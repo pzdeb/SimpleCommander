@@ -2,6 +2,7 @@ import asyncio
 import configparser
 import json
 import logging
+import os
 
 import aiohttp_jinja2
 import jinja2
@@ -108,7 +109,8 @@ if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read('etc/command_server.conf')
     host = config.get('commandServer', 'host')
-    port = config.get('commandServer', 'port')
+    http_port = os.environ.get('PORT', config.get('commandServer', 'http_port'))
+    stream_port = config.get('commandServer', 'stream_port')
     static_path = config.get('commandServer', 'static_path')
     templates = config.get('commandServer', 'templates')
     logging.basicConfig(level=logging.DEBUG)
