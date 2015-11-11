@@ -34,7 +34,8 @@ ACTION_INTERVAL = 0.05
 DEFAULT_SPEED = 35
 DEFAULT_SPEED_BULLETS = 70
 MAX_ANGLE = 360
-SPEED = 2
+SPEED = 8
+MAX_SPEED = 220
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
 UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count', 'type', 'width', 'height', 'name']
 
@@ -131,7 +132,8 @@ class Unit(object):
     @asyncio.coroutine
     def rotate(self, side):
         while self.rotate_is_pressing:
-            new_angle = self.angle + ANGLE if side == 'right' else self.angle - ANGLE
+            rotate = ANGLE + self.speed * 0.015
+            new_angle = self.angle + rotate if side == 'right' else self.angle - rotate
             if new_angle > MAX_ANGLE:
                 new_angle -= MAX_ANGLE
             elif new_angle < 0:
@@ -145,6 +147,7 @@ class Unit(object):
         while self.change_speed_is_pressing:
             new_speed = self.speed + SPEED if direct == 'up' else self.speed - SPEED
             self.speed = new_speed > 0 and new_speed or 0
+            self.speed = MAX_SPEED if self.speed > MAX_SPEED else self.speed
             logging.info('Change %s speed to %s' % (self.__class__.__name__, self.speed))
             self.compute_new_coordinate(ACTION_INTERVAL)
             yield from asyncio.sleep(ACTION_INTERVAL)
@@ -217,6 +220,8 @@ class Hero(Unit):
             self.life_count -= 1
             self.response('update')
         else:
+            self.rotate_is_pressing = False
+            self.change_speed_is_pressing = False
             self.life_count = 0
             self.kill()
             self.response('update')
@@ -248,6 +253,43 @@ class Hero(Unit):
             self.response('update')
         else:
             other_unit.kill()
+
+    @staticmethod
+    def change_speed_up(self):
+        self.change_speed_is_pressing = True
+        asyncio.async(self.change_speed('up'))
+
+    @staticmethod
+    def change_speed_down(self):
+        self.change_speed_is_pressing = True
+        asyncio.async(self.change_speed('down'))
+
+    @staticmethod
+    def stop_change_speed(self):
+        self.change_speed_is_pressing = False
+
+    @staticmethod
+    def start_fire(self):
+        self.fire_is_pressing = True
+        asyncio.async(self.fire())
+
+    @staticmethod
+    def stop_fire(self):
+        self.fire_is_pressing = False
+
+    @staticmethod
+    def rotate_right(self):
+        self.rotate_is_pressing = True
+        asyncio.async(self.rotate('right'))
+
+    @staticmethod
+    def rotate_left(self):
+        self.rotate_is_pressing = True
+        asyncio.async(self.rotate('left'))
+
+    @staticmethod
+    def stop_rotate(self):
+        self.rotate_is_pressing = False
 
 
 class Bullet(Unit):

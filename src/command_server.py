@@ -67,9 +67,18 @@ class StreamCommandServer(BaseCommandServer):
                 data = json.loads(data)
                 for key in data:
                     action = getattr(my_hero, key, '')
-                    if action:
+                    if key.startswith('stop'):
+                        my_hero.compute_new_coordinate(STEP_INTERVAL)
+                        try:
+                            self._controller.ignore_heroes.remove(my_hero.id)
+                        except ValueError:
+                            pass
+                    elif not key.endswith('fire'):
+                        self._controller.ignore_heroes.append(my_hero.id)
+                    if data[key]:
                         action(data[key])
-            yield from asyncio.sleep(STEP_INTERVAL)
+                    else:
+                        action(my_hero)
         if self._controller.units.get(my_hero.id):
             self._controller.remove_unit(my_hero.id)
         yield from websocket.close()
