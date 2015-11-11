@@ -3,7 +3,7 @@
 import math
 
 
-def line_intersection(line1, line2, width1, width2):
+def object_intersection(line1, line2, width1, width2):
     """Find the point of intersecting lines.
        width1 - width of first unit
        width2 - width of second unit
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     B = (3, 2)
     C = (1, 3)
     D = (3, 1)
-    int_point = line_intersection((A, B), (C, D))
+    int_point = object_intersection((A, B), (C, D), 2, 2)
     print(int_point)
     print(point_distance(A, int_point))
     print(point_distance(C, int_point))
@@ -65,7 +65,7 @@ if __name__ == '__main__':
     B = (0, 3)
     C = (1, 3)
     D = (0, 3)
-    int_point = line_intersection((A, B), (C, D))
+    int_point = object_intersection((A, B), (C, D), 2, 2)
     print(int_point)
     print(point_distance(A, int_point))
     print(point_distance(C, int_point))
@@ -74,5 +74,5 @@ if __name__ == '__main__':
     B = (3, 3)
     C = (0, 3)
     D = (0, 2)
-    int_point = line_intersection((A, B), (C, D))
+    int_point = object_intersection((A, B), (C, D), 2, 2)
     print(int_point)

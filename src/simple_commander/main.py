@@ -8,7 +8,7 @@ import logging
 import math
 
 from random import randint
-from src.simple_commander.utils.line_intersection import line_intersection, point_distance
+from src.simple_commander.utils.line_intersection import object_intersection, point_distance
 
 '''
 In this game we have two role - invader and hero. Both can bullet.
@@ -169,7 +169,7 @@ class Unit(object):
             B = (self.x1, self.y1)
             C = (other_unit.x, other_unit.y)
             D = (other_unit.x1, other_unit.y1)
-            int_point = line_intersection((A, B), (C, D), round(self.width / 2), round(other_unit.width / 2))
+            int_point = object_intersection((A, B), (C, D), round(self.width / 2), round(other_unit.width / 2))
             if int_point:
                 if self.x != self.y:
                     A_B_distance = point_distance(A, B)
