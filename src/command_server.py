@@ -6,126 +6,101 @@ import os
 
 import aiohttp_jinja2
 import jinja2
-import websockets
-from aiohttp import web
+from aiohttp import server, web, MsgType
 
 from core import routes, views
 from simple_commander.main import get_game, STEP_INTERVAL
 
 
-class BaseCommandServer(object):
-    def __init__(self, server_type=None, host=None, port=None, loop=None, templates=None):
-        logging.info('Init %s Server on host %s:%s' % (server_type, host, port))
-        self._server_type = server_type
-        self._loop = loop or asyncio.get_event_loop()
-        self._init_server(host, port)
-
-        if templates:
-            aiohttp_jinja2.setup(self._app, loader=jinja2.FileSystemLoader(templates))
-
-    def start(self):
-        self._server = self._loop.run_until_complete(self._server)
-        logging.info(' %s has started.' % (self._server_type))
-
-    def stop(self):
-        self._server.close()
-        logging.info('%s has stopped.' % (self._server_type))
-
-
-class StreamCommandServer(BaseCommandServer):
+class HttpCommandServer(object):
     _instance = None
 
-    def _init_server(self, host, port):
+    def __init__(self,  host=None, port=None, templates=None, **kwargs):
+        logging.info('Init Server on host %s:%s' % (host, port))
+        self._loop = asyncio.get_event_loop()
         self._app = web.Application(loop=self._loop)
-        self._controller = get_game(600, 800, 5, self.notify_clients)
-        self._server = websockets.serve(self.process_request, host, port)
 
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super(StreamCommandServer, cls).__new__(cls)
-        return cls._instance
-
-    @asyncio.coroutine
-    def process_request(self, websocket, path):
-        while True:
-            data = yield from websocket.recv()
-            if data:
-                data = json.loads(data)
-                if 'start' in data:
-                    asyncio.async(self._controller.run())
-                    my_hero = self._controller.new_hero()
-                    my_hero.set_name(data['start'])
-                    start_conditions = {'init': {
-                        'hero_id': my_hero.id,
-                        'game': self._controller.game_field,
-                        'units': self._controller.get_units(),
-                        'frequency': STEP_INTERVAL}}
-                    yield from websocket.send(json.dumps(start_conditions))
-                    break
-        while websocket.open:
-            data = yield from websocket.recv()
-            if data:
-                data = json.loads(data)
-                for key in data:
-                    action = getattr(my_hero, key, '')
-                    if action:
-                        action(data[key])
-            yield from asyncio.sleep(STEP_INTERVAL)
-        if self._controller.units.get(my_hero.id):
-            self._controller.remove_unit(my_hero.id)
-        yield from websocket.close()
-
-    @asyncio.coroutine
-    def notify_clients(self, data):
-        if hasattr(self._server, 'websockets'):
-            for socket in self._server.websockets:
-                yield from socket.send(json.dumps(data))
-
-
-class HttpCommandServer(BaseCommandServer):
-    _instance = None
-
-    def _init_server(self, host, port):
-        self._app = web.Application()
         self._load_routes()
         self._load_static()
+        self._controller = get_game(600, 800, 5)
         self._server = self._loop.create_server(self._app.make_handler(),
-            host, port)
+                                                host, port)
+
+        if templates:
+            aiohttp_jinja2.setup(self._app,
+                                 loader=jinja2.FileSystemLoader(templates))
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
             cls._instance = super(HttpCommandServer, cls).__new__(cls)
         return cls._instance
 
+    def start(self):
+        self._server = self._loop.run_until_complete(self._server)
+        logging.info('Server has started.')
+
+    def stop(self):
+        self._server.close()
+        logging.info('Server has stopped.')
+
     def _load_routes(self):
         logging.debug('Loading  Application Routes:\n%s' % '\n'.join(str(r) for r in routes.ROUTES))
+        self._app.router.add_route('GET', '/ws_stream', self.ws_stream)
         for route in routes.ROUTES:
             self._app.router.add_route(*route)
 
     def _load_static(self):
         self._app.router.add_static('/static', static_path)
 
+    @asyncio.coroutine
+    def ws_stream(self, request, *args, **kwargs):
+        ws = web.WebSocketResponse()
+        ws.start(request)
+        my_hero = None
+        while ws.started:
+            msg = yield from ws.receive()
+            if msg.tp == MsgType.text:
+                if msg.data == 'close':
+                    yield from ws.close()
+                    self._controller.drop_connection(ws, my_hero.id)
+                else:
+                    data = json.loads(msg.data)
+                    if 'start' in data:
+                        my_hero = self._controller.start(ws, data['start'])
+                    else:
+                        for key in data:
+                            action = getattr(self._controller, key, '')
+                            if action:
+                                if data[key]:
+                                    action(my_hero, data[key])
+                                else:
+                                    action(my_hero)
+            elif msg.tp == MsgType.close:
+                logging.info('websocket connection closed')
+                self._controller.drop_connection(ws, my_hero.id)
+            elif msg.tp == MsgType.error:
+                logging.info('ws connection closed with exception %s', ws.exception())
+                self._controller.drop_connection(ws, my_hero.id)
+
+        yield from ws.close()
+
 
 if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read('etc/command_server.conf')
     host = config.get('commandServer', 'host')
-    http_port = os.environ.get('PORT', config.get('commandServer', 'http_port'))
-    stream_port = config.get('commandServer', 'stream_port')
+    port = os.environ.get('PORT', config.get('commandServer', 'port'))
     static_path = config.get('commandServer', 'static_path')
     templates = config.get('commandServer', 'templates')
     logging.basicConfig(level=logging.DEBUG)
     loop = asyncio.get_event_loop()
-    server = HttpCommandServer(server_type='Http Server', host=host, port=http_port, loop=loop, templates=templates)
-    socket_server = StreamCommandServer(server_type='Stream Server', host=host, port=stream_port, loop=loop)
+    server = HttpCommandServer(host=host, port=port, templates=templates)
     try:
         server.start()
-        socket_server.start()
         loop.run_forever()
 
     except KeyboardInterrupt:
         pass
     finally:
         server.stop()
-        socket_server.stop()
         loop.close()
