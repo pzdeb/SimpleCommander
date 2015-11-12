@@ -247,6 +247,7 @@ class Hero(Unit):
         else:
             self.rotate_is_pressing = False
             self.change_speed_is_pressing = False
+            self.fire_is_pressing = False
             self.life_count = 0
             self.kill()
         self.response('update_life')
@@ -450,7 +451,7 @@ class GameController(object):
         self.remove_from_gnore(hero.id)
         hero.rotate_is_pressing = False
 
-    def remove_from_gnore(self, hero_id):
+    def remove_from_ignore(self, hero_id):
         if hero_id in self.ignore_heroes:
             self.ignore_heroes.remove(hero_id)
 
