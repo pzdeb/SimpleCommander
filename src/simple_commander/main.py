@@ -425,7 +425,7 @@ class GameController(object):
         asyncio.async(hero.change_speed('down'))
 
     def stop_change_speed(self, hero):
-        self.remove_from_gnore(hero.id)
+        self.remove_from_ignore(hero.id)
         hero.change_speed_is_pressing = False
 
     @staticmethod
@@ -448,7 +448,7 @@ class GameController(object):
         asyncio.async(hero.rotate('left'))
 
     def stop_rotate(self, hero):
-        self.remove_from_gnore(hero.id)
+        self.remove_from_ignore(hero.id)
         hero.rotate_is_pressing = False
 
     def remove_from_ignore(self, hero_id):
