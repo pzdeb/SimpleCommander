@@ -18,7 +18,6 @@ class HttpCommandServer(object):
     def __init__(self,  host=None, port=None, templates=None, **kwargs):
         logging.info('Init Server on host %s:%s' % (host, port))
         self._loop = asyncio.get_event_loop()
-        self._ws = web.WebSocketResponse()
         self._app = web.Application(loop=self._loop)
 
         self._load_routes()
@@ -57,53 +56,31 @@ class HttpCommandServer(object):
     def ws_stream(self, request, *args, **kwargs):
         ws = web.WebSocketResponse()
         ws.start(request)
-
+        my_hero = None
         while ws.started:
             msg = yield from ws.receive()
             if msg.tp == MsgType.text:
                 if msg.data == 'close':
                     yield from ws.close()
-                    self._controller.del_web_socket(ws)
-                    if self._controller.units.get(my_hero.id):
-                        self._controller.remove_unit(my_hero.id)
+                    self._controller.drop_connection(ws, my_hero.id)
                 else:
                     data = json.loads(msg.data)
                     if 'start' in data:
-                        self._controller.websockets.append(ws)
-                        asyncio.async(self._controller.run())
-                        my_hero = self._controller.new_hero()
-                        my_hero.set_name(data['start'])
-                        start_conditions = {'init': {
-                            'hero_id': my_hero.id,
-                            'game': self._controller.game_field,
-                            'units': self._controller.get_units(),
-                            'frequency': STEP_INTERVAL}}
-                        ws.send_str(json.dumps(start_conditions))
+                        my_hero = self._controller.start(ws, data['start'])
                     else:
                         for key in data:
-                            action = getattr(my_hero, key, '')
-                            if key.startswith('stop'):
-                                my_hero.compute_new_coordinate(STEP_INTERVAL)
-                                try:
-                                    self._controller.ignore_heroes.remove(my_hero.id)
-                                except ValueError:
-                                    pass
-                            elif not key.endswith('fire') and key != 'set_name':
-                                self._controller.ignore_heroes.append(my_hero.id)
-                            if data[key]:
-                                action(data[key])
-                            else:
-                                action(my_hero)
+                            action = getattr(self._controller, key, '')
+                            if action:
+                                if data[key]:
+                                    action(my_hero, data[key])
+                                else:
+                                    action(my_hero)
             elif msg.tp == MsgType.close:
                 logging.info('websocket connection closed')
-                self._controller.del_web_socket(ws)
-                if self._controller.units.get(my_hero.id):
-                        self._controller.remove_unit(my_hero.id)
+                self._controller.drop_connection(ws, my_hero.id)
             elif msg.tp == MsgType.error:
                 logging.info('ws connection closed with exception %s', ws.exception())
-                self._controller.del_web_socket(ws)
-                if self._controller.units.get(my_hero.id):
-                        self._controller.remove_unit(my_hero.id)
+                self._controller.drop_connection(ws, my_hero.id)
 
         yield from ws.close()
 
