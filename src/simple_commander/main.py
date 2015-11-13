@@ -25,9 +25,18 @@ When invader bullet to main hero, the main hero's life is decrease.
 UNITS = {'invader': [{'type': 'invader1', 'dimension': 28},
                      {'type': 'invader2', 'dimension': 28},
                      {'type': 'invader3', 'dimension': 28}],
-         'hero': [{'type': 'hero1', 'dimension': 28},
-                  {'type': 'hero2', 'dimension': 28},
-                  {'type': 'hero3', 'dimension': 28}],
+         'hero': [{'type': 'hero_1_black', 'dimension': 28},
+                  {'type': 'hero_1_green', 'dimension': 28},
+                  {'type': 'hero_1_blue', 'dimension': 28},
+                  {'type': 'hero_1_pink', 'dimension': 28},
+                  {'type': 'hero_1_white', 'dimension': 28},
+                  {'type': 'hero_1_red', 'dimension': 28},
+                  {'type': 'hero_2_black', 'dimension': 28},
+                  {'type': 'hero_2_green', 'dimension': 28},
+                  {'type': 'hero_2_blue', 'dimension': 28},
+                  {'type': 'hero_2_pink', 'dimension': 28},
+                  {'type': 'hero_2_white', 'dimension': 28},
+                  {'type': 'hero_2_red', 'dimension': 28}],
          'bullet_hero': {'type': 'bullet_hero', 'dimension': 10},
          'bullet_invader': {'type': 'bullet_invader', 'dimension': 10}}
 
@@ -240,6 +249,7 @@ class Hero(Unit):
         self.last_fire = datetime.now()
         self.life_count = life_count
         self.name = None
+        self.controller.used_hero_types.append(self.type)
 
     def decrease_life(self):
         if self.life_count > 1:
@@ -249,6 +259,7 @@ class Hero(Unit):
             self.change_speed_is_pressing = False
             self.fire_is_pressing = False
             self.life_count = 0
+            self.controller.used_hero_types.remove(self.type)
             self.kill()
         self.response('update_life')
 
@@ -320,11 +331,11 @@ class GameController(object):
     _instance = None
     launched = False
     ignore_heroes = []
+    used_hero_types = []
     websockets = []
 
     def __init__(self, height=None, width=None, invaders_count=None, notify_clients=None):
         self.game_field = {'height': height, 'width': width}
-        # self.notify_clients = notify_clients
         self.invaders_count = invaders_count
         self.units = {}
         self.set_invaders(self.invaders_count)
@@ -333,6 +344,19 @@ class GameController(object):
         if not cls._instance:
             cls._instance = super(GameController, cls).__new__(cls)
         return cls._instance
+
+    def get_unique_type(self):
+        result = []
+        if self.units:
+            if len(self.used_hero_types) < len(UNITS.get('hero', [])):
+                while True:
+                    random_number = randint(0, len(UNITS.get('hero', [])) - 1)
+                    hero_type = UNITS.get('hero', [])[random_number].get('type', '')
+                    if hero_type not in self.used_hero_types:
+                        result.append(hero_type)
+                        result.append(UNITS.get('hero', [])[random_number].get('dimension', ''))
+                        break
+        return result
 
     def new_unit(self, unit_class, *args, **kwargs):
         kwargs['controller'] = self
@@ -348,6 +372,10 @@ class GameController(object):
         except ValueError:
             pass
         if hero_id:
+            try:
+                self.used_hero_types.remove(self.units[hero_id].type)
+            except ValueError:
+                pass
             self.remove_unit(hero_id)
 
     @asyncio.coroutine
@@ -357,10 +385,14 @@ class GameController(object):
                 socket.send_str(json.dumps(data))
 
     def new_hero(self):
+        hero = None
         pos_x = randint(0, self.game_field['width'])
         pos_y = randint(0, self.game_field['height'])
         angle = randint(0, 360)
-        hero = self.new_unit(Hero, x=pos_x, y=pos_y, angle=angle)
+        hero_type = self.get_unique_type()
+        if hero_type:
+            her_type, dimension = self.get_unique_type()
+            hero = self.new_unit(Hero, x=pos_x, y=pos_y, angle=angle, type=her_type, dimension=dimension)
         return hero
 
     def check_if_remove_units(self, units):
@@ -377,16 +409,21 @@ class GameController(object):
                 self.set_invaders(1)
 
     def start(self, socket, name, *args, **kwargs):
-        self.websockets.append(socket)
         asyncio.async(self.run())
         my_hero = self.new_hero()
-        self.set_name(my_hero, name)
-        start_conditions = {'init': {
-            'hero_id': my_hero.id,
-            'game': self.game_field,
-            'units': self.get_units(),
-            'frequency': STEP_INTERVAL}}
-        socket.send_str(json.dumps(start_conditions))
+        if my_hero:
+            self.websockets.append(socket)
+            self.set_name(my_hero, name)
+            start_conditions = {'init': {
+                'hero_id': my_hero.id,
+                'game': self.game_field,
+                'units': self.get_units(),
+                'frequency': STEP_INTERVAL}}
+            socket.send_str(json.dumps(start_conditions))
+        else:
+            start_conditions = {'error': {'msg': 'Too much players are playing'}}
+            socket.send_str(json.dumps(start_conditions))
+            asyncio.async(socket.close())
         return my_hero
 
     def add_bonus(self, bullet):
