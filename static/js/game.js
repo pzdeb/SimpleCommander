@@ -48,6 +48,13 @@ function GameController(canvas) {
 
     this.sendToServer = function (heroAction, value) {
         var data = {};
+        if (this.hero) {
+            var hero_id = this.hero.id
+        }
+        else {
+            var hero_id = ''
+        }
+        value = {'id': hero_id, 'name': value};
         data[heroAction] = value;
         var data = JSON.stringify(data);
         this.socket.send(data);
