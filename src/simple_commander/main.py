@@ -232,7 +232,7 @@ class Invader(Unit):
             other_unit.hits += 1
             other_unit.decrease_life()
         else:
-            if other_unit.__class__.__name__ == 'Bullet':
+            if isinstance(other_unit, Bullet):
                 self.controller.add_hits(other_unit)
             other_unit.kill()
         self.kill()
@@ -302,7 +302,7 @@ class Hero(Unit):
             other_unit.hits += 1
             other_unit.decrease_life()
         else:
-            if other_unit.__class__.__name__ == 'Bullet':
+            if isinstance(other_unit, Bullet):
                 self.controller.add_hits(other_unit)
             other_unit.kill()
 
@@ -367,13 +367,13 @@ class GameController(object):
     def action(self, data):
         for key in data:
             action = getattr(self, key)
-            if action:
-                hero = self.units.get(data[key].get('id', ''), '')
-                if hero:
-                    if key == 'set_name':
-                        action(hero, data[key].get('name', 'user'))
-                    else:
-                        action(hero)
+            hero = self.units.get(data[key].get('id', ''), '')
+            if not action and not hero:
+                continue
+            if key == 'set_name':
+                action(hero, data[key].get('name', 'user'))
+            else:
+                action(hero)
 
     def new_unit(self, unit_class, *args, **kwargs):
         kwargs['controller'] = self
