@@ -48,9 +48,47 @@ function GameController(canvas) {
 
     this.sendToServer = function (heroAction, value) {
         var data = {};
+        if (this.hero) {
+            var hero_id = this.hero.id
+        }
+        else {
+            var hero_id = ''
+        }
+        value = {'id': hero_id, 'name': value};
         data[heroAction] = value;
         var data = JSON.stringify(data);
         this.socket.send(data);
+    };
+
+    this.updateScorecardHeroes = function(hero){
+        if(hero.type.slice(0, 'hero'.length) == 'hero'){
+            var table = document.getElementById('scorecardHeroes').getElementsByTagName('tbody')[0];
+            var row = document.getElementById(hero.id);
+            if (row){
+                var cell1 = row.getElementsByTagName('td')[0];
+                var cell2 = row.getElementsByTagName('td')[1];
+                var cell3 = row.getElementsByTagName('td')[2];
+                var cell4 = row.getElementsByTagName('td')[3];
+                var cell5 = row.getElementsByTagName('td')[4];
+            }
+            else{
+                var row = table.insertRow(table.rows.length);
+                var elem = document.createElement("img");
+                elem.src = "static/images/" + hero.type + ".png";
+                var cell1 = row.insertCell(0);
+                var cell2 = row.insertCell(1);
+                var cell3 = row.insertCell(2);
+                var cell4 = row.insertCell(3);
+                var cell5 = row.insertCell(4);
+                cell1.appendChild(elem);
+                row.id = hero.id;
+            }
+            cell2.innerHTML = hero.name;
+            cell3.innerHTML = hero.hits;
+            cell4.innerHTML = 3 - hero.life_count;
+            cell5.innerHTML = parseInt(cell3.innerText) - parseInt(cell4.innerText);
+            sortTable(table);
+        }
     };
 
     this.onData = function (event) {
@@ -116,6 +154,7 @@ function GameController(canvas) {
             unit.regY = unit.height / 2;
             this.units[unit.id] = unit;
             this.stage.addChild(unit);
+            this.updateScorecardHeroes(unitsObj[i]);
         }
         this.hero = this.units[hero_id];
 
@@ -178,6 +217,7 @@ function GameController(canvas) {
             this.units[unitData.id] = unit;
             this.stage.addChild(unit);
             this.stage.update();
+            this.updateScorecardHeroes(unitData);
         }
     };
 
@@ -196,16 +236,17 @@ function GameController(canvas) {
         this.units[id].regX = this.units[id].width / 2;
         this.units[id].regY = this.units[id].height / 2;
         this.units[id].speedTick = this.units[id].speed / this.frequency / FPS;
-        if (id == this.hero['id']){
+        if (this.hero && id == this.hero['id']){
             this.updateTableScorecards()
-        }
-
+        };
+        this.updateScorecardHeroes(unitData);
     };
 
     this.killUnit = function (unitData) {
         var id = unitData['id'];
         this.stage.removeChild(this.units[id]);
         this.stage.update();
+        this.updateScorecardHeroes(unitData);
         delete this.units[id];
     };
 

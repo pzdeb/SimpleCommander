@@ -8,7 +8,7 @@ import logging
 
 import math
 
-from random import randint
+from random import randint, shuffle
 from simple_commander.utils.line_intersection import object_intersection, point_distance
 
 '''
@@ -25,9 +25,18 @@ When invader bullet to main hero, the main hero's life is decrease.
 UNITS = {'invader': [{'type': 'invader1', 'dimension': 28},
                      {'type': 'invader2', 'dimension': 28},
                      {'type': 'invader3', 'dimension': 28}],
-         'hero': [{'type': 'hero1', 'dimension': 28},
-                  {'type': 'hero2', 'dimension': 28},
-                  {'type': 'hero3', 'dimension': 28}],
+         'hero': [{'type': 'hero_1_black', 'dimension': 28},
+                  {'type': 'hero_1_green', 'dimension': 28},
+                  {'type': 'hero_1_blue', 'dimension': 28},
+                  {'type': 'hero_1_pink', 'dimension': 28},
+                  {'type': 'hero_1_white', 'dimension': 28},
+                  {'type': 'hero_1_red', 'dimension': 28},
+                  {'type': 'hero_2_black', 'dimension': 28},
+                  {'type': 'hero_2_green', 'dimension': 28},
+                  {'type': 'hero_2_blue', 'dimension': 28},
+                  {'type': 'hero_2_pink', 'dimension': 28},
+                  {'type': 'hero_2_white', 'dimension': 28},
+                  {'type': 'hero_2_red', 'dimension': 28}],
          'bullet_hero': {'type': 'bullet_hero', 'dimension': 10},
          'bullet_invader': {'type': 'bullet_invader', 'dimension': 10}}
 
@@ -39,12 +48,12 @@ MAX_ANGLE = 360
 SPEED = 8
 MAX_SPEED = 220
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
-UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count', 'type', 'width', 'height', 'name']
+UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'hits', 'speed', 'id', 'life_count', 'type', 'width', 'height', 'name']
 
 
 class Unit(object):
 
-    def __init__(self, x, y, angle, bonus, speed, type, bullet_type, dimension, controller=None):
+    def __init__(self, x, y, angle, hits, speed, type, bullet_type, dimension, controller=None):
         self.controller = controller
         self.type = type
         self.bullet_filename = bullet_type
@@ -56,7 +65,7 @@ class Unit(object):
         self.angle = angle
         self.width = dimension
         self.height = dimension
-        self.bonus = bonus
+        self.hits = hits
         self.speed = speed
         self.id = str(uuid.uuid4())
         self.is_dead = False
@@ -203,13 +212,13 @@ class Unit(object):
 
 class Invader(Unit):
 
-    def __init__(self, x, y, angle, bonus=10, speed=DEFAULT_SPEED, type='',
+    def __init__(self, x, y, angle, hits=10, speed=DEFAULT_SPEED, type='',
                  bullet_type=UNITS.get('bullet_invader', {}).get('type', ''), dimension=0, controller=None):
         if not type and len(UNITS.get('invader', [])):
             random_number = randint(0, len(UNITS.get('invader', [])) - 1)
             type = UNITS.get('invader', [])[random_number].get('type', '')
             dimension = UNITS.get('invader', [])[random_number].get('dimension', '')
-        super(Invader, self).__init__(x, y, angle, bonus, speed, type, bullet_type, dimension, controller=controller)
+        super(Invader, self).__init__(x, y, angle, hits, speed, type, bullet_type, dimension, controller=controller)
 
     def reset(self):
         self.angle = randint(0, 360)
@@ -220,21 +229,24 @@ class Invader(Unit):
         unit_class_name = other_unit. __class__.__name__
         logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
         if unit_class_name == 'Hero':
+            other_unit.hits += 1
             other_unit.decrease_life()
         else:
+            if isinstance(other_unit, Bullet):
+                self.controller.add_hits(other_unit)
             other_unit.kill()
         self.kill()
 
 
 class Hero(Unit):
 
-    def __init__(self, x, y, angle, bonus=0, speed=0, life_count=1, frequency_fire=0.5, type='',
+    def __init__(self, x, y, angle, hits=0, speed=0, life_count=3, frequency_fire=0.5, type='',
                  bullet_type=UNITS.get('bullet_hero', {}).get('type', ''), dimension=0, controller=None):
         if not type and len(UNITS.get('hero', [])):
             random_number = randint(0, len(UNITS.get('hero', [])) - 1)
             type = UNITS.get('hero', [])[random_number].get('type', '')
             dimension = UNITS.get('hero', [])[random_number].get('dimension', '')
-        super(Hero, self).__init__(x, y, angle, bonus, speed, type, bullet_type, dimension, controller=controller)
+        super(Hero, self).__init__(x, y, angle, hits, speed, type, bullet_type, dimension, controller=controller)
         self.fire_is_pressing = False
         self.frequency_fire = frequency_fire
         self.last_fire = datetime.now()
@@ -284,10 +296,14 @@ class Hero(Unit):
     def hit(self, other_unit):
         unit_class_name = other_unit. __class__.__name__
         logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
+        self.hits += 1
         self.decrease_life()
         if unit_class_name == 'Hero':
+            other_unit.hits += 1
             other_unit.decrease_life()
         else:
+            if isinstance(other_unit, Bullet):
+                self.controller.add_hits(other_unit)
             other_unit.kill()
 
 
@@ -307,9 +323,10 @@ class Bullet(Unit):
         unit_class_name = other_unit. __class__.__name__
         logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
         if unit_class_name == 'Hero':
+            self.controller.add_hits(self)
             other_unit.decrease_life()
         elif unit_class_name == 'Invader':
-            get_game().add_bonus(self)
+            self.controller.add_hits(self)
             other_unit.kill()
         else:
             other_unit.kill()
@@ -319,14 +336,13 @@ class Bullet(Unit):
 __game = None
 
 
-def get_game(height=None, width=None, invaders_count=None, notify_clients=None):
+def get_game(height=None, width=None, invaders_count=None):
     global __game
 
     if not __game and height and width and invaders_count is not None:
         __game = GameController(height=height,
                                 width=width,
-                                invaders_count=invaders_count,
-                                notify_clients=notify_clients)
+                                invaders_count=invaders_count)
     return __game
 
 
@@ -334,19 +350,30 @@ class GameController(object):
     _instance = None
     launched = False
     ignore_heroes = []
-    websockets = []
+    websockets = {}
 
-    def __init__(self, height=None, width=None, invaders_count=None, notify_clients=None):
+    def __init__(self, height=None, width=None, invaders_count=None):
         self.game_field = {'height': height, 'width': width}
-        # self.notify_clients = notify_clients
         self.invaders_count = invaders_count
         self.units = {}
+        self.random_type = self.get_unit_type()
         self.set_invaders(self.invaders_count)
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
             cls._instance = super(GameController, cls).__new__(cls)
         return cls._instance
+
+    def action(self, data):
+        for key in data:
+            action = getattr(self, key)
+            hero = self.units.get(data[key].get('id', ''), '')
+            if not action and not hero:
+                continue
+            if key == 'set_name':
+                action(hero, data[key].get('name', 'user'))
+            else:
+                action(hero)
 
     def new_unit(self, unit_class, *args, **kwargs):
         kwargs['controller'] = self
@@ -356,25 +383,24 @@ class GameController(object):
         unit.compute_new_coordinate(STEP_INTERVAL)
         return unit
 
-    def drop_connection(self, socket, hero_id=None):
-        try:
-            self.websockets.remove(socket)
-        except ValueError:
-            pass
-        if hero_id:
-            self.remove_unit(hero_id)
+    def drop_connection(self, socket):
+        socket = self.websockets[id(socket)]
+        self.remove_unit(socket['hero'])
+        del socket
 
     @asyncio.coroutine
     def notify_clients(self, data):
         if self.websockets:
-            for socket in self.websockets:
-                socket.send_str(json.dumps(data))
+            for key in self.websockets:
+                if not self.websockets[key]['socket']._closed:
+                    self.websockets[key]['socket'].send_str(json.dumps(data))
 
     def new_hero(self):
         pos_x = randint(0, self.game_field['width'])
         pos_y = randint(0, self.game_field['height'])
         angle = randint(0, 360)
-        hero = self.new_unit(Hero, x=pos_x, y=pos_y, angle=angle)
+        hero_type, dimension = next(self.random_type)
+        hero = self.new_unit(Hero, x=pos_x, y=pos_y, angle=angle, type=hero_type, dimension=dimension)
         return hero
 
     def check_if_remove_units(self, units):
@@ -390,10 +416,11 @@ class GameController(object):
             if class_name == 'Invader':
                 self.set_invaders(1)
 
-    def start(self, socket, name, *args, **kwargs):
-        self.websockets.append(socket)
+    def start(self, socket, data, *args, **kwargs):
         asyncio.async(self.run())
         my_hero = self.new_hero()
+        self.websockets[id(socket)] = {'socket': socket, 'hero': my_hero.id}
+        name = data.get('name', 'user')
         self.set_name(my_hero, name)
         start_conditions = {'init': {
             'hero_id': my_hero.id,
@@ -401,14 +428,25 @@ class GameController(object):
             'units': self.get_units(),
             'frequency': STEP_INTERVAL}}
         socket.send_str(json.dumps(start_conditions))
-        return my_hero
 
-    def add_bonus(self, bullet):
+    def add_hits(self, bullet):
         for unit in self.units:
             if id(self.units[unit]) == bullet.unit_id and self.units[unit].__class__.__name__ == 'Hero':
-                self.units[unit].bonus += bullet.bonus
-                logging.info('Add %s bonus for %s. Now he has %s bonus'
-                             % (bullet.bonus, unit.__class__.__name__, unit.bonus))
+                self.units[unit].hits += 1
+                logging.info('Add 1 bonus for %s. Now he has %s bonus'
+                             % (unit.__class__.__name__, self.units[unit].hits))
+
+    @staticmethod
+    def get_unit_type():
+        i = -1
+        types = [(hero['type'], hero['dimension']) for hero in UNITS['hero']]
+        shuffle(types)
+        while True:
+            i += 1
+            yield types[i]
+            if i == len(types)-1:
+                shuffle(types)
+                i = -1
 
     def set_invaders(self, count):
         for count in range(count):
@@ -427,6 +465,7 @@ class GameController(object):
     @staticmethod
     def set_name(hero, name):
         hero.name = name
+        hero.compute_new_coordinate(STEP_INTERVAL)
 
     def change_speed_up(self, hero):
         self.ignore_heroes.append(hero.id)
@@ -466,6 +505,7 @@ class GameController(object):
         hero.rotate_is_pressing = False
 
     def remove_from_ignore(self, hero_id):
+        self.units[hero_id].compute_new_coordinate(STEP_INTERVAL)
         if hero_id in self.ignore_heroes:
             self.ignore_heroes.remove(hero_id)
 
