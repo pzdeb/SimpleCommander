@@ -334,7 +334,7 @@ class GameController(object):
         self.game_field = {'height': height, 'width': width}
         self.invaders_count = invaders_count
         self.units = {}
-        self.random_type = self.get_random_type()
+        self.random_type = self.get_unit_type()
         self.set_invaders(self.invaders_count)
 
     def __new__(cls, *args, **kwargs):
@@ -415,7 +415,7 @@ class GameController(object):
                              % (bullet.bonus, unit.__class__.__name__, unit.bonus))
 
     @staticmethod
-    def get_random_type():
+    def get_unit_type():
         i = -1
         types = [(hero['type'], hero['dimension']) for hero in UNITS['hero']]
         shuffle(types)
@@ -424,7 +424,7 @@ class GameController(object):
             yield types[i]
             if i == len(types)-1:
                 shuffle(types)
-                i = 0
+                i = -1
 
     def set_invaders(self, count):
         for count in range(count):
