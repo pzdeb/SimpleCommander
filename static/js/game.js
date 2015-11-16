@@ -103,7 +103,10 @@ function GameController(canvas) {
         this.stage.addChild(this.hero);
 
         for (var i in unitsObj) {
-            var unit = new createjs.Bitmap("static/images/" + unitsObj[i].type + ".png");
+            var animation = this.setAnimation(unitsObj[i]);
+            var unit = new createjs.Sprite(animation, "stand");
+            unit.play();
+            unit.animationDied = new createjs.Sprite(animation, "died");
             for (var property in unitsObj[i]) {
                 if (property != 'angle') {
                     unit[property] = unitsObj[i][property];
@@ -164,9 +167,25 @@ function GameController(canvas) {
         }
     };
 
+    this.setAnimation = function(unitData) {
+        var data = {
+            images: ["static/images/" + unitData.type + ".png"],
+            frames: {width:unitData.width, height:unitData.height, regX: unitData.width / 2, regY: unitData.height / 2},
+            animations: {
+                stand: 0,
+                died: 1
+            }
+        };
+        spriteSheet = new createjs.SpriteSheet(data);
+        return spriteSheet;
+    };
+
     this.newUnit = function (unitData) {
         if (!this.units[unitData.id]) {
-            var unit = new createjs.Bitmap("static/images/" + unitData.type + ".png");
+            var animation = this.setAnimation(unitData);
+            var unit = new createjs.Sprite(animation, "stand");
+            unit.animationDied = new createjs.Sprite(animation, "died");
+            unit.play();
             for (var property in unitData) {
                 if (property != 'angle') {
                     unit[property] = unitData[property];
@@ -181,32 +200,55 @@ function GameController(canvas) {
         }
     };
 
-    this.updateUnit = function (unitData) {
-        var id = unitData['id'];
-
+    this.updateProperties = function(unit, unitData) {
         for (var key in unitData) {
-            if (this.units[id].hasOwnProperty(key)) {
-                this.units[id][key] = unitData[key]
+            if (unit.hasOwnProperty(key)) {
+                unit[key] = unitData[key]
 
             }
             else if (key = 'angle') {
-                this.units[id]['rotation'] = unitData[key]
+                unit['rotation'] = unitData[key]
             }
         }
-        this.units[id].regX = this.units[id].width / 2;
-        this.units[id].regY = this.units[id].height / 2;
-        this.units[id].speedTick = this.units[id].speed / this.frequency / FPS;
-        if (id == this.hero['id']){
-            this.updateTableScorecards()
-        }
+        unit.regX = unitData.width / 2;
+        unit.regY = unitData.height / 2;
+        return unit
+    };
 
+    this.updateUnit = function (unitData) {
+        var id = unitData['id'];
+
+        if (this.units[id]) {
+            this.units[id] = this.updateProperties(this.units[id], unitData);
+            this.units[id].speedTick = this.units[id].speed / this.frequency / FPS;
+            if (id == this.hero['id']){
+                this.updateTableScorecards()
+            }
+
+        }
     };
 
     this.killUnit = function (unitData) {
         var id = unitData['id'];
-        this.stage.removeChild(this.units[id]);
-        this.stage.update();
-        delete this.units[id];
+        if (this.units[id]) {
+            var animation = this.setAnimation(this.units[id]);
+            var unit = new createjs.Sprite(animation, "died");
+            unit = this.updateProperties(unit, unitData);
+            this.stage.removeChild(this.units[id]);
+            this.stage.update();
+            unit.x = this.units[id].x;
+            unit.y = this.units[id].y;
+            delete this.units[id];
+            unit.play();
+            this.stage.addChild(unit);
+            this.stage.update();
+            setTimeout(deleteUnit, 1000, this, unit);
+        }
+    };
+
+    deleteUnit = function(self, unit) {
+        self.stage.removeChild(unit);
+        self.stage.update();
     };
 
     this.updateLife = function (unitData) {
