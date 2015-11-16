@@ -48,12 +48,12 @@ MAX_ANGLE = 360
 SPEED = 8
 MAX_SPEED = 220
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
-UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count', 'type', 'width', 'height', 'name']
+UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'hits', 'speed', 'id', 'life_count', 'type', 'width', 'height', 'name']
 
 
 class Unit(object):
 
-    def __init__(self, x, y, angle, bonus, speed, type, bullet_type, dimension, controller=None):
+    def __init__(self, x, y, angle, hits, speed, type, bullet_type, dimension, controller=None):
         self.controller = controller
         self.type = type
         self.bullet_filename = bullet_type
@@ -65,7 +65,7 @@ class Unit(object):
         self.angle = angle
         self.width = dimension
         self.height = dimension
-        self.bonus = bonus
+        self.hits = hits
         self.speed = speed
         self.id = str(uuid.uuid4())
         self.is_dead = False
@@ -212,13 +212,13 @@ class Unit(object):
 
 class Invader(Unit):
 
-    def __init__(self, x, y, angle, bonus=10, speed=DEFAULT_SPEED, type='',
+    def __init__(self, x, y, angle, hits=10, speed=DEFAULT_SPEED, type='',
                  bullet_type=UNITS.get('bullet_invader', {}).get('type', ''), dimension=0, controller=None):
         if not type and len(UNITS.get('invader', [])):
             random_number = randint(0, len(UNITS.get('invader', [])) - 1)
             type = UNITS.get('invader', [])[random_number].get('type', '')
             dimension = UNITS.get('invader', [])[random_number].get('dimension', '')
-        super(Invader, self).__init__(x, y, angle, bonus, speed, type, bullet_type, dimension, controller=controller)
+        super(Invader, self).__init__(x, y, angle, hits, speed, type, bullet_type, dimension, controller=controller)
 
     def reset(self):
         self.angle = randint(0, 360)
@@ -229,21 +229,24 @@ class Invader(Unit):
         unit_class_name = other_unit. __class__.__name__
         logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
         if unit_class_name == 'Hero':
+            other_unit.hits += 1
             other_unit.decrease_life()
         else:
+            if other_unit.__class__.__name__ == 'Bullet':
+                self.controller.add_hits(other_unit)
             other_unit.kill()
         self.kill()
 
 
 class Hero(Unit):
 
-    def __init__(self, x, y, angle, bonus=0, speed=0, life_count=3, frequency_fire=0.5, type='',
+    def __init__(self, x, y, angle, hits=0, speed=0, life_count=3, frequency_fire=0.5, type='',
                  bullet_type=UNITS.get('bullet_hero', {}).get('type', ''), dimension=0, controller=None):
         if not type and len(UNITS.get('hero', [])):
             random_number = randint(0, len(UNITS.get('hero', [])) - 1)
             type = UNITS.get('hero', [])[random_number].get('type', '')
             dimension = UNITS.get('hero', [])[random_number].get('dimension', '')
-        super(Hero, self).__init__(x, y, angle, bonus, speed, type, bullet_type, dimension, controller=controller)
+        super(Hero, self).__init__(x, y, angle, hits, speed, type, bullet_type, dimension, controller=controller)
         self.fire_is_pressing = False
         self.frequency_fire = frequency_fire
         self.last_fire = datetime.now()
@@ -279,10 +282,14 @@ class Hero(Unit):
     def hit(self, other_unit):
         unit_class_name = other_unit. __class__.__name__
         logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
+        self.hits += 1
         self.decrease_life()
         if unit_class_name == 'Hero':
+            other_unit.hits += 1
             other_unit.decrease_life()
         else:
+            if other_unit.__class__.__name__ == 'Bullet':
+                self.controller.add_hits(other_unit)
             other_unit.kill()
 
 
@@ -302,9 +309,10 @@ class Bullet(Unit):
         unit_class_name = other_unit. __class__.__name__
         logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
         if unit_class_name == 'Hero':
+            self.controller.add_hits(self)
             other_unit.decrease_life()
         elif unit_class_name == 'Invader':
-            get_game().add_bonus(self)
+            self.controller.add_hits(self)
             other_unit.kill()
         else:
             other_unit.kill()
@@ -370,7 +378,8 @@ class GameController(object):
     def notify_clients(self, data):
         if self.websockets:
             for key in self.websockets:
-                self.websockets[key]['socket'].send_str(json.dumps(data))
+                if not self.websockets[key]['socket']._closed:
+                    self.websockets[key]['socket'].send_str(json.dumps(data))
 
     def new_hero(self):
         pos_x = randint(0, self.game_field['width'])
@@ -405,14 +414,13 @@ class GameController(object):
             'units': self.get_units(),
             'frequency': STEP_INTERVAL}}
         socket.send_str(json.dumps(start_conditions))
-        return my_hero
 
-    def add_bonus(self, bullet):
+    def add_hits(self, bullet):
         for unit in self.units:
             if id(self.units[unit]) == bullet.unit_id and self.units[unit].__class__.__name__ == 'Hero':
-                self.units[unit].bonus += bullet.bonus
-                logging.info('Add %s bonus for %s. Now he has %s bonus'
-                             % (bullet.bonus, unit.__class__.__name__, unit.bonus))
+                self.units[unit].hits += 1
+                logging.info('Add 1 bonus for %s. Now he has %s bonus'
+                             % (unit.__class__.__name__, self.units[unit].hits))
 
     @staticmethod
     def get_unit_type():
@@ -443,6 +451,7 @@ class GameController(object):
     @staticmethod
     def set_name(hero, name):
         hero.name = name
+        hero.compute_new_coordinate(STEP_INTERVAL)
 
     def change_speed_up(self, hero):
         self.ignore_heroes.append(hero.id)

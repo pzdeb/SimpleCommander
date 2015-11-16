@@ -1,3 +1,13 @@
 .bg-canvas {
     background-color: #929294;
 }
+#scorecardHeroes{
+    background-color: #929294;
+}
+table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 5px;
+}
