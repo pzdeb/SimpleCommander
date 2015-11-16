@@ -253,9 +253,22 @@ class Hero(Unit):
         self.life_count = life_count
         self.name = None
 
+    def set_to_new_position(self):
+        pos_x = randint(0, self.controller.game_field['width'])
+        pos_y = randint(0, self.controller.game_field['height'])
+        angle = randint(0, 360)
+        self.x = pos_x
+        self.y = pos_y
+        self.x1 = pos_x
+        self.y1 = pos_y
+        self.angle = angle
+        self.speed = 0
+        self.response('update')
+
     def decrease_life(self):
         if self.life_count > 1:
             self.life_count -= 1
+            self.set_to_new_position()
         else:
             self.rotate_is_pressing = False
             self.change_speed_is_pressing = False
@@ -266,7 +279,8 @@ class Hero(Unit):
 
     @asyncio.coroutine
     def fire(self):
-        while self.fire_is_pressing and (datetime.now() - self.last_fire).total_seconds() >= self.frequency_fire:
+        while self.life_count > 0 and self.fire_is_pressing and \
+                        (datetime.now() - self.last_fire).total_seconds() >= self.frequency_fire:
             logging.info('Fire!! Creating bullet!')
             self.compute_new_coordinate(STEP_INTERVAL)
             self.controller.new_unit(Bullet, unit=self, controller=self.controller)
