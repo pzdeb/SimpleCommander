@@ -155,8 +155,8 @@ function GameController(canvas) {
                     unit.rotation = unitsObj[i].angle;
                 }
             }
-            unit.regX = unit.width / 2;
-            unit.regY = unit.height / 2;
+            unit.regX = unit.width / 4;
+            unit.regY = unit.height / 4;
             this.units[unit.id] = unit;
             this.stage.addChild(unit);
             this.updateScorecardHeroes(unitsObj[i]);
@@ -211,7 +211,7 @@ function GameController(canvas) {
     this.setAnimation = function(unitData) {
         var data = {
             images: ["static/images/" + unitData.type + ".png"],
-            frames: {width:unitData.width, height:unitData.height, regX: unitData.width / 2, regY: unitData.height / 2},
+            frames: {width:unitData.width, height:unitData.height, regX: unitData.width / 4, regY: unitData.height / 4},
             animations: {
                 stand: 0,
                 died: 1
@@ -239,6 +239,8 @@ function GameController(canvas) {
                 this.hero = unit;
                 this.updateTableScorecards();
             }
+            unit.regX = unitData.width / 4;
+            unit.regY = unitData.height / 4;
             this.units[unitData.id] = unit;
             this.stage.addChild(unit);
             this.stage.update();
@@ -256,8 +258,8 @@ function GameController(canvas) {
                 unit['rotation'] = unitData[key]
             }
         }
-        unit.regX = unitData.width / 2;
-        unit.regY = unitData.height / 2;
+        unit.regX = unitData.width / 4;
+        unit.regY = unitData.height / 4;
         return unit
     };
 
