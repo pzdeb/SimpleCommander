@@ -28,7 +28,7 @@ UNITS = {'invader': [{'type': 'invader1', 'dimension': 28},
          'hero': [{'type': 'hero1', 'dimension': 28},
                   {'type': 'hero2', 'dimension': 28},
                   {'type': 'hero3', 'dimension': 28}],
-         'bullet_hero': {'type': 'bullet_hero', 'dimension': 10},
+         'bullet_hero': {'type': 'bullet_hero', 'dimension': 5},
          'bullet_invader': {'type': 'bullet_invader', 'dimension': 10}}
 
 ANGLE = 2
@@ -199,6 +199,7 @@ class Unit(object):
     def kill(self):
         logging.info('Killing - %s ' % self.__class__.__name__)
         self.is_dead = True
+        self.x1 = self.x
 
 
 class Invader(Unit):
@@ -228,7 +229,7 @@ class Invader(Unit):
 
 class Hero(Unit):
 
-    def __init__(self, x, y, angle, bonus=0, speed=0, life_count=1, frequency_fire=0.5, type='',
+    def __init__(self, x, y, angle, bonus=0, speed=0, life_count=3, frequency_fire=0.5, type='',
                  bullet_type=UNITS.get('bullet_hero', {}).get('type', ''), dimension=0, controller=None):
         if not type and len(UNITS.get('hero', [])):
             random_number = randint(0, len(UNITS.get('hero', [])) - 1)

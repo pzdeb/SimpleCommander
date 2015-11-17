@@ -242,7 +242,7 @@ function GameController(canvas) {
             unit.play();
             this.stage.addChild(unit);
             this.stage.update();
-            setTimeout(deleteUnit, 1000, this, unit);
+            setTimeout(deleteUnit, 500, this, unit);
         }
     };
 
