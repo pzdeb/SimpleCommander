@@ -269,7 +269,9 @@ class Hero(Unit):
     def decrease_life(self):
         if self.life_count > 1:
             self.life_count -= 1
+            self.response("delete")
             self.set_to_new_position()
+            self.response("new")
         else:
             self.rotate_is_pressing = False
             self.change_speed_is_pressing = False

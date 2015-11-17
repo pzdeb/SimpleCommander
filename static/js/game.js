@@ -235,6 +235,10 @@ function GameController(canvas) {
                     unit.rotation = unitData.angle;
                 }
             }
+            if (this.hero.id == unitData.id) {
+                this.hero = unit;
+                this.updateTableScorecards();
+            }
             this.units[unitData.id] = unit;
             this.stage.addChild(unit);
             this.stage.update();
