@@ -83,6 +83,8 @@ function GameController(canvas) {
                 cell1.appendChild(elem);
                 row.id = hero.id;
             }
+            var color = hero.type.split("_").pop();
+            row.style.color = color;
             cell2.innerHTML = hero.name;
             cell3.innerHTML = hero.hits;
             cell4.innerHTML = 3 - hero.life_count;
