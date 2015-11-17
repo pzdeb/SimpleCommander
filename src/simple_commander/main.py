@@ -349,7 +349,6 @@ def get_game(height=None, width=None, invaders_count=None):
 class GameController(object):
     _instance = None
     launched = False
-    ignore_heroes = []
     websockets = {}
 
     def __init__(self, height=None, width=None, invaders_count=None):
@@ -399,8 +398,9 @@ class GameController(object):
         pos_x = randint(0, self.game_field['width'])
         pos_y = randint(0, self.game_field['height'])
         angle = randint(0, 360)
-        hero_type, dimension = next(self.random_type)
-        hero = self.new_unit(Hero, x=pos_x, y=pos_y, angle=angle, type=hero_type, dimension=dimension)
+        hero_type = next(self.random_type)
+        hero = self.new_unit(Hero, x=pos_x, y=pos_y, angle=angle, type=hero_type['type'],
+                             dimension=hero_type['dimension'])
         return hero
 
     def check_if_remove_units(self, units):
@@ -433,13 +433,11 @@ class GameController(object):
         for unit in self.units:
             if id(self.units[unit]) == bullet.unit_id and self.units[unit].__class__.__name__ == 'Hero':
                 self.units[unit].hits += 1
-                logging.info('Add 1 bonus for %s. Now he has %s bonus'
-                             % (unit.__class__.__name__, self.units[unit].hits))
 
     @staticmethod
     def get_unit_type():
         i = -1
-        types = [(hero['type'], hero['dimension']) for hero in UNITS['hero']]
+        types = UNITS['hero'][:]
         shuffle(types)
         while True:
             i += 1
@@ -467,19 +465,20 @@ class GameController(object):
         hero.name = name
         hero.compute_new_coordinate(STEP_INTERVAL)
 
-    def change_speed_up(self, hero):
-        self.ignore_heroes.append(hero.id)
+    @staticmethod
+    def change_speed_up(hero):
         hero.change_speed_is_pressing = True
         asyncio.async(hero.change_speed('up'))
 
-    def change_speed_down(self, hero):
-        self.ignore_heroes.append(hero.id)
+    @staticmethod
+    def change_speed_down(hero):
         hero.change_speed_is_pressing = True
         asyncio.async(hero.change_speed('down'))
 
-    def stop_change_speed(self, hero):
-        self.remove_from_ignore(hero.id)
+    @staticmethod
+    def stop_change_speed(hero):
         hero.change_speed_is_pressing = False
+        hero.compute_new_coordinate(STEP_INTERVAL)
 
     @staticmethod
     def start_fire(hero):
@@ -490,24 +489,20 @@ class GameController(object):
     def stop_fire(hero):
         hero.fire_is_pressing = False
 
-    def rotate_right(self, hero):
-        self.ignore_heroes.append(hero.id)
+    @staticmethod
+    def rotate_right(hero):
         hero.rotate_is_pressing = True
         asyncio.async(hero.rotate('right'))
 
-    def rotate_left(self, hero):
-        self.ignore_heroes.append(hero.id)
+    @staticmethod
+    def rotate_left(hero):
         hero.rotate_is_pressing = True
         asyncio.async(hero.rotate('left'))
 
-    def stop_rotate(self, hero):
-        self.remove_from_ignore(hero.id)
+    @staticmethod
+    def stop_rotate(hero):
         hero.rotate_is_pressing = False
-
-    def remove_from_ignore(self, hero_id):
-        self.units[hero_id].compute_new_coordinate(STEP_INTERVAL)
-        if hero_id in self.ignore_heroes:
-            self.ignore_heroes.remove(hero_id)
+        hero.compute_new_coordinate(STEP_INTERVAL)
 
     @asyncio.coroutine
     def run(self):
@@ -522,7 +517,7 @@ class GameController(object):
             while len(self.units) > 0:
                 for unit in list(self.units.keys()):
                     if self.units.get(unit):
-                        if self.units[unit].speed and unit not in self.ignore_heroes:
+                        if self.units[unit].speed:
                             self.units[unit].compute_new_coordinate(STEP_INTERVAL)
                         for key in list(self.units.keys()):
                             if self.units.get(unit) and self.units.get(key):
