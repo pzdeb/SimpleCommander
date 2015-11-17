@@ -118,7 +118,7 @@ class Unit(object):
             target_y = y
             x, y = self.set_in_limit(x, y)
             if x != target_x:
-                time_to_crash = math.fabs((x-self.x1) * interval / (target_x - self.y1))
+                time_to_crash = math.fabs((x-self.x1) * interval / (target_x - self.x1))
                 y = round(self.y1 + self.speed * time_to_crash * math.cos(round(math.radians(180-self.angle), 2)))
             if y != target_y:
                 time_to_crash = math.fabs((y-self.y1) * interval / (target_y - self.y1))
