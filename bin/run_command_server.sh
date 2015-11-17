@@ -7,4 +7,4 @@ export PYTHONPATH
 LOG_LEVEL=DEBUG
 
 echo "Starting Web Server as `whoami`"
-`python3 $WORKDIR/src/command_server/command_server.py --loglevel=$LOG_LEVEL $@`
+`python3 $WORKDIR/src/command_server.py --loglevel=$LOG_LEVEL $@`
