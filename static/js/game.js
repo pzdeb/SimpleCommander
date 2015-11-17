@@ -125,6 +125,8 @@ function GameController(canvas) {
     };
 
     this.start = function (init) {
+        var formStartGame =document.getElementById('formStartGame');
+        formStartGame.remove();
         var unitsObj = init['units'];
         var hero_id = init['hero_id'];
         var game_field = init['game'];
