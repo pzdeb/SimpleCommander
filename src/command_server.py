@@ -56,31 +56,24 @@ class HttpCommandServer(object):
     def ws_stream(self, request, *args, **kwargs):
         ws = web.WebSocketResponse()
         ws.start(request)
-        my_hero = None
         while ws.started:
             msg = yield from ws.receive()
             if msg.tp == MsgType.text:
                 if msg.data == 'close':
                     yield from ws.close()
-                    self._controller.drop_connection(ws, my_hero.id)
+                    self._controller.drop_connection(ws)
                 else:
                     data = json.loads(msg.data)
                     if 'start' in data:
-                        my_hero = self._controller.start(ws, data['start'])
+                        self._controller.start(ws, data['start'])
                     else:
-                        for key in data:
-                            action = getattr(self._controller, key, '')
-                            if action:
-                                if data[key]:
-                                    action(my_hero, data[key])
-                                else:
-                                    action(my_hero)
+                        self._controller.action(data)
             elif msg.tp == MsgType.close:
                 logging.info('websocket connection closed')
-                self._controller.drop_connection(ws, my_hero.id)
+                self._controller.drop_connection(ws)
             elif msg.tp == MsgType.error:
                 logging.info('ws connection closed with exception %s', ws.exception())
-                self._controller.drop_connection(ws, my_hero.id)
+                self._controller.drop_connection(ws)
 
         yield from ws.close()
 
