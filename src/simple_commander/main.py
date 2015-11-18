@@ -37,7 +37,7 @@ UNITS = {'invader': [{'type': 'invader1', 'dimension': 28},
                   {'type': 'hero_2_pink', 'dimension': 28},
                   {'type': 'hero_2_white', 'dimension': 28},
                   {'type': 'hero_2_red', 'dimension': 28}],
-         'bullet_hero': {'type': 'bullet_hero', 'dimension': 10},
+         'bullet_hero': {'type': 'bullet_hero', 'dimension': 5},
          'bullet_invader': {'type': 'bullet_invader', 'dimension': 10}}
 
 ANGLE = 2
@@ -186,7 +186,7 @@ class Unit(object):
             D = (other_unit.x1, other_unit.y1)
             int_point = object_intersection((A, B), (C, D), round(self.width / 2), round(other_unit.width / 2))
             if int_point:
-                if self.x != self.y:
+                if self.x != self.x1:
                     A_B_distance = point_distance(A, B)
                     A_P_distance = point_distance(A, int_point)
                 else:
@@ -208,6 +208,7 @@ class Unit(object):
     def kill(self):
         logging.info('Killing - %s ' % self.__class__.__name__)
         self.is_dead = True
+        self.x1 = self.x
 
 
 class Invader(Unit):
@@ -268,7 +269,9 @@ class Hero(Unit):
     def decrease_life(self):
         if self.life_count > 1:
             self.life_count -= 1
+            self.response("delete")
             self.set_to_new_position()
+            self.response("new")
         else:
             self.rotate_is_pressing = False
             self.change_speed_is_pressing = False
