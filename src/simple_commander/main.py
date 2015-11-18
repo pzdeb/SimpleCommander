@@ -111,7 +111,7 @@ class Unit(object):
         y = round(self.y1 + self.speed * interval * math.cos(round(math.radians(180-self.angle), 2)))
 
         self.time_last_calculation = datetime.now()
-        if self.min_width <= x <= self.max_width+1 and self.min_height <= y <= self.max_height+1:
+        if self.min_width <= x <= self.max_width and self.min_height <= y <= self.max_height:
             self.move_to(x, y)
         elif self.min_width < self.x1 < self.max_width and self.min_height < self.y1 < self.max_height:
             target_x = x
