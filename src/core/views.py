@@ -29,7 +29,7 @@ class StreamTemplateView(TemplateView):
         return {'name': 'World!!!'}
 
 @url_route('/run')
-class StreamTemplateView(TemplateView):
+class GameTemplateView(TemplateView):
     template = 'game.html'
 
     @asyncio.coroutine
