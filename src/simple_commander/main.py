@@ -367,7 +367,7 @@ class GameController(object):
         for key in data:
             action = getattr(self, key)
             hero = self.units.get(data[key].get('id', ''), '')
-            if not action and not hero:
+            if not action or not hero:
                 continue
             if key == 'set_name':
                 action(hero, data[key].get('name', 'user'))
