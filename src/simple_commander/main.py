@@ -43,7 +43,7 @@ UNITS = {'invader': [{'type': 'invader1', 'dimension': 28},
 ANGLE = 2
 ACTION_INTERVAL = 0.05
 DEFAULT_SPEED = 35
-DEFAULT_SPEED_BULLETS = 70
+DEFAULT_SPEED_BULLETS = 120
 MAX_ANGLE = 360
 SPEED = 8
 MAX_SPEED = 220
@@ -72,10 +72,10 @@ class Unit(object):
         self.shift = 5
         self.rotate_is_pressing = False
         self.change_speed_is_pressing = False
-        self.min_height = int(0 + self.height / 2)
-        self.min_width = int(0 + self.width / 2)
-        self.max_height = int(self.controller.game_field.get('height', 0) - self.height / 2)
-        self.max_width = int(self.controller.game_field.get('width', 0) - self.width / 2)
+        self.min_height = float(0 + self.height / 2)
+        self.min_width = float(0 + self.width / 2)
+        self.max_height = float(self.controller.game_field.get('height', 0) - self.height / 2)
+        self.max_width = float(self.controller.game_field.get('width', 0) - self.width / 2)
 
     def response(self, action, **kwargs):
         if not self.controller:
@@ -111,7 +111,7 @@ class Unit(object):
         y = round(self.y1 + self.speed * interval * math.cos(round(math.radians(180-self.angle), 2)))
 
         self.time_last_calculation = datetime.now()
-        if x in range(self.min_width, self.max_width+1) and y in range(self.min_height, self.max_height+1):
+        if self.min_width <= x <= self.max_width and self.min_height <= y <= self.max_height:
             self.move_to(x, y)
         elif self.min_width < self.x1 < self.max_width and self.min_height < self.y1 < self.max_height:
             target_x = x
@@ -120,13 +120,14 @@ class Unit(object):
             if x != target_x:
                 time_to_crash = math.fabs((x-self.x1) * interval / (target_x - self.x1))
                 y = round(self.y1 + self.speed * time_to_crash * math.cos(round(math.radians(180-self.angle), 2)))
-            if y != target_y:
+            elif y != target_y:
                 time_to_crash = math.fabs((y-self.y1) * interval / (target_y - self.y1))
                 x = round(self.x1 + self.speed * time_to_crash * math.sin(round(math.radians(180-self.angle), 2)))
+            x, y = self.set_in_limit(x, y)
             if self.__class__.__name__ == 'Hero':
                 self.speed = round(math.sqrt((x-self.x1)**2+(y-self.y1)**2)/interval)
             self.move_to(x, y)
-            if self.__class__.__name__ != 'Hero':
+            if isinstance(self, Invader):
                 asyncio.sleep(time_to_crash)
                 self.reset()
         else:
