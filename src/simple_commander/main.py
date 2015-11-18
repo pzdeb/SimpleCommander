@@ -232,11 +232,11 @@ class Invader(Unit):
         if unit_class_name == 'Hero':
             other_unit.hits += 1
             other_unit.decrease_life()
-        else:
-            if isinstance(other_unit, Bullet):
-                self.controller.add_hits(other_unit)
+            self.kill()
+        elif isinstance(other_unit, Bullet):
+            self.controller.add_hits(other_unit)
             other_unit.kill()
-        self.kill()
+            self.kill()
 
 
 class Hero(Unit):
@@ -328,12 +328,11 @@ class Bullet(Unit):
         if unit_class_name == 'Hero':
             self.controller.add_hits(self)
             other_unit.decrease_life()
+            self.kill()
         elif unit_class_name == 'Invader':
             self.controller.add_hits(self)
             other_unit.kill()
-        else:
-            other_unit.kill()
-        self.kill()
+            self.kill()
 
 
 __game = None
