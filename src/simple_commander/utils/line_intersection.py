@@ -43,8 +43,8 @@ def point_in_area(line1, line2, x, y, width1, width2):
     """Check if intersection point is on defined area."""
     x1, x2, x3, x4 = line1[0][0], line1[1][0], line2[0][0], line2[1][0]
     y1, y2, y3, y4 = line1[0][1], line1[1][1], line2[0][1], line2[1][1]
-    return (x in range(min(x1, x2), max(x1, x2) + 1) and x in range(min(x3, x4), max(x3, x4) + 1) and
-            y in range(min(y1, y2), max(y1, y2) + 1) and y in range(min(y3, y4), max(y3, y4) + 1))
+    return (min(x1, x2) <= x <= max(x1, x2) and min(x3, x4) <= x <= max(x3, x4) and
+            min(y1, y2) <= y <= max(y1, y2) and min(y3, y4) <= y <= max(y3, y4))
 
 
 def point_distance(p0, p1):
