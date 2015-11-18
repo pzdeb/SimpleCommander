@@ -3,7 +3,7 @@
 function createSocket(controller, name){
     var host = window.location.hostname;
     var unit_name = name;
-    var socket = new WebSocket('ws://' + host + ':8000/ws_stream');
+    var socket = new WebSocket('ws://' + host + '/ws_stream');
 
     socket.onopen = function(event) {
         console.log("Connected.");
