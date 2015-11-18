@@ -186,7 +186,7 @@ class Unit(object):
             D = (other_unit.x1, other_unit.y1)
             int_point = object_intersection((A, B), (C, D), round(self.width / 2), round(other_unit.width / 2))
             if int_point:
-                if self.x != self.y:
+                if self.x != self.x1:
                     A_B_distance = point_distance(A, B)
                     A_P_distance = point_distance(A, int_point)
                 else:

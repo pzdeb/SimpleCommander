@@ -271,7 +271,7 @@ function GameController(canvas) {
             this.units[id].speedTick = this.units[id].speed / this.frequency / FPS;
             if (id == this.hero['id']){
                 this.updateTableScorecards()
-            };
+            }
             this.updateScorecardHeroes(unitData);
 
         }
@@ -283,8 +283,7 @@ function GameController(canvas) {
             var animation = this.setAnimation(this.units[id]);
             var unit = new createjs.Sprite(animation, "died");
             unit = this.updateProperties(unit, unitData);
-            this.stage.removeChild(this.units[id]);
-            this.stage.update();
+            deleteUnit(this, this.units[id]);
             unit.x = this.units[id].x;
             unit.y = this.units[id].y;
             delete this.units[id];
