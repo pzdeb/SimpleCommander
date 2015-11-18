@@ -42,8 +42,8 @@ function GameController(canvas) {
         controller.handleKeyUp(e);
     };
 
-    this.createConnection = function () {
-        this.socket = createSocket(this);
+    this.createConnection = function (name) {
+        this.socket = createSocket(this, name);
     };
 
     this.sendToServer = function (heroAction, value) {
@@ -127,8 +127,6 @@ function GameController(canvas) {
     };
 
     this.start = function (init) {
-        var formStartGame =document.getElementById('formStartGame');
-        formStartGame.remove();
         var unitsObj = init['units'];
         var hero_id = init['hero_id'];
         var game_field = init['game'];
@@ -414,4 +412,10 @@ function GameController(canvas) {
         http.send();
     }
 
-}
+};
+
+window.onload = function() {
+    var canvas = document.getElementById("gameCanvas");
+    var theGame = new GameController(canvas);
+    theGame.createConnection(name);
+};

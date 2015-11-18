@@ -28,3 +28,10 @@ class StreamTemplateView(TemplateView):
     def get(self, request):
         return {'name': 'World!!!'}
 
+@url_route('/run')
+class GameTemplateView(TemplateView):
+    template = 'game.html'
+
+    @asyncio.coroutine
+    def get(self, request, *args):
+        return {'name': request.GET.get('name')}
