@@ -70,8 +70,11 @@ class Unit(object):
         self.id = str(uuid.uuid4())
         self.is_dead = False
         self.shift = 5
-        self.rotate_is_pressing = False
-        self.change_speed_is_pressing = False
+        self.rotate_left_is_pressing = False
+        self.rotate_right_is_pressing = False
+        self.fire_is_pressing = False
+        self.change_speed_up_is_pressing = False
+        self.change_speed_down_is_pressing = False
         self.min_height = float(0 + self.height / 2)
         self.min_width = float(0 + self.width / 2)
         self.max_height = float(self.controller.game_field.get('height', 0) - self.height / 2)
@@ -141,28 +144,27 @@ class Unit(object):
         self.y1 = y
         self.response('update', frequency=STEP_INTERVAL)
 
-    @asyncio.coroutine
-    def rotate(self, side):
-        while self.rotate_is_pressing:
-            rotate = ANGLE + self.speed * 0.015
-            new_angle = self.angle + rotate if side == 'right' else self.angle - rotate
-            if new_angle > MAX_ANGLE:
-                new_angle -= MAX_ANGLE
-            elif new_angle < 0:
-                new_angle += MAX_ANGLE
-            logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, new_angle))
-            self.angle = new_angle
-            self.compute_new_coordinate(ACTION_INTERVAL)
-            yield from asyncio.sleep(ACTION_INTERVAL)
+    def set_angle(self, new_angle):
+        if new_angle > MAX_ANGLE:
+            new_angle -= MAX_ANGLE
+        elif new_angle < 0:
+            new_angle += MAX_ANGLE
+        logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, new_angle))
+        self.angle = new_angle
+        self.compute_new_coordinate(ACTION_INTERVAL)
 
-    def change_speed(self, direct):
-        while self.change_speed_is_pressing:
-            new_speed = self.speed + SPEED if direct == 'up' else self.speed - SPEED
-            self.speed = new_speed > 0 and new_speed or 0
-            self.speed = MAX_SPEED if self.speed > MAX_SPEED else self.speed
-            logging.info('Change %s speed to %s' % (self.__class__.__name__, self.speed))
-            self.compute_new_coordinate(ACTION_INTERVAL)
-            yield from asyncio.sleep(ACTION_INTERVAL)
+    def stop_unit(self):
+        self.rotate_left_is_pressing = False
+        self.rotate_right_is_pressing = False
+        self.change_speed_up_is_pressing = False
+        self.change_speed_down_is_pressing = False
+        self.fire_is_pressing = False
+
+    def set_speed(self, new_speed):
+        self.speed = new_speed > 0 and new_speed or 0
+        self.speed = MAX_SPEED if self.speed > MAX_SPEED else self.speed
+        logging.info('Change %s speed to %s' % (self.__class__.__name__, self.speed))
+        self.compute_new_coordinate(ACTION_INTERVAL)
 
     @asyncio.coroutine
     def notify_collision(self, other_unit, time_interval):
@@ -249,7 +251,6 @@ class Hero(Unit):
             type = UNITS.get('hero', [])[random_number].get('type', '')
             dimension = UNITS.get('hero', [])[random_number].get('dimension', '')
         super(Hero, self).__init__(x, y, angle, hits, speed, type, bullet_type, dimension, controller=controller)
-        self.fire_is_pressing = False
         self.frequency_fire = frequency_fire
         self.last_fire = datetime.now()
         self.life_count = life_count
@@ -274,22 +275,9 @@ class Hero(Unit):
             self.set_to_new_position()
             self.response("new")
         else:
-            self.rotate_is_pressing = False
-            self.change_speed_is_pressing = False
-            self.fire_is_pressing = False
             self.life_count = 0
             self.kill()
         self.response('update_life')
-
-    @asyncio.coroutine
-    def fire(self):
-        while self.life_count > 0 and self.fire_is_pressing and \
-                        (datetime.now() - self.last_fire).total_seconds() >= self.frequency_fire:
-            logging.info('Fire!! Creating bullet!')
-            self.compute_new_coordinate(STEP_INTERVAL)
-            self.controller.new_unit(Bullet, unit=self, controller=self.controller)
-            self.last_fire = datetime.now()
-            yield from asyncio.sleep(self.frequency_fire)
 
     def reset(self):
         self.speed = 0
@@ -375,7 +363,7 @@ class GameController(object):
             if key == 'set_name':
                 action(hero, data[key].get('name', 'user'))
             else:
-                action(hero)
+                asyncio.async(action(hero))
 
     def new_unit(self, unit_class, *args, **kwargs):
         kwargs['controller'] = self
@@ -411,11 +399,12 @@ class GameController(object):
             if unit.is_dead:
                 self.remove_unit(unit.id)
 
-    def remove_unit(self, id):
+    def remove_unit(self, unit_id):
         if self.units[id]:
-            class_name = self.units[id].__class__.__name__
-            self.units[id].response('delete')
-            del self.units[id]
+            class_name = self.units[unit_id].__class__.__name__
+            self.stop_unit()
+            self.units[unit_id].response('delete')
+            del self.units[unit_id]
             if class_name == 'Invader':
                 self.set_invaders(1)
 
@@ -464,48 +453,91 @@ class GameController(object):
         return units
 
     @staticmethod
-    def set_name(hero, name):
-        hero.name = name
-        hero.compute_new_coordinate(STEP_INTERVAL)
+    def set_name(unit, name):
+        unit.name = name
+        unit.compute_new_coordinate(STEP_INTERVAL)
 
     @staticmethod
-    def change_speed_up(hero):
-        hero.change_speed_is_pressing = True
-        asyncio.async(hero.change_speed('up'))
+    @asyncio.coroutine
+    def change_speed_up(unit):
+        unit.change_speed_down_is_pressing = False
+        unit.change_speed_up_is_pressing = True
+        while unit.change_speed_up_is_pressing:
+            new_speed = unit.speed + SPEED
+            unit.set_speed(new_speed)
+            yield from asyncio.sleep(ACTION_INTERVAL)
 
     @staticmethod
-    def change_speed_down(hero):
-        hero.change_speed_is_pressing = True
-        asyncio.async(hero.change_speed('down'))
+    @asyncio.coroutine
+    def change_speed_down(unit):
+        unit.change_speed_up_is_pressing = False
+        unit.change_speed_down_is_pressing = True
+        while unit.change_speed_down_is_pressing:
+            new_speed = unit.speed - SPEED
+            unit.set_speed(new_speed)
+            yield from asyncio.sleep(ACTION_INTERVAL)
 
     @staticmethod
-    def stop_change_speed(hero):
-        hero.change_speed_is_pressing = False
-        hero.compute_new_coordinate(STEP_INTERVAL)
+    @asyncio.coroutine
+    def stop_change_speed_up(unit):
+        unit.change_speed_up_is_pressing = False
+        unit.compute_new_coordinate(STEP_INTERVAL)
 
     @staticmethod
-    def start_fire(hero):
-        hero.fire_is_pressing = True
-        asyncio.async(hero.fire())
+    @asyncio.coroutine
+    def stop_change_speed_down(unit):
+        unit.change_speed_down_is_pressing = False
+        unit.compute_new_coordinate(STEP_INTERVAL)
+
+    @asyncio.coroutine
+    def start_fire(self, unit):
+        unit.fire_is_pressing = True
+        while unit.life_count > 0 and unit.fire_is_pressing and \
+                        (datetime.now() - unit.last_fire).total_seconds() >= unit.frequency_fire:
+            logging.info('Fire!! Creating bullet!')
+            unit.compute_new_coordinate(STEP_INTERVAL)
+            self.new_unit(Bullet, unit=unit, controller=self)
+            unit.last_fire = datetime.now()
+            yield from asyncio.sleep(unit.frequency_fire)
 
     @staticmethod
-    def stop_fire(hero):
-        hero.fire_is_pressing = False
+    @asyncio.coroutine
+    def stop_fire(unit):
+        unit.fire_is_pressing = False
 
     @staticmethod
-    def rotate_right(hero):
-        hero.rotate_is_pressing = True
-        asyncio.async(hero.rotate('right'))
+    @asyncio.coroutine
+    def rotate_right(unit):
+        unit.rotate_left_is_pressing = False
+        unit.rotate_right_is_pressing = True
+        while unit.rotate_right_is_pressing:
+            rotate = ANGLE + unit.speed * 0.015
+            new_angle = unit.angle + rotate
+            unit.set_angle(new_angle)
+            yield from asyncio.sleep(ACTION_INTERVAL)
 
     @staticmethod
-    def rotate_left(hero):
-        hero.rotate_is_pressing = True
-        asyncio.async(hero.rotate('left'))
+    @asyncio.coroutine
+    def rotate_left(unit):
+        unit.rotate_right_is_pressing = False
+        unit.rotate_left_is_pressing = True
+        while unit.rotate_left_is_pressing:
+            rotate = ANGLE + unit.speed * 0.015
+            new_angle = unit.angle - rotate
+            unit.set_angle(new_angle)
+            yield from asyncio.sleep(ACTION_INTERVAL)
 
     @staticmethod
-    def stop_rotate(hero):
-        hero.rotate_is_pressing = False
-        hero.compute_new_coordinate(STEP_INTERVAL)
+    @asyncio.coroutine
+    def stop_rotate_right(unit):
+        unit.rotate_right_is_pressing = False
+        unit.compute_new_coordinate(STEP_INTERVAL)
+
+    @staticmethod
+    @asyncio.coroutine
+    def stop_rotate_left(unit):
+        unit.rotate_left_is_pressing = False
+        unit.compute_new_coordinate(STEP_INTERVAL)
 
     @asyncio.coroutine
     def run(self):
