@@ -4,7 +4,7 @@
     {{ super() }}
 {% endblock %}
 {% block content %}
-    <form id="formStartGame" method="GET" action="/run">
+    <form id="formStartGame" class="visit" method="GET" action="/run">
         <input type="text" name="name" id="heroName" required/>
         <button type="submit" >Set name and start</button>
     </form>
