@@ -400,7 +400,7 @@ class GameController(object):
                 self.remove_unit(unit.id)
 
     def remove_unit(self, unit_id):
-        if self.units[id]:
+        if self.units[unit_id]:
             class_name = self.units[unit_id].__class__.__name__
             self.stop_unit()
             self.units[unit_id].response('delete')
