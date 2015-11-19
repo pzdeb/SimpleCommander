@@ -1,13 +1,18 @@
 
 
-function createSocket(controller){
+function createSocket(controller, name){
     var host = window.location.hostname;
-    var socket = new WebSocket('ws://' + host + '/ws_stream');
-    var hero_name = document.getElementById("heroName");
+    var port = window.location.port;
+    var unit_name = name;
+    if (port) {
+        var socket = new WebSocket('ws://' + host + ':'+ port + '/ws_stream');
+    } else {
+        var socket = new WebSocket('ws://' + host + '/ws_stream');
+    }
 
     socket.onopen = function(event) {
         console.log("Connected.");
-        controller.sendToServer('start', hero_name.value)
+        controller.sendToServer('start', unit_name)
     };
 
     socket.onclose = function(event) {

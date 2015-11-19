@@ -42,15 +42,55 @@ function GameController(canvas) {
         controller.handleKeyUp(e);
     };
 
-    this.createConnection = function () {
-        this.socket = createSocket(this);
+    this.createConnection = function (name) {
+        this.socket = createSocket(this, name);
     };
 
     this.sendToServer = function (heroAction, value) {
         var data = {};
+        if (this.hero) {
+            var hero_id = this.hero.id
+        }
+        else {
+            var hero_id = ''
+        }
+        value = {'id': hero_id, 'name': value};
         data[heroAction] = value;
         var data = JSON.stringify(data);
         this.socket.send(data);
+    };
+
+    this.updateScorecardHeroes = function(hero){
+        if(hero.type.slice(0, 'hero'.length) == 'hero'){
+            var table = document.getElementById('scorecardHeroes').getElementsByTagName('tbody')[0];
+            var row = document.getElementById(hero.id);
+            if (row){
+                var cell1 = row.getElementsByTagName('td')[0];
+                var cell2 = row.getElementsByTagName('td')[1];
+                var cell3 = row.getElementsByTagName('td')[2];
+                var cell4 = row.getElementsByTagName('td')[3];
+                var cell5 = row.getElementsByTagName('td')[4];
+            }
+            else{
+                var row = table.insertRow(table.rows.length);
+                var elem = document.createElement("img");
+                elem.src = "static/images/" + hero.type + ".png";
+                var cell1 = row.insertCell(0);
+                var cell2 = row.insertCell(1);
+                var cell3 = row.insertCell(2);
+                var cell4 = row.insertCell(3);
+                var cell5 = row.insertCell(4);
+                cell1.appendChild(elem);
+                row.id = hero.id;
+            }
+            var color = hero.type.split("_").pop();
+            row.style.color = color;
+            cell2.innerHTML = hero.name;
+            cell3.innerHTML = hero.hits;
+            cell4.innerHTML = 3 - hero.life_count;
+            cell5.innerHTML = parseInt(cell3.innerText) - parseInt(cell4.innerText);
+            sortTable(table);
+        }
     };
 
     this.onData = function (event) {
@@ -103,7 +143,10 @@ function GameController(canvas) {
         this.stage.addChild(this.hero);
 
         for (var i in unitsObj) {
-            var unit = new createjs.Bitmap("static/images/" + unitsObj[i].type + ".png");
+            var animation = this.setAnimation(unitsObj[i]);
+            var unit = new createjs.Sprite(animation, "stand");
+            unit.play();
+            unit.animationDied = new createjs.Sprite(animation, "died");
             for (var property in unitsObj[i]) {
                 if (property != 'angle') {
                     unit[property] = unitsObj[i][property];
@@ -112,10 +155,11 @@ function GameController(canvas) {
                     unit.rotation = unitsObj[i].angle;
                 }
             }
-            unit.regX = unit.width / 2;
-            unit.regY = unit.height / 2;
+            unit.regX = unit.width / 4;
+            unit.regY = unit.height / 4;
             this.units[unit.id] = unit;
             this.stage.addChild(unit);
+            this.updateScorecardHeroes(unitsObj[i]);
         }
         this.hero = this.units[hero_id];
 
@@ -164,9 +208,25 @@ function GameController(canvas) {
         }
     };
 
+    this.setAnimation = function(unitData) {
+        var data = {
+            images: ["static/images/" + unitData.type + ".png"],
+            frames: {width:unitData.width, height:unitData.height, regX: unitData.width / 4, regY: unitData.height / 4},
+            animations: {
+                stand: 0,
+                died: 1
+            }
+        };
+        spriteSheet = new createjs.SpriteSheet(data);
+        return spriteSheet;
+    };
+
     this.newUnit = function (unitData) {
         if (!this.units[unitData.id]) {
-            var unit = new createjs.Bitmap("static/images/" + unitData.type + ".png");
+            var animation = this.setAnimation(unitData);
+            var unit = new createjs.Sprite(animation, "stand");
+            unit.animationDied = new createjs.Sprite(animation, "died");
+            unit.play();
             for (var property in unitData) {
                 if (property != 'angle') {
                     unit[property] = unitData[property];
@@ -175,38 +235,69 @@ function GameController(canvas) {
                     unit.rotation = unitData.angle;
                 }
             }
+            if (this.hero.id == unitData.id) {
+                this.hero = unit;
+                this.updateTableScorecards();
+            }
+            unit.regX = unitData.width / 4;
+            unit.regY = unitData.height / 4;
             this.units[unitData.id] = unit;
             this.stage.addChild(unit);
             this.stage.update();
+            this.updateScorecardHeroes(unitData);
         }
+    };
+
+    this.updateProperties = function(unit, unitData) {
+        for (var key in unitData) {
+            if (unit.hasOwnProperty(key)) {
+                unit[key] = unitData[key]
+
+            }
+            else if (key = 'angle') {
+                unit['rotation'] = unitData[key]
+            }
+        }
+        unit.regX = unitData.width / 4;
+        unit.regY = unitData.height / 4;
+        return unit
     };
 
     this.updateUnit = function (unitData) {
         var id = unitData['id'];
 
-        for (var key in unitData) {
-            if (this.units[id].hasOwnProperty(key)) {
-                this.units[id][key] = unitData[key]
-
+        if (this.units[id]) {
+            this.units[id] = this.updateProperties(this.units[id], unitData);
+            this.units[id].speedTick = this.units[id].speed / this.frequency / FPS;
+            if (id == this.hero['id']){
+                this.updateTableScorecards()
             }
-            else if (key = 'angle') {
-                this.units[id]['rotation'] = unitData[key]
-            }
-        }
-        this.units[id].regX = this.units[id].width / 2;
-        this.units[id].regY = this.units[id].height / 2;
-        this.units[id].speedTick = this.units[id].speed / this.frequency / FPS;
-        if (id == this.hero['id']){
-            this.updateTableScorecards()
-        }
+            this.updateScorecardHeroes(unitData);
 
+        }
     };
 
     this.killUnit = function (unitData) {
         var id = unitData['id'];
-        this.stage.removeChild(this.units[id]);
-        this.stage.update();
-        delete this.units[id];
+        if (this.units[id]) {
+            var animation = this.setAnimation(this.units[id]);
+            var unit = new createjs.Sprite(animation, "died");
+            unit = this.updateProperties(unit, unitData);
+            deleteUnit(this, this.units[id]);
+            unit.x = this.units[id].x;
+            unit.y = this.units[id].y;
+            delete this.units[id];
+            unit.play();
+            this.stage.addChild(unit);
+            this.stage.update();
+            this.updateScorecardHeroes(unitData);
+            setTimeout(deleteUnit, 500, this, unit);
+        }
+    };
+
+    deleteUnit = function(self, unit) {
+        self.stage.removeChild(unit);
+        self.stage.update();
     };
 
     this.updateLife = function (unitData) {
@@ -248,21 +339,21 @@ function GameController(canvas) {
                 }
                 return false;
             case KEYCODE_RIGHT:
-                if (!this.leftPress) {
-                    this.leftPress = true;
+                if (!this.rightPress) {
+                    this.rightPress = true;
                     this.sendToServer('rotate_right', null)
                 }
                 return false;
             case KEYCODE_UP:
                 //TODO: What is the meaning of `speed` as boolean. Non sense to me
-                if (!this.speed) {
-                    this.speed = true;
+                if (!this.upPress) {
+                    this.upPress = true;
                     this.sendToServer('change_speed_up', null);
                 }
                 return false;
             case KEYCODE_DOWN:
-                if (!this.speed) {
-                    this.speed = true;
+                if (!this.downPress) {
+                    this.downPress = true;
                     this.sendToServer('change_speed_down', null);
                 }
                 return false;
@@ -283,25 +374,25 @@ function GameController(canvas) {
             case KEYCODE_LEFT:
                 if (this.leftPress) {
                     this.leftPress = false;
-                    this.sendToServer('stop_rotate', null)
+                    this.sendToServer('stop_rotate_left', null)
                 }
                 break;
             case KEYCODE_RIGHT:
-                if (this.leftPress) {
-                    this.leftPress = false;
-                    this.sendToServer('stop_rotate', null)
+                if (this.rightPress) {
+                    this.rightPress = false;
+                    this.sendToServer('stop_rotate_right', null)
                 }
                 break;
             case KEYCODE_UP:
-                if (this.speed) {
-                    this.speed = false;
-                    this.sendToServer('stop_change_speed', null)
+                if (this.upPress) {
+                    this.upPress = false;
+                    this.sendToServer('stop_change_speed_up', null)
                 }
                 break;
             case KEYCODE_DOWN:
-                if (this.speed) {
-                    this.speed = false;
-                    this.sendToServer('stop_change_speed', null)
+                if (this.downPress) {
+                    this.downPress = false;
+                    this.sendToServer('stop_change_speed_down', null)
                 }
                 break;
             case KEYCODE_SPACE:
@@ -321,4 +412,10 @@ function GameController(canvas) {
         http.send();
     }
 
-}
+};
+
+window.onload = function() {
+    var canvas = document.getElementById("gameCanvas");
+    var theGame = new GameController(canvas);
+    theGame.createConnection(name);
+};

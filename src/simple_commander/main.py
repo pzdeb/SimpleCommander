@@ -8,7 +8,7 @@ import logging
 
 import math
 
-from random import randint
+from random import randint, shuffle
 from simple_commander.utils.line_intersection import object_intersection, point_distance
 
 '''
@@ -25,26 +25,35 @@ When invader bullet to main hero, the main hero's life is decrease.
 UNITS = {'invader': [{'type': 'invader1', 'dimension': 28},
                      {'type': 'invader2', 'dimension': 28},
                      {'type': 'invader3', 'dimension': 28}],
-         'hero': [{'type': 'hero1', 'dimension': 28},
-                  {'type': 'hero2', 'dimension': 28},
-                  {'type': 'hero3', 'dimension': 28}],
-         'bullet_hero': {'type': 'bullet_hero', 'dimension': 10},
+         'hero': [{'type': 'hero_1_black', 'dimension': 28},
+                  {'type': 'hero_1_green', 'dimension': 28},
+                  {'type': 'hero_1_blue', 'dimension': 28},
+                  {'type': 'hero_1_pink', 'dimension': 28},
+                  {'type': 'hero_1_white', 'dimension': 28},
+                  {'type': 'hero_1_red', 'dimension': 28},
+                  {'type': 'hero_2_black', 'dimension': 28},
+                  {'type': 'hero_2_green', 'dimension': 28},
+                  {'type': 'hero_2_blue', 'dimension': 28},
+                  {'type': 'hero_2_pink', 'dimension': 28},
+                  {'type': 'hero_2_white', 'dimension': 28},
+                  {'type': 'hero_2_red', 'dimension': 28}],
+         'bullet_hero': {'type': 'bullet_hero', 'dimension': 5},
          'bullet_invader': {'type': 'bullet_invader', 'dimension': 10}}
 
 ANGLE = 2
 ACTION_INTERVAL = 0.05
 DEFAULT_SPEED = 35
-DEFAULT_SPEED_BULLETS = 70
+DEFAULT_SPEED_BULLETS = 120
 MAX_ANGLE = 360
 SPEED = 8
 MAX_SPEED = 220
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
-UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'bonus', 'speed', 'id', 'life_count', 'type', 'width', 'height', 'name']
+UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'hits', 'speed', 'id', 'life_count', 'type', 'width', 'height', 'name']
 
 
 class Unit(object):
 
-    def __init__(self, x, y, angle, bonus, speed, type, bullet_type, dimension, controller=None):
+    def __init__(self, x, y, angle, hits, speed, type, bullet_type, dimension, controller=None):
         self.controller = controller
         self.type = type
         self.bullet_filename = bullet_type
@@ -56,17 +65,20 @@ class Unit(object):
         self.angle = angle
         self.width = dimension
         self.height = dimension
-        self.bonus = bonus
+        self.hits = hits
         self.speed = speed
         self.id = str(uuid.uuid4())
         self.is_dead = False
         self.shift = 5
-        self.rotate_is_pressing = False
-        self.change_speed_is_pressing = False
-        self.min_height = int(0 + self.height / 2)
-        self.min_width = int(0 + self.width / 2)
-        self.max_height = int(self.controller.game_field.get('height', 0) - self.height / 2)
-        self.max_width = int(self.controller.game_field.get('width', 0) - self.width / 2)
+        self.rotate_left_is_pressing = False
+        self.rotate_right_is_pressing = False
+        self.fire_is_pressing = False
+        self.change_speed_up_is_pressing = False
+        self.change_speed_down_is_pressing = False
+        self.min_height = float(0 + self.height / 2)
+        self.min_width = float(0 + self.width / 2)
+        self.max_height = float(self.controller.game_field.get('height', 0) - self.height / 2)
+        self.max_width = float(self.controller.game_field.get('width', 0) - self.width / 2)
 
     def response(self, action, **kwargs):
         if not self.controller:
@@ -102,22 +114,23 @@ class Unit(object):
         y = round(self.y1 + self.speed * interval * math.cos(round(math.radians(180-self.angle), 2)))
 
         self.time_last_calculation = datetime.now()
-        if x in range(self.min_width, self.max_width+1) and y in range(self.min_height, self.max_height+1):
+        if self.min_width <= x <= self.max_width and self.min_height <= y <= self.max_height:
             self.move_to(x, y)
         elif self.min_width < self.x1 < self.max_width and self.min_height < self.y1 < self.max_height:
             target_x = x
             target_y = y
             x, y = self.set_in_limit(x, y)
             if x != target_x:
-                time_to_crash = math.fabs((x-self.x1) * interval / (target_x - self.y1))
+                time_to_crash = math.fabs((x-self.x1) * interval / (target_x - self.x1))
                 y = round(self.y1 + self.speed * time_to_crash * math.cos(round(math.radians(180-self.angle), 2)))
-            if y != target_y:
+            elif y != target_y:
                 time_to_crash = math.fabs((y-self.y1) * interval / (target_y - self.y1))
                 x = round(self.x1 + self.speed * time_to_crash * math.sin(round(math.radians(180-self.angle), 2)))
+            x, y = self.set_in_limit(x, y)
             if self.__class__.__name__ == 'Hero':
                 self.speed = round(math.sqrt((x-self.x1)**2+(y-self.y1)**2)/interval)
             self.move_to(x, y)
-            if self.__class__.__name__ != 'Hero':
+            if isinstance(self, Invader):
                 asyncio.sleep(time_to_crash)
                 self.reset()
         else:
@@ -131,28 +144,27 @@ class Unit(object):
         self.y1 = y
         self.response('update', frequency=STEP_INTERVAL)
 
-    @asyncio.coroutine
-    def rotate(self, side):
-        while self.rotate_is_pressing:
-            rotate = ANGLE + self.speed * 0.015
-            new_angle = self.angle + rotate if side == 'right' else self.angle - rotate
-            if new_angle > MAX_ANGLE:
-                new_angle -= MAX_ANGLE
-            elif new_angle < 0:
-                new_angle += MAX_ANGLE
-            logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, new_angle))
-            self.angle = new_angle
-            self.compute_new_coordinate(ACTION_INTERVAL)
-            yield from asyncio.sleep(ACTION_INTERVAL)
+    def set_angle(self, new_angle):
+        if new_angle > MAX_ANGLE:
+            new_angle -= MAX_ANGLE
+        elif new_angle < 0:
+            new_angle += MAX_ANGLE
+        logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, new_angle))
+        self.angle = new_angle
+        self.compute_new_coordinate(ACTION_INTERVAL)
 
-    def change_speed(self, direct):
-        while self.change_speed_is_pressing:
-            new_speed = self.speed + SPEED if direct == 'up' else self.speed - SPEED
-            self.speed = new_speed > 0 and new_speed or 0
-            self.speed = MAX_SPEED if self.speed > MAX_SPEED else self.speed
-            logging.info('Change %s speed to %s' % (self.__class__.__name__, self.speed))
-            self.compute_new_coordinate(ACTION_INTERVAL)
-            yield from asyncio.sleep(ACTION_INTERVAL)
+    def stop_unit(self):
+        self.rotate_left_is_pressing = False
+        self.rotate_right_is_pressing = False
+        self.change_speed_up_is_pressing = False
+        self.change_speed_down_is_pressing = False
+        self.fire_is_pressing = False
+
+    def set_speed(self, new_speed):
+        self.speed = new_speed > 0 and new_speed or 0
+        self.speed = MAX_SPEED if self.speed > MAX_SPEED else self.speed
+        logging.info('Change %s speed to %s' % (self.__class__.__name__, self.speed))
+        self.compute_new_coordinate(ACTION_INTERVAL)
 
     @asyncio.coroutine
     def notify_collision(self, other_unit, time_interval):
@@ -177,7 +189,7 @@ class Unit(object):
             D = (other_unit.x1, other_unit.y1)
             int_point = object_intersection((A, B), (C, D), round(self.width / 2), round(other_unit.width / 2))
             if int_point:
-                if self.x != self.y:
+                if self.x != self.x1:
                     A_B_distance = point_distance(A, B)
                     A_P_distance = point_distance(A, int_point)
                 else:
@@ -199,17 +211,18 @@ class Unit(object):
     def kill(self):
         logging.info('Killing - %s ' % self.__class__.__name__)
         self.is_dead = True
+        self.x1 = self.x
 
 
 class Invader(Unit):
 
-    def __init__(self, x, y, angle, bonus=10, speed=DEFAULT_SPEED, type='',
+    def __init__(self, x, y, angle, hits=10, speed=DEFAULT_SPEED, type='',
                  bullet_type=UNITS.get('bullet_invader', {}).get('type', ''), dimension=0, controller=None):
         if not type and len(UNITS.get('invader', [])):
             random_number = randint(0, len(UNITS.get('invader', [])) - 1)
             type = UNITS.get('invader', [])[random_number].get('type', '')
             dimension = UNITS.get('invader', [])[random_number].get('dimension', '')
-        super(Invader, self).__init__(x, y, angle, bonus, speed, type, bullet_type, dimension, controller=controller)
+        super(Invader, self).__init__(x, y, angle, hits, speed, type, bullet_type, dimension, controller=controller)
 
     def reset(self):
         self.angle = randint(0, 360)
@@ -220,46 +233,51 @@ class Invader(Unit):
         unit_class_name = other_unit. __class__.__name__
         logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
         if unit_class_name == 'Hero':
+            other_unit.hits += 1
             other_unit.decrease_life()
-        else:
+            self.kill()
+        elif isinstance(other_unit, Bullet):
+            self.controller.add_hits(other_unit)
             other_unit.kill()
-        self.kill()
+            self.kill()
 
 
 class Hero(Unit):
 
-    def __init__(self, x, y, angle, bonus=0, speed=0, life_count=3, frequency_fire=0.5, type='',
+    def __init__(self, x, y, angle, hits=0, speed=0, life_count=3, frequency_fire=0.5, type='',
                  bullet_type=UNITS.get('bullet_hero', {}).get('type', ''), dimension=0, controller=None):
         if not type and len(UNITS.get('hero', [])):
             random_number = randint(0, len(UNITS.get('hero', [])) - 1)
             type = UNITS.get('hero', [])[random_number].get('type', '')
             dimension = UNITS.get('hero', [])[random_number].get('dimension', '')
-        super(Hero, self).__init__(x, y, angle, bonus, speed, type, bullet_type, dimension, controller=controller)
-        self.fire_is_pressing = False
+        super(Hero, self).__init__(x, y, angle, hits, speed, type, bullet_type, dimension, controller=controller)
         self.frequency_fire = frequency_fire
         self.last_fire = datetime.now()
         self.life_count = life_count
         self.name = None
 
+    def set_to_new_position(self):
+        pos_x = randint(0, self.controller.game_field['width'])
+        pos_y = randint(0, self.controller.game_field['height'])
+        angle = randint(0, 360)
+        self.x = pos_x
+        self.y = pos_y
+        self.x1 = pos_x
+        self.y1 = pos_y
+        self.angle = angle
+        self.speed = 0
+        self.response('update')
+
     def decrease_life(self):
         if self.life_count > 1:
             self.life_count -= 1
+            self.response("delete")
+            self.set_to_new_position()
+            self.response("new")
         else:
-            self.rotate_is_pressing = False
-            self.change_speed_is_pressing = False
-            self.fire_is_pressing = False
             self.life_count = 0
             self.kill()
         self.response('update_life')
-
-    @asyncio.coroutine
-    def fire(self):
-        while self.fire_is_pressing and (datetime.now() - self.last_fire).total_seconds() >= self.frequency_fire:
-            logging.info('Fire!! Creating bullet!')
-            self.compute_new_coordinate(STEP_INTERVAL)
-            self.controller.new_unit(Bullet, unit=self, controller=self.controller)
-            self.last_fire = datetime.now()
-            yield from asyncio.sleep(self.frequency_fire)
 
     def reset(self):
         self.speed = 0
@@ -270,10 +288,14 @@ class Hero(Unit):
     def hit(self, other_unit):
         unit_class_name = other_unit. __class__.__name__
         logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
+        self.hits += 1
         self.decrease_life()
         if unit_class_name == 'Hero':
+            other_unit.hits += 1
             other_unit.decrease_life()
         else:
+            if isinstance(other_unit, Bullet):
+                self.controller.add_hits(other_unit)
             other_unit.kill()
 
 
@@ -293,46 +315,55 @@ class Bullet(Unit):
         unit_class_name = other_unit. __class__.__name__
         logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
         if unit_class_name == 'Hero':
+            self.controller.add_hits(self)
             other_unit.decrease_life()
+            self.kill()
         elif unit_class_name == 'Invader':
-            get_game().add_bonus(self)
+            self.controller.add_hits(self)
             other_unit.kill()
-        else:
-            other_unit.kill()
-        self.kill()
+            self.kill()
 
 
 __game = None
 
 
-def get_game(height=None, width=None, invaders_count=None, notify_clients=None):
+def get_game(height=None, width=None, invaders_count=None):
     global __game
 
     if not __game and height and width and invaders_count is not None:
         __game = GameController(height=height,
                                 width=width,
-                                invaders_count=invaders_count,
-                                notify_clients=notify_clients)
+                                invaders_count=invaders_count)
     return __game
 
 
 class GameController(object):
     _instance = None
     launched = False
-    ignore_heroes = []
-    websockets = []
+    websockets = {}
 
-    def __init__(self, height=None, width=None, invaders_count=None, notify_clients=None):
+    def __init__(self, height=None, width=None, invaders_count=None):
         self.game_field = {'height': height, 'width': width}
-        # self.notify_clients = notify_clients
         self.invaders_count = invaders_count
         self.units = {}
+        self.random_type = self.get_unit_type()
         self.set_invaders(self.invaders_count)
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
             cls._instance = super(GameController, cls).__new__(cls)
         return cls._instance
+
+    def action(self, data):
+        for key in data:
+            action = getattr(self, key)
+            hero = self.units.get(data[key].get('id', ''), '')
+            if not action or not hero:
+                continue
+            if key == 'set_name':
+                action(hero, data[key].get('name', 'user'))
+            else:
+                asyncio.async(action(hero))
 
     def new_unit(self, unit_class, *args, **kwargs):
         kwargs['controller'] = self
@@ -342,25 +373,25 @@ class GameController(object):
         unit.compute_new_coordinate(STEP_INTERVAL)
         return unit
 
-    def drop_connection(self, socket, hero_id=None):
-        try:
-            self.websockets.remove(socket)
-        except ValueError:
-            pass
-        if hero_id:
-            self.remove_unit(hero_id)
+    def drop_connection(self, socket):
+        socket = self.websockets[id(socket)]
+        self.remove_unit(socket['hero'])
+        del socket
 
     @asyncio.coroutine
     def notify_clients(self, data):
         if self.websockets:
-            for socket in self.websockets:
-                socket.send_str(json.dumps(data))
+            for key in self.websockets:
+                if not self.websockets[key]['socket']._closed:
+                    self.websockets[key]['socket'].send_str(json.dumps(data))
 
     def new_hero(self):
         pos_x = randint(0, self.game_field['width'])
         pos_y = randint(0, self.game_field['height'])
         angle = randint(0, 360)
-        hero = self.new_unit(Hero, x=pos_x, y=pos_y, angle=angle)
+        hero_type = next(self.random_type)
+        hero = self.new_unit(Hero, x=pos_x, y=pos_y, angle=angle, type=hero_type['type'],
+                             dimension=hero_type['dimension'])
         return hero
 
     def check_if_remove_units(self, units):
@@ -368,18 +399,20 @@ class GameController(object):
             if unit.is_dead:
                 self.remove_unit(unit.id)
 
-    def remove_unit(self, id):
+    def remove_unit(self, unit_id):
         if self.units[id]:
-            class_name = self.units[id].__class__.__name__
-            self.units[id].response('delete')
-            del self.units[id]
+            class_name = self.units[unit_id].__class__.__name__
+            self.stop_unit()
+            self.units[unit_id].response('delete')
+            del self.units[unit_id]
             if class_name == 'Invader':
                 self.set_invaders(1)
 
-    def start(self, socket, name, *args, **kwargs):
-        self.websockets.append(socket)
+    def start(self, socket, data, *args, **kwargs):
         asyncio.async(self.run())
         my_hero = self.new_hero()
+        self.websockets[id(socket)] = {'socket': socket, 'hero': my_hero.id}
+        name = data.get('name', 'user')
         self.set_name(my_hero, name)
         start_conditions = {'init': {
             'hero_id': my_hero.id,
@@ -387,14 +420,23 @@ class GameController(object):
             'units': self.get_units(),
             'frequency': STEP_INTERVAL}}
         socket.send_str(json.dumps(start_conditions))
-        return my_hero
 
-    def add_bonus(self, bullet):
+    def add_hits(self, bullet):
         for unit in self.units:
             if id(self.units[unit]) == bullet.unit_id and self.units[unit].__class__.__name__ == 'Hero':
-                self.units[unit].bonus += bullet.bonus
-                logging.info('Add %s bonus for %s. Now he has %s bonus'
-                             % (bullet.bonus, unit.__class__.__name__, unit.bonus))
+                self.units[unit].hits += 1
+
+    @staticmethod
+    def get_unit_type():
+        i = -1
+        types = UNITS['hero'][:]
+        shuffle(types)
+        while True:
+            i += 1
+            yield types[i]
+            if i == len(types)-1:
+                shuffle(types)
+                i = -1
 
     def set_invaders(self, count):
         for count in range(count):
@@ -411,49 +453,91 @@ class GameController(object):
         return units
 
     @staticmethod
-    def set_name(hero, name):
-        hero.name = name
-
-    def change_speed_up(self, hero):
-        self.ignore_heroes.append(hero.id)
-        hero.change_speed_is_pressing = True
-        asyncio.async(hero.change_speed('up'))
-
-    def change_speed_down(self, hero):
-        self.ignore_heroes.append(hero.id)
-        hero.change_speed_is_pressing = True
-        asyncio.async(hero.change_speed('down'))
-
-    def stop_change_speed(self, hero):
-        self.remove_from_ignore(hero.id)
-        hero.change_speed_is_pressing = False
+    def set_name(unit, name):
+        unit.name = name
+        unit.compute_new_coordinate(STEP_INTERVAL)
 
     @staticmethod
-    def start_fire(hero):
-        hero.fire_is_pressing = True
-        asyncio.async(hero.fire())
+    @asyncio.coroutine
+    def change_speed_up(unit):
+        unit.change_speed_down_is_pressing = False
+        unit.change_speed_up_is_pressing = True
+        while unit.change_speed_up_is_pressing:
+            new_speed = unit.speed + SPEED
+            unit.set_speed(new_speed)
+            yield from asyncio.sleep(ACTION_INTERVAL)
 
     @staticmethod
-    def stop_fire(hero):
-        hero.fire_is_pressing = False
+    @asyncio.coroutine
+    def change_speed_down(unit):
+        unit.change_speed_up_is_pressing = False
+        unit.change_speed_down_is_pressing = True
+        while unit.change_speed_down_is_pressing:
+            new_speed = unit.speed - SPEED
+            unit.set_speed(new_speed)
+            yield from asyncio.sleep(ACTION_INTERVAL)
 
-    def rotate_right(self, hero):
-        self.ignore_heroes.append(hero.id)
-        hero.rotate_is_pressing = True
-        asyncio.async(hero.rotate('right'))
+    @staticmethod
+    @asyncio.coroutine
+    def stop_change_speed_up(unit):
+        unit.change_speed_up_is_pressing = False
+        unit.compute_new_coordinate(STEP_INTERVAL)
 
-    def rotate_left(self, hero):
-        self.ignore_heroes.append(hero.id)
-        hero.rotate_is_pressing = True
-        asyncio.async(hero.rotate('left'))
+    @staticmethod
+    @asyncio.coroutine
+    def stop_change_speed_down(unit):
+        unit.change_speed_down_is_pressing = False
+        unit.compute_new_coordinate(STEP_INTERVAL)
 
-    def stop_rotate(self, hero):
-        self.remove_from_ignore(hero.id)
-        hero.rotate_is_pressing = False
+    @asyncio.coroutine
+    def start_fire(self, unit):
+        unit.fire_is_pressing = True
+        while unit.life_count > 0 and unit.fire_is_pressing and \
+                        (datetime.now() - unit.last_fire).total_seconds() >= unit.frequency_fire:
+            logging.info('Fire!! Creating bullet!')
+            unit.compute_new_coordinate(STEP_INTERVAL)
+            self.new_unit(Bullet, unit=unit, controller=self)
+            unit.last_fire = datetime.now()
+            yield from asyncio.sleep(unit.frequency_fire)
 
-    def remove_from_ignore(self, hero_id):
-        if hero_id in self.ignore_heroes:
-            self.ignore_heroes.remove(hero_id)
+    @staticmethod
+    @asyncio.coroutine
+    def stop_fire(unit):
+        unit.fire_is_pressing = False
+
+    @staticmethod
+    @asyncio.coroutine
+    def rotate_right(unit):
+        unit.rotate_left_is_pressing = False
+        unit.rotate_right_is_pressing = True
+        while unit.rotate_right_is_pressing:
+            rotate = ANGLE + unit.speed * 0.015
+            new_angle = unit.angle + rotate
+            unit.set_angle(new_angle)
+            yield from asyncio.sleep(ACTION_INTERVAL)
+
+    @staticmethod
+    @asyncio.coroutine
+    def rotate_left(unit):
+        unit.rotate_right_is_pressing = False
+        unit.rotate_left_is_pressing = True
+        while unit.rotate_left_is_pressing:
+            rotate = ANGLE + unit.speed * 0.015
+            new_angle = unit.angle - rotate
+            unit.set_angle(new_angle)
+            yield from asyncio.sleep(ACTION_INTERVAL)
+
+    @staticmethod
+    @asyncio.coroutine
+    def stop_rotate_right(unit):
+        unit.rotate_right_is_pressing = False
+        unit.compute_new_coordinate(STEP_INTERVAL)
+
+    @staticmethod
+    @asyncio.coroutine
+    def stop_rotate_left(unit):
+        unit.rotate_left_is_pressing = False
+        unit.compute_new_coordinate(STEP_INTERVAL)
 
     @asyncio.coroutine
     def run(self):
@@ -468,7 +552,7 @@ class GameController(object):
             while len(self.units) > 0:
                 for unit in list(self.units.keys()):
                     if self.units.get(unit):
-                        if self.units[unit].speed and unit not in self.ignore_heroes:
+                        if self.units[unit].speed:
                             self.units[unit].compute_new_coordinate(STEP_INTERVAL)
                         for key in list(self.units.keys()):
                             if self.units.get(unit) and self.units.get(key):
