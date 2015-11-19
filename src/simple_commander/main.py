@@ -460,7 +460,8 @@ class GameController(object):
     def get_units(self):
         units = []
         if len(self.units):
-            units = {unit: self.units[unit].to_dict() for unit in self.units}
+            #limit units to top 10
+            units = {unit: self.units[unit].to_dict() for unit in self.units[:10]}
         return units
 
     @staticmethod
