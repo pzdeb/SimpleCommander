@@ -2,8 +2,13 @@
 
 function createSocket(controller, name){
     var host = window.location.hostname;
+    var port = window.location.port;
     var unit_name = name;
-    var socket = new WebSocket('ws://' + host + ':8000/ws_stream');
+    if (port) {
+        var socket = new WebSocket('ws://' + host + ':'+ port + '/ws_stream');
+    } else {
+        var socket = new WebSocket('ws://' + host + '/ws_stream');
+    }
 
     socket.onopen = function(event) {
         console.log("Connected.");
