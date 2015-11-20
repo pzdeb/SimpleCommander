@@ -1,5 +1,4 @@
 var FPS = 60;
-
 var KEYCODE_UP = 38;
 var KEYCODE_DOWN = 40;
 var KEYCODE_LEFT = 37;
@@ -16,9 +15,11 @@ function GameController(canvas) {
     this.socket = null;
 
     var controller = this;
+
     document.onkeydown = function (e) {
         controller.handleKeyDown(e);
     };
+
     document.onkeyup = function (e) {
         controller.handleKeyUp(e);
     };
