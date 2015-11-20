@@ -146,19 +146,11 @@ function GameController(canvas) {
         this.hero = this.units[hero_id];
 
         //Show hero property
-        for (var property in tableScorecards){
-            if (property in this.hero){
-
-                tableScorecards[property] = new createjs.Text("", "bold 18px Arial", "#FFFFFF");
-                tableScorecards[property].x = this.canvas.width - 10;
-                tableScorecards[property].y = height_property - 20;
-                tableScorecards[property].textAlign = "right";
-                var value = (this.hero[property]).toString();
-                tableScorecards[property].text = value;
-                this.stage.addChild(tableScorecards[property]);
-                height_property += 20;
-            }
-        }
+        var speed = document.getElementById('hero-speed');
+        speed.textContent = this.hero.speed;
+        var lifeCount = document.getElementById('hero-lifes');
+        lifeCount.textContent = this.hero.life_count;
+        this.updateTableScorecards();
 
         //reset key presses
         this.leftPress = this.rightPress = this.upPress = this.downPress = this.spascePress = false;
@@ -176,12 +168,10 @@ function GameController(canvas) {
     };
 
     this.updateTableScorecards = function(){
-        for(var property in tableScorecards){
-            if (property in this.hero){
-                var value = property + ": " + (this.hero[property]).toString();
-                tableScorecards[property].text = value;
-            }
-        }
+        var speed = document.getElementById('hero-speed');
+        speed.textContent = this.hero.speed;
+        var lifeCount = document.getElementById('hero-lifes');
+        lifeCount.textContent = this.hero.life_count;
     };
 
     this.setAnimation = function(unitData) {
