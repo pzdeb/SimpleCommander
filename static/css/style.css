@@ -1,15 +1,43 @@
+body{
+    min-width:1000px;
+    width: auto !important;
+    width:1000px;
+}
 .bg-canvas {
     background-color: #929294;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+    border-radius: 5px;
+    padding: 50px;
 }
+
+.game-holder{
+    width: 50%;
+    margin: 0 auto;
+}
+
 #scorecardHeroes{
+    position: fixed;
+    right: 50px;
+    top: 110px;
     background-color: #929294;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+    padding: 50px;
 }
-table, th, td {
-    border: 1px solid black;
+
+table, th {
+    padding: 10px;
     border-collapse: collapse;
+    border-radius: 5px;
+    color: #da4c12;
 }
-th, td {
+
+table, td {
     padding: 5px;
+    border-radius: 5px;
+    border: 1px solid  #747476;
+    text-align: center;
+    border-collapse: collapse;
+    border-radius: 5px;
 }
 
 input{
@@ -39,20 +67,28 @@ button {
     text-shadow: -1px -1px 0 rgba(0, 0, 0, 0.3);
     font-weight: bold;
     color: #FFFFFF;
-    background-color: #49c0f0;
-    background-image: -webkit-gradient(linear, left top, left bottom, from(#49c0f0), to(#2CAFE3));
-    background-image: -webkit-linear-gradient(top, #49c0f0, #2CAFE3);
-    background-image: -moz-linear-gradient(top, #49c0f0, #2CAFE3);
-    background-image: -ms-linear-gradient(top, #49c0f0, #2CAFE3);
-    background-image: -o-linear-gradient(top, #49c0f0, #2CAFE3);
-    background-image: linear-gradient(to bottom, #49c0f0, #2CAFE3);
+    background-color: #da4c12;
     filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0, startColorstr=#49c0f0, endColorstr=#2CAFE3);
 }
 
 button:hover{
     border: 1px solid #1090c3;
-    background-color: #1ab0ec;
-    background-image: -webkit-gradient(linear, left top, left bottom, from(#1ab0ec), to(#1a92c2));
-    background-image: -webkit-linear-gradient(top, #1ab0ec, #1a92c2);
-    background-image: -moz-linear-gradient(top, #1ab0ec, #1a92c2);
+    background-color: #F07949;
+}
+
+.content{
+    padding: 100px;
+    height: 700px;
+    background-image:url('../images/background.jpg');
+    background-repeat: no-repeat;
+}
+
+/*Visit form styles*/
+form.visit{
+    padding: 20px;
+    width: 330px;
+    margin: 0 auto;
+    border: 1px solid #1090c3;
+    border-radius: 3px;
+    background-color: #3386a8;
 }

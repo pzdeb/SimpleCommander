@@ -338,21 +338,21 @@ function GameController(canvas) {
                 }
                 return false;
             case KEYCODE_RIGHT:
-                if (!this.leftPress) {
-                    this.leftPress = true;
+                if (!this.rightPress) {
+                    this.rightPress = true;
                     this.sendToServer('rotate_right', null)
                 }
                 return false;
             case KEYCODE_UP:
                 //TODO: What is the meaning of `speed` as boolean. Non sense to me
-                if (!this.speed) {
-                    this.speed = true;
+                if (!this.upPress) {
+                    this.upPress = true;
                     this.sendToServer('change_speed_up', null);
                 }
                 return false;
             case KEYCODE_DOWN:
-                if (!this.speed) {
-                    this.speed = true;
+                if (!this.downPress) {
+                    this.downPress = true;
                     this.sendToServer('change_speed_down', null);
                 }
                 return false;
@@ -373,25 +373,25 @@ function GameController(canvas) {
             case KEYCODE_LEFT:
                 if (this.leftPress) {
                     this.leftPress = false;
-                    this.sendToServer('stop_rotate', null)
+                    this.sendToServer('stop_rotate_left', null)
                 }
                 break;
             case KEYCODE_RIGHT:
-                if (this.leftPress) {
-                    this.leftPress = false;
-                    this.sendToServer('stop_rotate', null)
+                if (this.rightPress) {
+                    this.rightPress = false;
+                    this.sendToServer('stop_rotate_right', null)
                 }
                 break;
             case KEYCODE_UP:
-                if (this.speed) {
-                    this.speed = false;
-                    this.sendToServer('stop_change_speed', null)
+                if (this.upPress) {
+                    this.upPress = false;
+                    this.sendToServer('stop_change_speed_up', null)
                 }
                 break;
             case KEYCODE_DOWN:
-                if (this.speed) {
-                    this.speed = false;
-                    this.sendToServer('stop_change_speed', null)
+                if (this.downPress) {
+                    this.downPress = false;
+                    this.sendToServer('stop_change_speed_down', null)
                 }
                 break;
             case KEYCODE_SPACE:
