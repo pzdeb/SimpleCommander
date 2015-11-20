@@ -1,43 +1,25 @@
 var FPS = 60;
-
 var KEYCODE_UP = 38;
 var KEYCODE_DOWN = 40;
 var KEYCODE_LEFT = 37;
 var KEYCODE_RIGHT = 39;
 var KEYCODE_SPACE = 32;
 
-var tableScorecards = {name:'', speed:0, life_count:0};
-var height_property = 20;
-
-var leftPress;
-var rightPress;
-var upPress;
-var downPress;
-
-var canvas;                //Main canvas
-var stage;                 //Main display stage
-
 var hero;                  //the actual hero
-var alive;                 //whether the player is alive
-
-var messageField;          //Message display field
-
-//register key functions
-
-
 
 function GameController(canvas) {
     this.hero = null;
     this.units = {};
-    this.rotate = false;
     this.speed = false;
     this.canvas = canvas;
     this.socket = null;
 
     var controller = this;
+
     document.onkeydown = function (e) {
         controller.handleKeyDown(e);
     };
+
     document.onkeyup = function (e) {
         controller.handleKeyUp(e);
     };
@@ -49,10 +31,10 @@ function GameController(canvas) {
     this.sendToServer = function (heroAction, value) {
         var data = {};
         if (this.hero) {
-            var hero_id = this.hero.id
+            var hero_id = this.hero.id;
         }
         else {
-            var hero_id = ''
+            var hero_id = '';
         }
         value = {'id': hero_id, 'name': value};
         data[heroAction] = value;
@@ -95,8 +77,6 @@ function GameController(canvas) {
 
     this.onData = function (event) {
         var answer = JSON.parse(event.data);
-        console.log(answer);
-
         for (var key in answer){
             switch (key) {
                 case 'init':
@@ -164,21 +144,11 @@ function GameController(canvas) {
         this.hero = this.units[hero_id];
 
         //Show hero property
-        for (var property in tableScorecards){
-            if (property in this.hero){
-                tableScorecards[property] = new createjs.Text("", "bold 18px Arial", "#FFFFFF");
-                tableScorecards[property].x = this.canvas.width - 20;
-                tableScorecards[property].y = height_property;
-                tableScorecards[property].textAlign = "right";
-                var value = property + ": " + (this.hero[property]).toString();
-                tableScorecards[property].text = value;
-                this.stage.addChild(tableScorecards[property]);
-                height_property += 20;
-            }
-            else{
-                console.log('Hero does not have property ' + property)
-            }
-        }
+        var speed = document.getElementById('hero-speed');
+        speed.textContent = this.hero.speed;
+        var lifeCount = document.getElementById('hero-lifes');
+        lifeCount.textContent = this.hero.life_count;
+        this.updateTableScorecards();
 
         //reset key presses
         this.leftPress = this.rightPress = this.upPress = this.downPress = this.spascePress = false;
@@ -193,19 +163,13 @@ function GameController(canvas) {
                 controller.tick()
             });
         }
-        console.log(createjs.Ticker.getInterval())
     };
 
     this.updateTableScorecards = function(){
-        for(var property in tableScorecards){
-            if (property in this.hero){
-                var value = property + ": " + (this.hero[property]).toString();
-                tableScorecards[property].text = value;
-            }
-            else{
-                console.log('Hero does not have property ' + property)
-            }
-        }
+        var speed = document.getElementById('hero-speed');
+        speed.textContent = this.hero.speed;
+        var lifeCount = document.getElementById('hero-lifes');
+        lifeCount.textContent = this.hero.life_count;
     };
 
     this.setAnimation = function(unitData) {
@@ -403,15 +367,6 @@ function GameController(canvas) {
                 break;
         }
     };
-
-    this.sendAction = function (action) {
-        var http = new XMLHttpRequest();
-        var url = "api/hero/" + this.hero.id + "/action/" + action;
-        http.open("POST", url, true);
-        http.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-        http.send();
-    }
-
 };
 
 window.onload = function() {
