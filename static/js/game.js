@@ -6,30 +6,16 @@ var KEYCODE_LEFT = 37;
 var KEYCODE_RIGHT = 39;
 var KEYCODE_SPACE = 32;
 
-var tableScorecards = {name:'', speed:0, life_count:0};
+var tableScorecards = {speed:0, life_count:0};
 var height_property = 20;
 
-var leftPress;
-var rightPress;
-var upPress;
-var downPress;
-
-var canvas;                //Main canvas
-var stage;                 //Main display stage
-
 var hero;                  //the actual hero
-var alive;                 //whether the player is alive
-
-var messageField;          //Message display field
-
-//register key functions
-
 
 
 function GameController(canvas) {
     this.hero = null;
     this.units = {};
-    this.rotate = false;
+    //this.rotate = false;
     this.speed = false;
     this.canvas = canvas;
     this.socket = null;
@@ -95,8 +81,6 @@ function GameController(canvas) {
 
     this.onData = function (event) {
         var answer = JSON.parse(event.data);
-        console.log(answer);
-
         for (var key in answer){
             switch (key) {
                 case 'init':
@@ -166,17 +150,15 @@ function GameController(canvas) {
         //Show hero property
         for (var property in tableScorecards){
             if (property in this.hero){
+
                 tableScorecards[property] = new createjs.Text("", "bold 18px Arial", "#FFFFFF");
-                tableScorecards[property].x = this.canvas.width - 20;
-                tableScorecards[property].y = height_property;
+                tableScorecards[property].x = this.canvas.width - 10;
+                tableScorecards[property].y = height_property - 20;
                 tableScorecards[property].textAlign = "right";
-                var value = property + ": " + (this.hero[property]).toString();
+                var value = (this.hero[property]).toString();
                 tableScorecards[property].text = value;
                 this.stage.addChild(tableScorecards[property]);
                 height_property += 20;
-            }
-            else{
-                console.log('Hero does not have property ' + property)
             }
         }
 
@@ -193,7 +175,6 @@ function GameController(canvas) {
                 controller.tick()
             });
         }
-        console.log(createjs.Ticker.getInterval())
     };
 
     this.updateTableScorecards = function(){
@@ -201,9 +182,6 @@ function GameController(canvas) {
             if (property in this.hero){
                 var value = property + ": " + (this.hero[property]).toString();
                 tableScorecards[property].text = value;
-            }
-            else{
-                console.log('Hero does not have property ' + property)
             }
         }
     };
