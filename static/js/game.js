@@ -95,7 +95,6 @@ function GameController(canvas) {
 
     this.onData = function (event) {
         var answer = JSON.parse(event.data);
-        console.log(answer);
 
         for (var key in answer){
             switch (key) {

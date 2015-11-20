@@ -9,8 +9,8 @@ import jinja2
 from aiohttp import server, web, MsgType
 
 from core import routes, views
-from simple_commander.main import get_game, STEP_INTERVAL
-
+from simple_commander.game.init_game import get_game
+from simple_commander.utils.constants import STEP_INTERVAL 
 
 class HttpCommandServer(object):
     _instance = None
