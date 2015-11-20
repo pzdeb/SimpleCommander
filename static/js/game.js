@@ -6,9 +6,6 @@ var KEYCODE_LEFT = 37;
 var KEYCODE_RIGHT = 39;
 var KEYCODE_SPACE = 32;
 
-var tableScorecards = {speed:0, life_count:0};
-var height_property = 20;
-
 var hero;                  //the actual hero
 
 function GameController(canvas) {
@@ -369,15 +366,6 @@ function GameController(canvas) {
                 break;
         }
     };
-
-    this.sendAction = function (action) {
-        var http = new XMLHttpRequest();
-        var url = "api/hero/" + this.hero.id + "/action/" + action;
-        http.open("POST", url, true);
-        http.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-        http.send();
-    }
-
 };
 
 window.onload = function() {
