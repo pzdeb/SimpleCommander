@@ -11,11 +11,9 @@ var height_property = 20;
 
 var hero;                  //the actual hero
 
-
 function GameController(canvas) {
     this.hero = null;
     this.units = {};
-    //this.rotate = false;
     this.speed = false;
     this.canvas = canvas;
     this.socket = null;
@@ -35,10 +33,10 @@ function GameController(canvas) {
     this.sendToServer = function (heroAction, value) {
         var data = {};
         if (this.hero) {
-            var hero_id = this.hero.id
+            var hero_id = this.hero.id;
         }
         else {
-            var hero_id = ''
+            var hero_id = '';
         }
         value = {'id': hero_id, 'name': value};
         data[heroAction] = value;
