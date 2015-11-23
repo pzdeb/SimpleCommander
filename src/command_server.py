@@ -9,8 +9,8 @@ import jinja2
 from aiohttp import server, web, MsgType
 
 from core import routes, views
-from simple_commander.main import get_game, STEP_INTERVAL
-
+from simple_commander.game.init_game import get_game
+from simple_commander.utils.constants import STEP_INTERVAL 
 
 class HttpCommandServer(object):
     _instance = None
@@ -67,7 +67,7 @@ class HttpCommandServer(object):
                     if 'start' in data:
                         self._controller.start(ws, data['start'])
                     else:
-                        self._controller.action(data)
+                        self._controller.do_action(data)
             elif msg.tp == MsgType.close:
                 logging.info('websocket connection closed')
                 self._controller.drop_connection(ws)
