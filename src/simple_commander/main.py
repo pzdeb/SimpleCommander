@@ -47,6 +47,7 @@ DEFAULT_SPEED_BULLETS = 120
 MAX_ANGLE = 360
 SPEED = 8
 MAX_SPEED = 220
+DEFAULT_LIFE_COUNT=3
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
 UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'hits', 'speed', 'id', 'life_count', 'type', 'width', 'height', 'name']
 
@@ -383,6 +384,7 @@ class GameController(object):
         if self.websockets:
             for key in self.websockets:
                 if not self.websockets[key]['socket']._closed:
+                    data['standings'] = self.get_standings_info()
                     self.websockets[key]['socket'].send_str(json.dumps(data))
 
     def new_hero(self):
@@ -447,10 +449,19 @@ class GameController(object):
             self.new_unit(Invader, x=pos_x, y=pos_y, angle=angle, speed=speed)
 
     def get_units(self):
-        units = []
         if len(self.units):
-            units = {unit: self.units[unit].to_dict() for unit in self.units}
-        return units
+            return {unit: self.units[unit].to_dict() for unit in self.units}
+        return {}
+
+    def get_standings_info(self):
+        """Return standing information about top 10 user."""
+        units = [{'name': unit.name,
+                  'type': unit.type,
+                  'hits': unit.hits,
+                  'deaths': DEFAULT_LIFE_COUNT - unit.life_count,
+                  'total': unit.hits - DEFAULT_LIFE_COUNT  + unit.life_count}\
+                 for unit in self.units.values() if hasattr(unit, 'life_count')]
+        return sorted(units, key = lambda h: (h['total']), reverse=True)[:10]
 
     @staticmethod
     def set_name(unit, name):
