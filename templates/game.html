@@ -10,20 +10,38 @@
     <script src="static/js/game.js"></script>
 {% endblock %}
 {% block content %}
-    <div class="game-holder">
-    <canvas class='bg-canvas' id="gameCanvas" width="0" height="0"></canvas>
-    <table id="scorecardHeroes">
-        <thead>
-            <tr>
-                <th>Gamer</th>
-                <th>Name</th>
-                <th>Hits</th>
-                <th>Deaths</th>
-                <th>Total</th>
-            </tr>
-        </thead>
-        <tbody>
-        </tbody>
+    <table class="game-holder">
+        <tr>
+            <td>
+                <canvas class='bg-canvas' id="gameCanvas" width="0" height="0"></canvas>
+            </td>
+            <td>
+                <table class="score fixed">
+                    <tr>
+                        <td>
+                            Speed
+                        </td>
+                        <td id="hero-speed"></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Life Count
+                        </td>
+                        <td id="hero-lifes"></td>
+                    </tr>
+                </table>
+                <table id="scorecardHeroes" class="fixed">
+                    <tr>
+                        <th>Gamer</th>
+                        <th>Name</th>
+                        <th>Hits</th>
+                        <th>Deaths</th>
+                        <th>Total</th>
+                    </tr>
+                    <tbody>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
     </table>
-    </div>
 {% endblock %}
