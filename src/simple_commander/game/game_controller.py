@@ -3,12 +3,13 @@
 import asyncio
 import json
 import logging
+from datetime import datetime
 from random import randint, shuffle
 
 from simple_commander.game.bullet import Bullet
 from simple_commander.game.invader import Invader
 from simple_commander.game.hero import Hero
-from simple_commander.utils.constants import STEP_INTERVAL, UNITS
+from simple_commander.utils.constants import ANGLE, ACTION_INTERVAL, ROTATION_ANGLE, SPEED, STEP_INTERVAL, UNITS
 
 
 class GameController(object):
@@ -28,22 +29,24 @@ class GameController(object):
             cls._instance = super(GameController, cls).__new__(cls)
         return cls._instance
 
-    def action(self, data):
-        for key in data:
+    def do_action(self, actions):
+        for key in actions:
             action = getattr(self, key)
-            hero = self.units.get(data[key].get('id', ''), '')
+            hero = self.units.get(actions[key].get('id', ''), '')
             if not action or not hero:
                 continue
             if key == 'set_name':
-                action(hero, data[key].get('name', 'user'))
+                action(hero, actions[key].get('name', 'user'))
             else:
-                action(hero)
+                asyncio.async(action(hero))
 
     def new_unit(self, unit_class, *args, **kwargs):
+        """ Create new unit. """
         kwargs['controller'] = self
         unit = unit_class(*args, **kwargs)
         self.units[unit.id] = unit
         unit.response('new')
+        logging.debug('Create new unit - %s -', unit.__class__.__name__)
         unit.compute_new_coordinate(STEP_INTERVAL)
         return unit
 
@@ -54,10 +57,9 @@ class GameController(object):
 
     @asyncio.coroutine
     def notify_clients(self, data):
-        if self.websockets:
-            for key in self.websockets:
-                if not self.websockets[key]['socket']._closed:
-                    self.websockets[key]['socket'].send_str(json.dumps(data))
+        for key in self.websockets:
+            if not self.websockets[key]['socket']._closed:
+                self.websockets[key]['socket'].send_str(json.dumps(data))
 
     def new_hero(self):
         pos_x = randint(0, self.game_field['width'])
@@ -68,16 +70,18 @@ class GameController(object):
                              dimension=hero_type['dimension'])
         return hero
 
-    def check_if_remove_units(self, units):
+    def cleanup_units(self, units):
+        """ Remove list of units. """
         for unit in units:
             if unit.is_dead:
                 self.remove_unit(unit.id)
 
-    def remove_unit(self, obj_id):
-        if self.units[obj_id]:
-            class_name = self.units[obj_id].__class__.__name__
-            self.units[obj_id].response('delete')
-            del self.units[obj_id]
+    def remove_unit(self, unit_id):
+        """ Remove unit with unit ID. """
+        if self.units[unit_id]:
+            class_name = self.units[unit_id].__class__.__name__
+            self.units[unit_id].response('delete')
+            del self.units[unit_id]
             if class_name == 'Invader':
                 self.set_invaders(1)
 
@@ -96,7 +100,7 @@ class GameController(object):
 
     def add_hits(self, bullet):
         for unit in self.units:
-            if id(self.units[unit]) == bullet.unit_id and isinstance(self.units[unit], Hero):
+            if id(self.units[unit]) == bullet.unit_id and self.units[unit] is Hero:
                 self.units[unit].hits += 1
 
     @staticmethod
@@ -120,10 +124,9 @@ class GameController(object):
             self.new_unit(Invader, x=pos_x, y=pos_y, angle=angle, speed=speed)
 
     def get_units(self):
-        units = []
         if len(self.units):
-            units = {unit: self.units[unit].to_dict() for unit in self.units}
-        return units
+            return {unit: self.units[unit].to_dict() for unit in self.units}
+        return {}
 
     @staticmethod
     def set_name(hero, name):
@@ -131,43 +134,85 @@ class GameController(object):
         hero.compute_new_coordinate(STEP_INTERVAL)
 
     @staticmethod
-    def change_speed_up(hero):
-        hero.change_speed_is_pressing = True
-        asyncio.async(hero.change_speed('up'))
+    @asyncio.coroutine
+    def change_speed_up(unit):
+        unit.change_speed_down_is_pressing = False
+        unit.change_speed_up_is_pressing = True
+        while unit.change_speed_up_is_pressing:
+            new_speed = unit.speed + SPEED
+            unit.set_speed(new_speed)
+            yield from asyncio.sleep(ACTION_INTERVAL)
 
     @staticmethod
-    def change_speed_down(hero):
-        hero.change_speed_is_pressing = True
-        asyncio.async(hero.change_speed('down'))
+    @asyncio.coroutine
+    def change_speed_down(unit):
+        unit.change_speed_up_is_pressing = False
+        unit.change_speed_down_is_pressing = True
+        while unit.change_speed_down_is_pressing:
+            new_speed = unit.speed - SPEED
+            unit.set_speed(new_speed)
+            yield from asyncio.sleep(ACTION_INTERVAL)
 
     @staticmethod
-    def stop_change_speed(hero):
-        hero.change_speed_is_pressing = False
-        hero.compute_new_coordinate(STEP_INTERVAL)
+    @asyncio.coroutine
+    def stop_change_speed_up(unit):
+        unit.change_speed_up_is_pressing = False
+        unit.compute_new_coordinate(STEP_INTERVAL)
 
     @staticmethod
-    def start_fire(hero):
-        hero.fire_is_pressing = True
-        asyncio.async(hero.fire(Bullet))
+    @asyncio.coroutine
+    def stop_change_speed_down(unit):
+        unit.change_speed_down_is_pressing = False
+        unit.compute_new_coordinate(STEP_INTERVAL)
+
+    @asyncio.coroutine
+    def start_fire(self, unit):
+        unit.is_fire_active = True
+        while unit.life_count > 0 and unit.is_fire_active and \
+            (datetime.now() - unit.last_fire).total_seconds() >= unit.frequency_fire:
+            unit.compute_new_coordinate(STEP_INTERVAL)
+            self.new_unit(Bullet, unit=unit, controller=self)
+            unit.last_fire = datetime.now()
+            yield from asyncio.sleep(unit.frequency_fire)
 
     @staticmethod
-    def stop_fire(hero):
-        hero.fire_is_pressing = False
+    @asyncio.coroutine
+    def stop_fire(unit):
+        unit.is_fire_active = False
 
     @staticmethod
-    def rotate_right(hero):
-        hero.rotate_is_pressing = True
-        asyncio.async(hero.rotate('right'))
+    @asyncio.coroutine
+    def rotate_right(unit):
+        unit.rotate_left_is_pressing = False
+        unit.rotate_right_is_pressing = True
+        while unit.rotate_right_is_pressing:
+            rotate = ANGLE + unit.speed * ROTATION_ANGLE
+            new_angle = unit.angle + rotate
+            unit.set_angle(new_angle)
+            yield from asyncio.sleep(ACTION_INTERVAL)
 
     @staticmethod
-    def rotate_left(hero):
-        hero.rotate_is_pressing = True
-        asyncio.async(hero.rotate('left'))
+    @asyncio.coroutine
+    def rotate_left(unit):
+        unit.rotate_right_is_pressing = False
+        unit.rotate_left_is_pressing = True
+        while unit.rotate_left_is_pressing:
+            rotate = ANGLE + unit.speed * ROTATION_ANGLE
+            new_angle = unit.angle - rotate
+            unit.set_angle(new_angle)
+            yield from asyncio.sleep(ACTION_INTERVAL)
 
     @staticmethod
-    def stop_rotate(hero):
-        hero.rotate_is_pressing = False
-        hero.compute_new_coordinate(STEP_INTERVAL)
+    @asyncio.coroutine
+    def stop_rotate_right(unit):
+        unit.rotate_right_is_pressing = False
+        unit.compute_new_coordinate(STEP_INTERVAL)
+
+    @staticmethod
+    @asyncio.coroutine
+    def stop_rotate_left(unit):
+        unit.rotate_left_is_pressing = False
+        unit.compute_new_coordinate(STEP_INTERVAL)
 
     @asyncio.coroutine
     def run(self):

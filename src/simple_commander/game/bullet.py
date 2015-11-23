@@ -19,10 +19,11 @@ class Bullet(Unit):
         self.controller.remove_unit(self.id)
 
     def hit(self, other_unit):
-        logging.debug('In hit - %s and %s' % (self.__class__.__name__, other_unit.__class__.__name__))
+        logging.debug('In hit - %s(%s) and %s(%s)' % (self.__class__.__name__, self.unit_id, other_unit.__class__.__name__, other_unit.id))
+
         other_unit.bullet_kill(self)
 
-    def specific_move(self, x, y, interval):
+    def change_object(self, x, y, interval):
         pass
 
     def collision_check(self):

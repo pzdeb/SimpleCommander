@@ -18,6 +18,7 @@ class Invader(Unit):
         super(Invader, self).__init__(x, y, angle, hits, speed, obj_type, bullet_type, dimension, controller=controller)
 
     def reset(self):
+        #TODO: add angle into account
         self.angle = randint(0, 360)
         self.compute_new_coordinate(STEP_INTERVAL)
         logging.debug('Reset %s angle. New angle - %s' % (self.__class__.__name__, self.angle))
@@ -25,7 +26,7 @@ class Invader(Unit):
     def hit(self, other_unit):
         pass
 
-    def specific_move(self, x, y, interval):
+    def change_object(self, x, y, interval):
         """ Reset Invader object. """
         self.reset()
 

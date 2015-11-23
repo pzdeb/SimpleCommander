@@ -19,7 +19,6 @@ class Hero(Unit):
             obj_type = UNITS.get('hero', [])[random_number].get('type', '')
             dimension = UNITS.get('hero', [])[random_number].get('dimension', '')
         super(Hero, self).__init__(x, y, angle, hits, speed, obj_type, bullet_type, dimension, controller=controller)
-        self.fire_is_pressing = False
         self.frequency_fire = frequency_fire
         self.last_fire = datetime.now()
         self.life_count = life_count
@@ -44,16 +43,13 @@ class Hero(Unit):
             self.set_to_new_position()
             self.response("new")
         else:
-            self.rotate_is_pressing = False
-            self.change_speed_is_pressing = False
-            self.fire_is_pressing = False
             self.life_count = 0
             self.kill()
         self.response('update_life')
 
     @asyncio.coroutine
     def fire(self, obj):
-        while self.life_count > 0 and self.fire_is_pressing and \
+        while self.life_count > 0 and self.is_fire_active and \
                         (datetime.now() - self.last_fire).total_seconds() >= self.frequency_fire:
             self.compute_new_coordinate(STEP_INTERVAL)
             self.controller.new_unit(obj, unit=self, controller=self.controller)
@@ -70,7 +66,7 @@ class Hero(Unit):
         logging.debug('In hit - %s and %s' % (self.__class__.__name__, other_unit.__class__.__name__))
         self.hits += 1
         self.decrease_life()
-        if isinstance(other_unit, Hero):
+        if other_unit is Hero:
             other_unit.hits += 1
             other_unit.decrease_life()
         else:
@@ -79,7 +75,7 @@ class Hero(Unit):
                 self.controller.add_hits(other_unit)
             other_unit.kill()
 
-    def specific_move(self, x, y, interval):
+    def change_object(self, x, y, interval):
         """ Recalculate speed for Hero object. """
         self.speed = round(math.sqrt((x - self.x1) ** 2 + (y - self.y1) ** 2) / interval)
 

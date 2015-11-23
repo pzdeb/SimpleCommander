@@ -95,7 +95,7 @@ class Unit(object):
                 time_to_crash = abs((y-self.y1) * interval / (target_y - self.y1))
                 x = self.calculate_abscissa(self.x1, time_to_crash)
             x, y = self.set_in_limit(x, y)
-            self.specific_move(x, y, interval)
+            self.change_object(x, y, interval)
             self.move_to(x, y)
         else:
             self.reset()
@@ -105,6 +105,28 @@ class Unit(object):
         self.x, self.y = self.x1, self.y1
         self.x1, self.y1 = x, y
         self.response('update', frequency=STEP_INTERVAL)
+
+    def set_angle(self, new_angle):
+        if new_angle > MAX_ANGLE:
+            new_angle -= MAX_ANGLE
+        elif new_angle < 0:
+            new_angle += MAX_ANGLE
+        logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, new_angle))
+        self.angle = new_angle
+        self.compute_new_coordinate(ACTION_INTERVAL)
+
+    def stop_unit(self):
+        self.rotate_left_is_pressing = False
+        self.rotate_right_is_pressing = False
+        self.change_speed_up_is_pressing = False
+        self.change_speed_down_is_pressing = False
+        self.fis_fire_active = False
+
+    def set_speed(self, new_speed):
+        self.speed = new_speed > 0 and new_speed or 0
+        self.speed = MAX_SPEED if self.speed > MAX_SPEED else self.speed
+        logging.info('Change %s speed to %s' % (self.__class__.__name__, self.speed))
+        self.compute_new_coordinate(ACTION_INTERVAL)
 
     @asyncio.coroutine
     def rotate(self, side):
@@ -135,7 +157,7 @@ class Unit(object):
         if not self.controller.units.get(self.id) or not self.controller.units.get(other_unit.id):
             return
         self.hit(other_unit)
-        self.controller.check_if_remove_units([self, other_unit])
+        self.controller.cleanup_units([self, other_unit])
 
     def check_collision(self, other_unit):
         # check if coordinate for two units is the same
@@ -168,7 +190,7 @@ class Unit(object):
     def hit(self, other_unit):
         raise NotImplementedError
     
-    def specific_move(self, x, y, interval):
+    def change_object(self, x, y, interval):
         raise NotImplementedError
     
     def collision_check(self):

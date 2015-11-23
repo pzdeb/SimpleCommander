@@ -67,7 +67,7 @@ class HttpCommandServer(object):
                     if 'start' in data:
                         self._controller.start(ws, data['start'])
                     else:
-                        self._controller.action(data)
+                        self._controller.do_action(data)
             elif msg.tp == MsgType.close:
                 logging.info('websocket connection closed')
                 self._controller.drop_connection(ws)
