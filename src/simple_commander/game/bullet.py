@@ -23,7 +23,6 @@ class Bullet(Unit):
 
         other_unit.bullet_kill(self)
 
-
     def change_object(self, x, y, interval):
         pass
 
