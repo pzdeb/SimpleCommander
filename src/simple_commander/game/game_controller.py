@@ -9,7 +9,8 @@ from random import randint, shuffle
 from simple_commander.game.bullet import Bullet
 from simple_commander.game.invader import Invader
 from simple_commander.game.hero import Hero
-from simple_commander.utils.constants import ANGLE, ACTION_INTERVAL, ROTATION_ANGLE, SPEED, STEP_INTERVAL, UNITS
+from simple_commander.utils.constants import ANGLE, ACTION_INTERVAL,\
+    ROTATION_ANGLE, SPEED, STEP_INTERVAL, UNITS, DEFAULT_LIFE_COUNT
 
 
 class GameController(object):
@@ -59,6 +60,7 @@ class GameController(object):
     def notify_clients(self, data):
         for key in self.websockets:
             if not self.websockets[key]['socket']._closed:
+                data['standings'] = self.get_standings_info()
                 self.websockets[key]['socket'].send_str(json.dumps(data))
 
     def new_hero(self):
@@ -127,6 +129,16 @@ class GameController(object):
         if len(self.units):
             return {unit: self.units[unit].to_dict() for unit in self.units}
         return {}
+
+    def get_standings_info(self):
+        """Return standing information about top 10 user."""
+        units = [{'name': unit.name,
+                  'type': unit.type,
+                  'hits': unit.hits,
+                  'deaths': DEFAULT_LIFE_COUNT - unit.life_count,
+                  'total': unit.hits - DEFAULT_LIFE_COUNT  + unit.life_count}\
+                 for unit in self.units.values() if hasattr(unit, 'life_count')]
+        return sorted(units, key = lambda h: (h['total']), reverse=True)[:10]
 
     @staticmethod
     def set_name(hero, name):

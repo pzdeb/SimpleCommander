@@ -42,37 +42,26 @@ function GameController(canvas) {
         this.socket.send(data);
     };
 
-    this.updateScorecardHeroes = function(hero){
-        if(hero.type.slice(0, 'hero'.length) == 'hero'){
-            var table = document.getElementById('scorecardHeroes').getElementsByTagName('tbody')[0];
-            var row = document.getElementById(hero.id);
-            if (row){
-                var cell1 = row.getElementsByTagName('td')[0];
-                var cell2 = row.getElementsByTagName('td')[1];
-                var cell3 = row.getElementsByTagName('td')[2];
-                var cell4 = row.getElementsByTagName('td')[3];
-                var cell5 = row.getElementsByTagName('td')[4];
-            }
-            else{
-                var row = table.insertRow(table.rows.length);
-                var elem = document.createElement("img");
-                elem.src = "static/images/" + hero.type + ".png";
-                var cell1 = row.insertCell(0);
-                var cell2 = row.insertCell(1);
-                var cell3 = row.insertCell(2);
-                var cell4 = row.insertCell(3);
-                var cell5 = row.insertCell(4);
-                cell1.appendChild(elem);
-                row.id = hero.id;
-            }
-            var color = hero.type.split("_").pop();
+    this.updateScorecardHeroes = function(heros){
+        var table = document.getElementById('scorecardHeroes').getElementsByTagName('tbody')[0]
+        table.innerHTML = '';
+
+        for (var index in heros){
+            var row = table.insertRow(index);
+            hero = heros[index];
+            //Attach hero image
+            var color = hero.type.split('_').pop();
             row.style.color = color;
-            cell2.innerHTML = hero.name;
-            cell3.innerHTML = hero.hits;
-            cell4.innerHTML = 3 - hero.life_count;
-            cell5.innerHTML = parseInt(cell3.innerText) - parseInt(cell4.innerText);
-            sortTable(table);
+            var elem = document.createElement('img');
+            elem.src = 'static/images/' + hero.type + '.png';
+            row.insertCell(0).appendChild(elem);
+
+            row.insertCell(1).innerHTML = hero.name;
+            row.insertCell(2).innerHTML = hero.hits;
+            row.insertCell(3).innerHTML = hero.deaths;
+            row.insertCell(4).innerHTML = hero.total;
         }
+
     };
 
     this.onData = function (event) {
@@ -97,6 +86,8 @@ function GameController(canvas) {
                 case 'update_life':
                     this.updateLife(answer.update_life);
                     break;
+                default:
+                    this.updateScorecardHeroes(answer.standings);
             }
         }
 
@@ -139,7 +130,6 @@ function GameController(canvas) {
             unit.regY = unit.height / 4;
             this.units[unit.id] = unit;
             this.stage.addChild(unit);
-            this.updateScorecardHeroes(unitsObj[i]);
         }
         this.hero = this.units[hero_id];
 
@@ -208,7 +198,6 @@ function GameController(canvas) {
             this.units[unitData.id] = unit;
             this.stage.addChild(unit);
             this.stage.update();
-            this.updateScorecardHeroes(unitData);
         }
     };
 
@@ -234,10 +223,8 @@ function GameController(canvas) {
             this.units[id] = this.updateProperties(this.units[id], unitData);
             this.units[id].speedTick = this.units[id].speed / this.frequency / FPS;
             if (id == this.hero['id']){
-                this.updateTableScorecards()
+                this.updateTableScorecards();
             }
-            this.updateScorecardHeroes(unitData);
-
         }
     };
 
@@ -254,7 +241,6 @@ function GameController(canvas) {
             unit.play();
             this.stage.addChild(unit);
             this.stage.update();
-            this.updateScorecardHeroes(unitData);
             setTimeout(deleteUnit, 500, this, unit);
         }
     };
