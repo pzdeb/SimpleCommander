@@ -8,14 +8,18 @@ var KEYCODE_SPACE = 32;
 var hero;                  //the actual hero
 
 function GameController(canvas) {
+    "use strict";
+
     this.hero = null;
     this.units = {};
     this.speed = false;
     this.canvas = canvas;
     this.socket = null;
 
-    var controller = this;
-
+    /*global SocketHandler */
+    var socket = SocketHandler,
+        controller = this;
+    /*global document */
     document.onkeydown = function (e) {
         controller.handleKeyDown(e);
     };
@@ -25,34 +29,35 @@ function GameController(canvas) {
     };
 
     this.createConnection = function (name) {
-        this.socket = createSocket(this, name);
+        this.socket = socket(this, name);
     };
 
     this.sendToServer = function (heroAction, value) {
-        var data = {};
+        var data = {},
+            hero_id;
         if (this.hero) {
-            var hero_id = this.hero.id;
-        }
-        else {
-            var hero_id = '';
+            hero_id = this.hero.id;
+        } else {
+            hero_id = '';
         }
         value = {'id': hero_id, 'name': value};
         data[heroAction] = value;
-        var data = JSON.stringify(data);
+        data = JSON.stringify(data);
         this.socket.send(data);
     };
 
-    this.updateScorecardHeroes = function(heros){
-        var table = document.getElementById('scorecardHeroes').getElementsByTagName('tbody')[0]
-        table.innerHTML = '';
+    this.updateScorecardHeroes = function (heros) {
+        var index, color, elem, row,
+            table = document.getElementById('scorecardHeroes').getElementsByTagName('tbody')[0];
 
-        for (var index in heros){
-            var row = table.insertRow(index);
+        table.innerHTML = '';
+        for (index = 0; index < heros.length; index++) {
+            row = table.insertRow(index);
             hero = heros[index];
             //Attach hero image
-            var color = hero.type.split('_').pop();
+            color = hero.type.split('_').pop();
             row.style.color = color;
-            var elem = document.createElement('img');
+            elem = document.createElement('img');
             elem.src = 'static/images/' + hero.type + '.png';
             row.insertCell(0).appendChild(elem);
 
@@ -65,8 +70,8 @@ function GameController(canvas) {
     };
 
     this.onData = function (event) {
-        var answer = JSON.parse(event.data);
-        for (var key in answer){
+        var key, answer = JSON.parse(event.data);
+        for (key in answer) {
             switch (key) {
                 case 'init':
                     this.start(answer.init);
@@ -93,17 +98,19 @@ function GameController(canvas) {
 
     };
 
-    this.error = function(error) {
-        console.log(error)
+    this.error = function (error) {
+        console.log(error);
     };
 
     this.start = function (init) {
-        var unitsObj = init['units'];
-        var hero_id = init['hero_id'];
-        var game_field = init['game'];
-        this.frequency = init['frequency'];
+        var unitsObj = init.units,
+            hero_id = init.hero_id,
+            game_field = init.game;
+
+        this.frequency = init.frequency;
         this.canvas.width = game_field.width;
         this.canvas.height = game_field.height;
+        /*global createjs*/
         this.stage = new createjs.Stage(this.canvas);
 
         //create Units
@@ -171,8 +178,7 @@ function GameController(canvas) {
                 died: 1
             }
         };
-        spriteSheet = new createjs.SpriteSheet(data);
-        return spriteSheet;
+        return new createjs.SpriteSheet(data);
     };
 
     this.newUnit = function (unitData) {
@@ -228,6 +234,11 @@ function GameController(canvas) {
         }
     };
 
+    var deleteUnit = function(self, unit) {
+        self.stage.removeChild(unit);
+        self.stage.update();
+    };
+
     this.killUnit = function (unitData) {
         var id = unitData['id'];
         if (this.units[id]) {
@@ -243,11 +254,6 @@ function GameController(canvas) {
             this.stage.update();
             setTimeout(deleteUnit, 500, this, unit);
         }
-    };
-
-    deleteUnit = function(self, unit) {
-        self.stage.removeChild(unit);
-        self.stage.update();
     };
 
     this.updateLife = function (unitData) {

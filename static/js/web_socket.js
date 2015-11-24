@@ -1,37 +1,41 @@
+function SocketHandler(controller, name) {
+    "use strict";
 
-
-function createSocket(controller, name){
-    var host = window.location.hostname;
-    var port = window.location.port;
-    var unit_name = name;
+    /*global window */
+    /*global WebSocket */
+    var host = window.location.hostname,
+        port = window.location.port,
+        unit_name = name,
+        socket;
     if (port) {
-        var socket = new WebSocket('ws://' + host + ':'+ port + '/ws_stream');
+        socket = new WebSocket('ws://' + host + ':' + port + '/ws_stream');
     } else {
-        var socket = new WebSocket('ws://' + host + '/ws_stream');
+        socket = new WebSocket('ws://' + host + '/ws_stream');
     }
 
-    socket.onopen = function(event) {
+    socket.onopen = function () {
         console.log("Connected.");
-        controller.sendToServer('start', unit_name)
+        controller.sendToServer('start', unit_name);
     };
 
-    socket.onclose = function(event) {
+    socket.onclose = function (event) {
         if (event.wasClean) {
             console.log('Connection closed');
         } else {
             console.log('disconnection');
         }
-            console.log('code: ' + event.code + ' reason: ' + event.reason);
+        console.log('code: ' + event.code + ' reason: ' + event.reason);
     };
 
-    socket.onmessage = function(ans) {
+    socket.onmessage = function (ans) {
         controller.onData(ans);
     };
 
-    socket.onerror = function(error) {
+    socket.onerror = function (error) {
         console.log("Error " + error.message);
     };
-    return socket
+
+    return socket;
 }
 
 
