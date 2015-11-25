@@ -102,7 +102,7 @@ class GameController(object):
 
     def add_hits(self, bullet):
         for unit in self.units:
-            if id(self.units[unit]) == bullet.unit_id and self.units[unit] is Hero:
+            if id(self.units[unit]) == bullet.unit_id and isinstance(self.units[unit], Hero):
                 self.units[unit].hits += 1
 
     @staticmethod
