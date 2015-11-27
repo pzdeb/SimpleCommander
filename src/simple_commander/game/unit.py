@@ -164,6 +164,7 @@ class Unit(object):
         # for this check we also include width and height of unit's image
         # (other_unit.x - other_unit.width / 2 < self.x < other_unit.x + other_unit.width / 2)
         # (other_unit.y - other_unit.height / 2 < self.y < other_unit.y + other_unit.height / 2)
+        # we don't need to check collision for Bullet with Bullet
         if not self.collision_check() and not other_unit.collision_check():
             return
         if id(self) != id(other_unit) and getattr(self, 'unit_id', '') != id(other_unit) and \
@@ -174,13 +175,17 @@ class Unit(object):
             D = (other_unit.x1, other_unit.y1)
             int_point = object_intersection((A, B), (C, D), round(self.width / 2), round(other_unit.width / 2))
             if int_point:
-                if self.x != self.x1:
-                    A_B_distance = point_distance(A, B)
-                    A_P_distance = point_distance(A, int_point)
+                A_B_distance = point_distance(A, B)
+                A_P_distance = point_distance(A, int_point)
+                C_D_distance = point_distance(C, D)
+                C_P_distance = point_distance(C, int_point)
+                if self.x != self.x1 or A_P_distance < C_P_distance:
+                    distance_to_unit = A_B_distance
+                    distance_to_collision = A_P_distance
                 else:
-                    A_B_distance = point_distance(C, D)
-                    A_P_distance = point_distance(C, int_point)
-                time_to_point = A_B_distance > 0 and round(STEP_INTERVAL * A_P_distance / A_B_distance, 2) or 0
+                    distance_to_unit = C_D_distance
+                    distance_to_collision = C_P_distance
+                time_to_point = distance_to_unit > 0 and round(STEP_INTERVAL * distance_to_collision / distance_to_unit, 2) or 0
                 if time_to_point < STEP_INTERVAL:
                     asyncio.Task(self.notify_collision(other_unit, time_to_point))
 
