@@ -69,36 +69,36 @@ class Unit(object):
         res = round(point + self.speed * interval * math.cos(round(math.radians(180 - self.angle), 2)))
         return res
 
-
     def compute_new_coordinate(self, interval):
         # Calculate real position
-        time_from_last_calculate = (datetime.now() - self.time_last_calculation).total_seconds()
-        if time_from_last_calculate < STEP_INTERVAL:
-            x = self.calculate_abscissa(self.x, time_from_last_calculate)
-            y = self.calculate_ordinate(self.y, time_from_last_calculate)
-            self.x1, self.y1 = self.set_in_limit(x, y)
+        if interval > 0:
+            time_from_last_calculate = (datetime.now() - self.time_last_calculation).total_seconds()
+            if time_from_last_calculate < STEP_INTERVAL:
+                x = self.calculate_abscissa(self.x, time_from_last_calculate)
+                y = self.calculate_ordinate(self.y, time_from_last_calculate)
+                self.x1, self.y1 = self.set_in_limit(x, y)
 
-        # Calculate future position
-        x = self.calculate_abscissa(self.x1, interval)
-        y = self.calculate_ordinate(self.y1, interval)
+            # Calculate future position
+            x = self.calculate_abscissa(self.x1, interval)
+            y = self.calculate_ordinate(self.y1, interval)
 
-        self.time_last_calculation = datetime.now()
-        if float_range(x, self.min_width, self.max_width) and float_range(y, self.min_height, self.max_height):
-            self.move_to(x, y)
-        elif float_range(self.x1, self.min_width, self.max_width, False) and float_range(self.y1, self.min_height, self.max_height, False):
-            target_x, target_y = x, y
-            x, y = self.set_in_limit(x, y)
-            if x != target_x:
-                time_to_crash = abs((x-self.x1) * interval / (target_x - self.x1))
-                y = self.calculate_ordinate(self.y1, time_to_crash)
-            elif y != target_y:
-                time_to_crash = abs((y-self.y1) * interval / (target_y - self.y1))
-                x = self.calculate_abscissa(self.x1, time_to_crash)
-            x, y = self.set_in_limit(x, y)
-            self.change_object(x, y, interval)
-            self.move_to(x, y)
-        else:
-            self.reset()
+            self.time_last_calculation = datetime.now()
+            if float_range(x, self.min_width, self.max_width) and float_range(y, self.min_height, self.max_height):
+                self.move_to(x, y)
+            elif float_range(self.x1, self.min_width, self.max_width, False) and float_range(self.y1, self.min_height, self.max_height, False):
+                target_x, target_y = x, y
+                x, y = self.set_in_limit(x, y)
+                if x != target_x:
+                    time_to_crash = abs((x-self.x1) * interval / (target_x - self.x1))
+                    y = self.calculate_ordinate(self.y1, time_to_crash)
+                elif y != target_y:
+                    time_to_crash = abs((y-self.y1) * interval / (target_y - self.y1))
+                    x = self.calculate_abscissa(self.x1, time_to_crash)
+                x, y = self.set_in_limit(x, y)
+                self.change_object(x, y, interval)
+                self.move_to(x, y)
+            else:
+                self.reset()
 
     def move_to(self, x, y):
         logging.debug('Move %s to new coordinate - (%s, %s)' % (self.__class__.__name__, x, y))
@@ -130,6 +130,7 @@ class Unit(object):
 
     @asyncio.coroutine
     def rotate(self, side):
+        # self.controller.collisions[self.id] = []
         while self.rotate_is_pressing:
             rotate = ANGLE + self.speed * ROTATION_ANGLE
             new_angle = self.angle + rotate if side == 'right' else self.angle - rotate
@@ -143,6 +144,7 @@ class Unit(object):
             yield from asyncio.sleep(ACTION_INTERVAL)
 
     def change_speed(self, direct):
+        self.controller.collisions[self.id] = []
         while self.change_speed_is_pressing:
             new_speed = self.speed + SPEED if direct == 'up' else self.speed - SPEED
             self.speed = new_speed > 0 and new_speed or 0
@@ -154,12 +156,13 @@ class Unit(object):
     @asyncio.coroutine
     def notify_collision(self, other_unit, time_interval):
         yield from asyncio.sleep(time_interval)
-        if not self.controller.units.get(self.id) or not self.controller.units.get(other_unit.id):
+        if not self.controller.units.get(self.id) or not self.controller.units.get(other_unit.id) or \
+                not len(self.controller.collisions[self.id]):
             return
         self.hit(other_unit)
         self.controller.cleanup_units([self, other_unit])
 
-    def check_collision(self, other_unit):
+    def check_collision(self, other_unit, interval):
         # check if coordinate for two units is the same
         # for this check we also include width and height of unit's image
         # (other_unit.x - other_unit.width / 2 < self.x < other_unit.x + other_unit.width / 2)
@@ -179,14 +182,15 @@ class Unit(object):
                 A_P_distance = point_distance(A, int_point)
                 C_D_distance = point_distance(C, D)
                 C_P_distance = point_distance(C, int_point)
-                if self.x != self.x1 or A_P_distance < C_P_distance:
+                if self.x != self.x1 or (A_B_distance - A_P_distance > 0):
                     distance_to_unit = A_B_distance
                     distance_to_collision = A_P_distance
                 else:
                     distance_to_unit = C_D_distance
                     distance_to_collision = C_P_distance
                 time_to_point = distance_to_unit > 0 and round(STEP_INTERVAL * distance_to_collision / distance_to_unit, 2) or 0
-                if time_to_point < STEP_INTERVAL:
+                if time_to_point < interval:
+                    self.controller.collisions[self.id].append(other_unit.id)
                     asyncio.Task(self.notify_collision(other_unit, time_to_point))
 
     def reset(self):
