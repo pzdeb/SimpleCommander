@@ -145,35 +145,33 @@ class GameController(object):
         hero.name = name
         hero.compute_new_coordinate(STEP_INTERVAL)
 
-    @staticmethod
     @asyncio.coroutine
-    def change_speed_up(unit):
+    def change_speed_up(self, unit):
         unit.change_speed_down_is_pressing = False
         unit.change_speed_up_is_pressing = True
         while unit.change_speed_up_is_pressing:
             new_speed = unit.speed + SPEED
             unit.set_speed(new_speed)
+            self.call_check_collision(unit)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
-    @staticmethod
     @asyncio.coroutine
-    def change_speed_down(unit):
+    def change_speed_down(self, unit):
         unit.change_speed_up_is_pressing = False
         unit.change_speed_down_is_pressing = True
         while unit.change_speed_down_is_pressing:
             new_speed = unit.speed - SPEED
             unit.set_speed(new_speed)
+            self.call_check_collision(unit)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
-    @staticmethod
     @asyncio.coroutine
-    def stop_change_speed_up(unit):
+    def stop_change_speed_up(self, unit):
         unit.change_speed_up_is_pressing = False
         unit.compute_new_coordinate(STEP_INTERVAL)
 
-    @staticmethod
     @asyncio.coroutine
-    def stop_change_speed_down(unit):
+    def stop_change_speed_down(self, unit):
         unit.change_speed_down_is_pressing = False
         unit.compute_new_coordinate(STEP_INTERVAL)
 
@@ -185,44 +183,47 @@ class GameController(object):
             unit.compute_new_coordinate(STEP_INTERVAL)
             self.new_unit(Bullet, unit=unit, controller=self)
             unit.last_fire = datetime.now()
+            self.call_check_collision(unit.id)
             yield from asyncio.sleep(unit.frequency_fire)
 
-    @staticmethod
     @asyncio.coroutine
-    def stop_fire(unit):
+    def stop_fire(self, unit):
         unit.is_fire_active = False
 
-    @staticmethod
     @asyncio.coroutine
-    def rotate_right(unit):
+    def rotate_right(self, unit):
         unit.rotate_left_is_pressing = False
         unit.rotate_right_is_pressing = True
         while unit.rotate_right_is_pressing:
             rotate = ANGLE + unit.speed * ROTATION_ANGLE
             new_angle = unit.angle + rotate
             unit.set_angle(new_angle)
+            self.call_check_collision(unit.id)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
-    @staticmethod
     @asyncio.coroutine
-    def rotate_left(unit):
+    def rotate_left(self, unit):
         unit.rotate_right_is_pressing = False
         unit.rotate_left_is_pressing = True
         while unit.rotate_left_is_pressing:
             rotate = ANGLE + unit.speed * ROTATION_ANGLE
             new_angle = unit.angle - rotate
             unit.set_angle(new_angle)
+            self.call_check_collision(unit.id)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
-    @staticmethod
+    def call_check_collision(self, unit):
+        for key in list(self.units.keys()):
+            if self.units.get(unit) and self.units.get(key):
+                self.units[unit].check_collision(self.units[key])
+
     @asyncio.coroutine
-    def stop_rotate_right(unit):
+    def stop_rotate_right(self, unit):
         unit.rotate_right_is_pressing = False
         unit.compute_new_coordinate(STEP_INTERVAL)
 
-    @staticmethod
     @asyncio.coroutine
-    def stop_rotate_left(unit):
+    def stop_rotate_left(self, unit):
         unit.rotate_left_is_pressing = False
         unit.compute_new_coordinate(STEP_INTERVAL)
 
@@ -241,7 +242,5 @@ class GameController(object):
                     if self.units.get(unit):
                         if self.units[unit].speed:
                             self.units[unit].compute_new_coordinate(STEP_INTERVAL)
-                        for key in list(self.units.keys()):
-                            if self.units.get(unit) and self.units.get(key):
-                                self.units[unit].check_collision(self.units[key])
+                        self.call_check_collision(unit)
                 yield from asyncio.sleep(STEP_INTERVAL)
