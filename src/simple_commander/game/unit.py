@@ -130,7 +130,6 @@ class Unit(object):
 
     @asyncio.coroutine
     def rotate(self, side):
-        # self.controller.collisions[self.id] = []
         while self.rotate_is_pressing:
             rotate = ANGLE + self.speed * ROTATION_ANGLE
             new_angle = self.angle + rotate if side == 'right' else self.angle - rotate
