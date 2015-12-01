@@ -155,7 +155,6 @@ class GameController(object):
         while unit.change_speed_up_is_pressing:
             new_speed = unit.speed + SPEED
             unit.set_speed(new_speed)
-            self.call_check_collision(unit, ACTION_INTERVAL)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
     @asyncio.coroutine
@@ -166,7 +165,6 @@ class GameController(object):
         while unit.change_speed_down_is_pressing:
             new_speed = unit.speed - SPEED
             unit.set_speed(new_speed)
-            self.call_check_collision(unit, ACTION_INTERVAL)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
     @asyncio.coroutine
@@ -185,9 +183,9 @@ class GameController(object):
         while unit.life_count > 0 and unit.is_fire_active and \
             (datetime.now() - unit.last_fire).total_seconds() >= unit.frequency_fire:
             unit.compute_new_coordinate(STEP_INTERVAL)
-            self.new_unit(Bullet, unit=unit, controller=self)
+            bullet = self.new_unit(Bullet, unit=unit, controller=self)
             unit.last_fire = datetime.now()
-            self.call_check_collision(unit.id, unit.frequency_fire)
+            self.check_collision(bullet, unit.frequency_fire)
             yield from asyncio.sleep(unit.frequency_fire)
 
     @asyncio.coroutine
@@ -203,7 +201,6 @@ class GameController(object):
             rotate = ANGLE + unit.speed * ROTATION_ANGLE
             new_angle = unit.angle + rotate
             unit.set_angle(new_angle)
-            self.call_check_collision(unit.id, ACTION_INTERVAL)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
     @asyncio.coroutine
@@ -215,13 +212,13 @@ class GameController(object):
             rotate = ANGLE + unit.speed * ROTATION_ANGLE
             new_angle = unit.angle - rotate
             unit.set_angle(new_angle)
-            self.call_check_collision(unit.id, ACTION_INTERVAL)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
-    def call_check_collision(self, unit, interval):
-        for key in list(self.units.keys()):
-            if self.units.get(unit) and self.units.get(key):
-                self.units[unit].check_collision(self.units[key], interval)
+    def check_collision(self, unit, interval):
+        if unit.can_hits():
+            for key in list(self.units.keys()):
+                if self.units.get(unit.id) and self.units.get(key):
+                    self.units[unit.id].check_collision(self.units[key], interval)
 
     @asyncio.coroutine
     def stop_rotate_right(self, unit):
@@ -248,5 +245,6 @@ class GameController(object):
                     if self.units.get(unit):
                         if self.units[unit].speed:
                             self.units[unit].compute_new_coordinate(STEP_INTERVAL)
-                        self.call_check_collision(unit, STEP_INTERVAL)
+                        if self.units.get(unit):
+                            self.check_collision(self.units[unit], STEP_INTERVAL)
                 yield from asyncio.sleep(STEP_INTERVAL)

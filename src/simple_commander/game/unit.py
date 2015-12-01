@@ -70,9 +70,9 @@ class Unit(object):
         return res
 
     def compute_new_coordinate(self, interval):
-        # Calculate real position
         if interval > 0:
             time_from_last_calculate = (datetime.now() - self.time_last_calculation).total_seconds()
+            # Calculate real position
             if time_from_last_calculate < STEP_INTERVAL:
                 x = self.calculate_abscissa(self.x, time_from_last_calculate)
                 y = self.calculate_ordinate(self.y, time_from_last_calculate)
@@ -114,6 +114,7 @@ class Unit(object):
         logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, new_angle))
         self.angle = new_angle
         self.compute_new_coordinate(ACTION_INTERVAL)
+        self.controller.check_collision(self, ACTION_INTERVAL)
 
     def stop_unit(self):
         self.rotate_left_is_pressing = False
@@ -127,30 +128,7 @@ class Unit(object):
         self.speed = MAX_SPEED if self.speed > MAX_SPEED else self.speed
         logging.info('Change %s speed to %s' % (self.__class__.__name__, self.speed))
         self.compute_new_coordinate(ACTION_INTERVAL)
-
-    @asyncio.coroutine
-    def rotate(self, side):
-        while self.rotate_is_pressing:
-            rotate = ANGLE + self.speed * ROTATION_ANGLE
-            new_angle = self.angle + rotate if side == 'right' else self.angle - rotate
-            if new_angle > MAX_ANGLE:
-                new_angle -= MAX_ANGLE
-            elif new_angle < 0:
-                new_angle += MAX_ANGLE
-            logging.debug('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, new_angle))
-            self.angle = new_angle
-            self.compute_new_coordinate(ACTION_INTERVAL)
-            yield from asyncio.sleep(ACTION_INTERVAL)
-
-    def change_speed(self, direct):
-        self.controller.collisions[self.id] = []
-        while self.change_speed_is_pressing:
-            new_speed = self.speed + SPEED if direct == 'up' else self.speed - SPEED
-            self.speed = new_speed > 0 and new_speed or 0
-            self.speed = MAX_SPEED if self.speed > MAX_SPEED else self.speed
-            logging.debug('Change %s speed to %s' % (self.__class__.__name__, self.speed))
-            self.compute_new_coordinate(ACTION_INTERVAL)
-            yield from asyncio.sleep(ACTION_INTERVAL)
+        self.controller.check_collision(self, ACTION_INTERVAL)
 
     @asyncio.coroutine
     def notify_collision(self, other_unit, time_interval):
@@ -193,6 +171,9 @@ class Unit(object):
                     asyncio.Task(self.notify_collision(other_unit, time_to_point))
 
     def reset(self):
+        raise NotImplementedError
+
+    def can_hits(self):
         raise NotImplementedError
 
     def hit(self, other_unit):

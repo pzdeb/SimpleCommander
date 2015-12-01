@@ -18,6 +18,9 @@ class Bullet(Unit):
         self.kill()
         self.controller.remove_unit(self.id)
 
+    def can_hits(self):
+        return True
+
     def hit(self, other_unit):
         logging.debug('In hit - %s(%s) and %s(%s)' % (self.__class__.__name__, self.unit_id, other_unit.__class__.__name__, other_unit.id))
 

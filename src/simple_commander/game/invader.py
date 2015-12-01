@@ -23,6 +23,9 @@ class Invader(Unit):
         self.compute_new_coordinate(STEP_INTERVAL)
         logging.debug('Reset %s angle. New angle - %s' % (self.__class__.__name__, self.angle))
 
+    def can_hits(self):
+        return False
+
     def hit(self, other_unit):
         pass
 
