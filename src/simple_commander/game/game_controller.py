@@ -182,10 +182,9 @@ class GameController(object):
         unit.is_fire_active = True
         while unit.life_count > 0 and unit.is_fire_active and \
             (datetime.now() - unit.last_fire).total_seconds() >= unit.frequency_fire:
-            unit.compute_new_coordinate(STEP_INTERVAL)
-            bullet = self.new_unit(Bullet, unit=unit, controller=self)
+            unit.compute_new_coordinate(unit.frequency_fire)
+            self.new_unit(Bullet, unit=unit, controller=self)
             unit.last_fire = datetime.now()
-            self.check_collision(bullet, unit.frequency_fire)
             yield from asyncio.sleep(unit.frequency_fire)
 
     @asyncio.coroutine
@@ -215,10 +214,9 @@ class GameController(object):
             yield from asyncio.sleep(ACTION_INTERVAL)
 
     def check_collision(self, unit, interval):
-        if unit.can_hits():
-            for key in list(self.units.keys()):
-                if self.units.get(unit.id) and self.units.get(key):
-                    self.units[unit.id].check_collision(self.units[key], interval)
+        for key in list(self.units.keys()):
+            if self.units.get(unit.id) and self.units.get(key):
+                self.units[unit.id].check_collision(self.units[key], interval)
 
     @asyncio.coroutine
     def stop_rotate_right(self, unit):
@@ -245,6 +243,4 @@ class GameController(object):
                     if self.units.get(unit):
                         if self.units[unit].speed:
                             self.units[unit].compute_new_coordinate(STEP_INTERVAL)
-                        if self.units.get(unit):
-                            self.check_collision(self.units[unit], STEP_INTERVAL)
                 yield from asyncio.sleep(STEP_INTERVAL)

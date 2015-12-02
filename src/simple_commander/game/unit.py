@@ -99,6 +99,7 @@ class Unit(object):
                 self.move_to(x, y)
             else:
                 self.reset()
+        self.controller.check_collision(self, interval)
 
     def move_to(self, x, y):
         logging.debug('Move %s to new coordinate - (%s, %s)' % (self.__class__.__name__, x, y))
@@ -114,7 +115,6 @@ class Unit(object):
         logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, new_angle))
         self.angle = new_angle
         self.compute_new_coordinate(ACTION_INTERVAL)
-        self.controller.check_collision(self, ACTION_INTERVAL)
 
     def stop_unit(self):
         self.rotate_left_is_pressing = False
@@ -128,13 +128,12 @@ class Unit(object):
         self.speed = MAX_SPEED if self.speed > MAX_SPEED else self.speed
         logging.info('Change %s speed to %s' % (self.__class__.__name__, self.speed))
         self.compute_new_coordinate(ACTION_INTERVAL)
-        self.controller.check_collision(self, ACTION_INTERVAL)
 
     @asyncio.coroutine
     def notify_collision(self, other_unit, time_interval):
         yield from asyncio.sleep(time_interval)
         if not self.controller.units.get(self.id) or not self.controller.units.get(other_unit.id) or \
-                not len(self.controller.collisions[self.id]):
+                not len(self.controller.collisions[self.id]) or not len(self.controller.collisions[other_unit.id]):
             return
         self.hit(other_unit)
         self.controller.cleanup_units([self, other_unit])
@@ -168,6 +167,7 @@ class Unit(object):
                 time_to_point = distance_to_unit > 0 and round(interval * distance_to_collision / distance_to_unit, 2) or 0
                 if time_to_point < interval:
                     self.controller.collisions[self.id].append(other_unit.id)
+                    self.controller.collisions[other_unit.id].append(self.id)
                     asyncio.Task(self.notify_collision(other_unit, time_to_point))
 
     def reset(self):

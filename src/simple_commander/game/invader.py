@@ -5,6 +5,7 @@ from random import randint
 
 from simple_commander.game.unit import Unit
 from simple_commander.utils.constants import DEFAULT_SPEED, STEP_INTERVAL, UNITS
+from src.simple_commander.game.bullet import Bullet
 
 
 class Invader(Unit):
@@ -27,7 +28,16 @@ class Invader(Unit):
         return False
 
     def hit(self, other_unit):
-        pass
+        unit_class_name = other_unit. __class__.__name__
+        logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
+        if unit_class_name == 'Hero':
+            other_unit.hits += 1
+            other_unit.decrease_life()
+            self.kill()
+        elif isinstance(other_unit, Bullet):
+            self.controller.add_hits(other_unit)
+            other_unit.kill()
+            self.kill()
 
     def change_object(self, x, y, interval):
         """ Reset Invader object. """
