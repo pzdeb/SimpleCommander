@@ -158,14 +158,25 @@ class Unit(object):
                 A_P_distance = point_distance(A, int_point)
                 C_D_distance = point_distance(C, D)
                 C_P_distance = point_distance(C, int_point)
-                if self.x != self.x1 or (A_B_distance - A_P_distance > 0):
+                if (A_B_distance - A_P_distance < 0 and A_B_distance > 0) or (C_D_distance - C_P_distance < 0 and C_D_distance > 0):
+                    if ((B[0] + self.width / 2 > D[0] - other_unit.width / 2) and
+                            (B[0] - self.width / 2 < D[0] + other_unit.width / 2) and
+                            (B[1] + self.height / 2 > D[1] - other_unit.height / 2) and
+                            (B[1] - self.height / 2 < D[1] + other_unit.height / 2)):
+                        if A_B_distance > 0:
+                            A_P_distance = A_B_distance
+                        else:
+                            C_P_distance = C_D_distance
+                    else:
+                        return
+                if A_B_distance - A_P_distance >= 0 and A_B_distance > 0:
                     distance_to_unit = A_B_distance
                     distance_to_collision = A_P_distance
                 else:
                     distance_to_unit = C_D_distance
                     distance_to_collision = C_P_distance
                 time_to_point = distance_to_unit > 0 and round(interval * distance_to_collision / distance_to_unit, 2) or 0
-                if time_to_point < interval:
+                if time_to_point <= interval:
                     self.controller.collisions[self.id].append(other_unit.id)
                     self.controller.collisions[other_unit.id].append(self.id)
                     asyncio.Task(self.notify_collision(other_unit, time_to_point))
