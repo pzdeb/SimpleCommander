@@ -53,9 +53,6 @@ class Hero(Unit):
         self.y = self.y1
         self.response('update')
 
-    def can_hits(self):
-        return True
-
     def hit(self, other_unit):
         logging.debug('In hit - %s and %s' % (self.__class__.__name__, other_unit.__class__.__name__))
         self.hits += 1

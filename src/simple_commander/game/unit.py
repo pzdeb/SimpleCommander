@@ -184,9 +184,6 @@ class Unit(object):
     def reset(self):
         raise NotImplementedError
 
-    def can_hits(self):
-        raise NotImplementedError
-
     def hit(self, other_unit):
         raise NotImplementedError
     
