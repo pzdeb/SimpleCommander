@@ -47,15 +47,6 @@ class Hero(Unit):
             self.kill()
         self.response('update_life')
 
-    @asyncio.coroutine
-    def fire(self, obj):
-        while self.life_count > 0 and self.is_fire_active and \
-                        (datetime.now() - self.last_fire).total_seconds() >= self.frequency_fire:
-            self.compute_new_coordinate(STEP_INTERVAL)
-            self.controller.new_unit(obj, unit=self, controller=self.controller)
-            self.last_fire = datetime.now()
-            yield from asyncio.sleep(self.frequency_fire)
-
     def reset(self):
         self.speed = 0
         self.x = self.x1

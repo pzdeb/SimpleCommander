@@ -22,6 +22,7 @@ class GameController(object):
         self.game_field = {'height': height, 'width': width}
         self.invaders_count = invaders_count
         self.units = {}
+        self.collisions = {}
         self.random_type = self.get_unit_type()
         self.set_invaders(self.invaders_count)
 
@@ -46,6 +47,7 @@ class GameController(object):
         kwargs['controller'] = self
         unit = unit_class(*args, **kwargs)
         self.units[unit.id] = unit
+        self.collisions[unit.id] = []
         unit.response('new')
         logging.debug('Create new unit - %s -', unit.__class__.__name__)
         unit.compute_new_coordinate(STEP_INTERVAL)
@@ -145,9 +147,9 @@ class GameController(object):
         hero.name = name
         hero.compute_new_coordinate(STEP_INTERVAL)
 
-    @staticmethod
     @asyncio.coroutine
-    def change_speed_up(unit):
+    def change_speed_up(self, unit):
+        self.collisions[unit.id] = []
         unit.change_speed_down_is_pressing = False
         unit.change_speed_up_is_pressing = True
         while unit.change_speed_up_is_pressing:
@@ -155,9 +157,9 @@ class GameController(object):
             unit.set_speed(new_speed)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
-    @staticmethod
     @asyncio.coroutine
-    def change_speed_down(unit):
+    def change_speed_down(self, unit):
+        self.collisions[unit.id] = []
         unit.change_speed_up_is_pressing = False
         unit.change_speed_down_is_pressing = True
         while unit.change_speed_down_is_pressing:
@@ -165,15 +167,13 @@ class GameController(object):
             unit.set_speed(new_speed)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
-    @staticmethod
     @asyncio.coroutine
-    def stop_change_speed_up(unit):
+    def stop_change_speed_up(self, unit):
         unit.change_speed_up_is_pressing = False
         unit.compute_new_coordinate(STEP_INTERVAL)
 
-    @staticmethod
     @asyncio.coroutine
-    def stop_change_speed_down(unit):
+    def stop_change_speed_down(self, unit):
         unit.change_speed_down_is_pressing = False
         unit.compute_new_coordinate(STEP_INTERVAL)
 
@@ -182,19 +182,18 @@ class GameController(object):
         unit.is_fire_active = True
         while unit.life_count > 0 and unit.is_fire_active and \
             (datetime.now() - unit.last_fire).total_seconds() >= unit.frequency_fire:
-            unit.compute_new_coordinate(STEP_INTERVAL)
+            unit.compute_new_coordinate(unit.frequency_fire)
             self.new_unit(Bullet, unit=unit, controller=self)
             unit.last_fire = datetime.now()
             yield from asyncio.sleep(unit.frequency_fire)
 
-    @staticmethod
     @asyncio.coroutine
-    def stop_fire(unit):
+    def stop_fire(self, unit):
         unit.is_fire_active = False
 
-    @staticmethod
     @asyncio.coroutine
-    def rotate_right(unit):
+    def rotate_right(self, unit):
+        self.collisions[unit.id] = []
         unit.rotate_left_is_pressing = False
         unit.rotate_right_is_pressing = True
         while unit.rotate_right_is_pressing:
@@ -203,9 +202,9 @@ class GameController(object):
             unit.set_angle(new_angle)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
-    @staticmethod
     @asyncio.coroutine
-    def rotate_left(unit):
+    def rotate_left(self, unit):
+        self.collisions[unit.id] = []
         unit.rotate_right_is_pressing = False
         unit.rotate_left_is_pressing = True
         while unit.rotate_left_is_pressing:
@@ -214,15 +213,18 @@ class GameController(object):
             unit.set_angle(new_angle)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
-    @staticmethod
+    def check_collision(self, unit, interval):
+        for key in list(self.units.keys()):
+            if self.units.get(unit.id) and self.units.get(key):
+                self.units[unit.id].check_collision(self.units[key], interval)
+
     @asyncio.coroutine
-    def stop_rotate_right(unit):
+    def stop_rotate_right(self, unit):
         unit.rotate_right_is_pressing = False
         unit.compute_new_coordinate(STEP_INTERVAL)
 
-    @staticmethod
     @asyncio.coroutine
-    def stop_rotate_left(unit):
+    def stop_rotate_left(self, unit):
         unit.rotate_left_is_pressing = False
         unit.compute_new_coordinate(STEP_INTERVAL)
 
@@ -241,7 +243,4 @@ class GameController(object):
                     if self.units.get(unit):
                         if self.units[unit].speed:
                             self.units[unit].compute_new_coordinate(STEP_INTERVAL)
-                        for key in list(self.units.keys()):
-                            if self.units.get(unit) and self.units.get(key):
-                                self.units[unit].check_collision(self.units[key])
                 yield from asyncio.sleep(STEP_INTERVAL)
