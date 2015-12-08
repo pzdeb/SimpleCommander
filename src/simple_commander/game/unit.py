@@ -112,7 +112,7 @@ class Unit(object):
             new_angle -= MAX_ANGLE
         elif new_angle < 0:
             new_angle += MAX_ANGLE
-        logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, new_angle))
+        logging.debug('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, new_angle))
         self.angle = new_angle
         self.compute_new_coordinate(ACTION_INTERVAL)
 
@@ -126,7 +126,7 @@ class Unit(object):
     def set_speed(self, new_speed):
         self.speed = new_speed > 0 and new_speed or 0
         self.speed = MAX_SPEED if self.speed > MAX_SPEED else self.speed
-        logging.info('Change %s speed to %s' % (self.__class__.__name__, self.speed))
+        logging.debug('Change %s speed to %s' % (self.__class__.__name__, self.speed))
         self.compute_new_coordinate(ACTION_INTERVAL)
 
     @asyncio.coroutine
