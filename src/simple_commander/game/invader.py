@@ -2,7 +2,9 @@
 
 import logging
 from random import randint
+from datetime import datetime
 
+from simple_commander.utils.utils import float_range
 from simple_commander.game.unit import Unit
 from simple_commander.utils.constants import DEFAULT_SPEED, STEP_INTERVAL, UNITS
 from simple_commander.game.bullet import Bullet
@@ -20,8 +22,6 @@ class Invader(Unit):
 
     def reset(self):
         #TODO: add angle into account
-        self.angle = randint(0, 360)
-        self.compute_new_coordinate(STEP_INTERVAL)
         logging.debug('Reset %s angle. New angle - %s' % (self.__class__.__name__, self.angle))
 
     def hit(self, other_unit):
@@ -53,3 +53,24 @@ class Invader(Unit):
         obj_kill.controller.add_hits(obj_kill)
         self.kill()
         obj_kill.kill()
+
+    def compute_new_coordinate(self, interval):
+        time_from_last_calculate = (datetime.now() - self.time_last_calculation).total_seconds()
+        # Calculate real position
+        if time_from_last_calculate < STEP_INTERVAL:
+            x = self.calculate_abscissa(self.x, time_from_last_calculate)
+            y = self.calculate_ordinate(self.y, time_from_last_calculate)
+            self.x1, self.y1 = self.set_in_limit(x, y)
+
+        # Calculate future position
+        x = self.calculate_abscissa(self.x1, interval)
+        y = self.calculate_ordinate(self.y1, interval)
+
+        self.time_last_calculation = datetime.now()
+        if float_range(x, self.min_width, self.max_width) and float_range(y, self.min_height, self.max_height):
+            self.move_to(x, y)
+        else:
+            self.angle = (self.angle + 90) % 360
+            x = self.calculate_abscissa(self.x1, interval)
+            y = self.calculate_ordinate(self.y1, interval)
+            self.move_to(x, y)

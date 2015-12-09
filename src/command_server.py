@@ -85,7 +85,7 @@ if __name__ == '__main__':
     port = os.environ.get('PORT', config.get('commandServer', 'port'))
     static_path = config.get('commandServer', 'static_path')
     templates = config.get('commandServer', 'templates')
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     loop = asyncio.get_event_loop()
     server = HttpCommandServer(host=host, port=port, templates=templates)
     try:
