@@ -5,7 +5,7 @@ from random import randint
 
 from simple_commander.game.unit import Unit
 from simple_commander.utils.constants import DEFAULT_SPEED, STEP_INTERVAL, UNITS
-from src.simple_commander.game.bullet import Bullet
+from simple_commander.game.bullet import Bullet
 
 
 class Invader(Unit):
