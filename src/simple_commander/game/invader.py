@@ -74,3 +74,4 @@ class Invader(Unit):
             x = self.calculate_abscissa(self.x1, interval)
             y = self.calculate_ordinate(self.y1, interval)
             self.move_to(x, y)
+        self.controller.check_collision(self, interval)
