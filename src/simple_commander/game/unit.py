@@ -9,8 +9,8 @@ from simple_commander.utils.utils import float_range
 from simple_commander.utils.constants import ACTION_INTERVAL, ANGLE, MAX_ANGLE, \
                                              MAX_ANGLE, MAX_SPEED, ROTATION_ANGLE, \
                                              SPEED, STEP_INTERVAL, UNIT_PROPERTIES
-from simple_commander.utils.line_intersection import object_intersection, point_distance
-
+from simple_commander.utils.line_intersection import object_intersection
+from shapely.geometry import Point
 
 class Unit(object):
     """ Base class for all the units. """
@@ -152,12 +152,13 @@ class Unit(object):
             B = (self.x1, self.y1)
             C = (other_unit.x, other_unit.y)
             D = (other_unit.x1, other_unit.y1)
-            int_point = object_intersection((A, B), (C, D), round(self.width / 2), round(other_unit.width / 2))
+            int_point = object_intersection(A, B, C, D, round(self.width / 2), round(other_unit.width / 2))
             if int_point:
-                A_B_distance = point_distance(A, B)
-                A_P_distance = point_distance(A, int_point)
-                C_D_distance = point_distance(C, D)
-                C_P_distance = point_distance(C, int_point)
+                A_B_distance = Point(A).distance(Point(B))
+                A_P_distance = int_point.distance(Point(A))
+                C_D_distance = Point(C).distance(Point(D))
+                C_P_distance = Point(C).distance(int_point)
+
                 if (A_B_distance - A_P_distance < 0 and A_B_distance > 0) or (C_D_distance - C_P_distance < 0 and C_D_distance > 0):
                     if ((B[0] + self.width / 2 > D[0] - other_unit.width / 2) and
                             (B[0] - self.width / 2 < D[0] + other_unit.width / 2) and
@@ -180,6 +181,7 @@ class Unit(object):
                     self.controller.collisions[self.id].append(other_unit.id)
                     self.controller.collisions[other_unit.id].append(self.id)
                     asyncio.Task(self.notify_collision(other_unit, time_to_point))
+
 
     def reset(self):
         raise NotImplementedError

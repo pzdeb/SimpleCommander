@@ -1,11 +1,11 @@
 import unittest
 
-from src.simple_commander.controllers.main import GameController
-from src.simple_commander.controllers.main import Bullet
-from src.simple_commander.controllers.main import Hero
-from src.simple_commander.controllers.main import Invader
-from src.simple_commander.controllers.main import DEFAULT_SPEED
-from src.simple_commander.controllers.main import STEP_INTERVAL
+from simple_commander.controllers.main import GameController
+from simple_commander.controllers.main import Bullet
+from simple_commander.controllers.main import Hero
+from simple_commander.controllers.main import Invader
+from simple_commander.controllers.main import DEFAULT_SPEED
+from simple_commander.controllers.main import STEP_INTERVAL
 
 
 class MainControllerTestCase(unittest.TestCase):

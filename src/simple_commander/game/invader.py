@@ -73,5 +73,6 @@ class Invader(Unit):
             self.angle = (self.angle + 90) % 360
             x = self.calculate_abscissa(self.x1, interval)
             y = self.calculate_ordinate(self.y1, interval)
+            x, y = self.set_in_limit(x, y)
             self.move_to(x, y)
         self.controller.check_collision(self, interval)
