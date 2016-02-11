@@ -3,14 +3,12 @@
 import asyncio
 import json
 import logging
-from datetime import datetime
+import time
 from random import randint, shuffle
 
-from simple_commander.game.bullet import Bullet
-from simple_commander.game.invader import Invader
-from simple_commander.game.hero import Hero
+from simple_commander.game.unit import Bullet, Invader, Hero
 from simple_commander.utils.constants import ANGLE, ACTION_INTERVAL,\
-    ROTATION_ANGLE, SPEED, STEP_INTERVAL, UNITS, DEFAULT_LIFE_COUNT
+    ROTATION_ANGLE, SPEED, STEP_INTERVAL, UNITS, DEFAULT_LIFE_COUNT, MIN_INTERVAL
 
 
 class GameController(object):
@@ -48,9 +46,10 @@ class GameController(object):
         unit = unit_class(*args, **kwargs)
         self.units[unit.id] = unit
         self.collisions[unit.id] = []
-        unit.response('new')
+        unit.response('new', force=True)
         logging.debug('Create new unit - %s -', unit.__class__.__name__)
-        unit.compute_new_coordinate(STEP_INTERVAL)
+        unit.compute_new_coordinate()
+        unit.response('update', force=True)
         return unit
 
     def drop_connection(self, socket):
@@ -84,7 +83,7 @@ class GameController(object):
         """ Remove unit with unit ID. """
         if self.units[unit_id]:
             class_name = self.units[unit_id].__class__.__name__
-            self.units[unit_id].response('delete')
+            self.units[unit_id].response('delete', force=True)
             del self.units[unit_id]
             if class_name == 'Invader':
                 self.set_invaders(1)
@@ -145,7 +144,7 @@ class GameController(object):
     @staticmethod
     def set_name(hero, name):
         hero.name = name
-        hero.compute_new_coordinate(STEP_INTERVAL)
+        hero.compute_new_coordinate()
 
     @asyncio.coroutine
     def change_speed_up(self, unit):
@@ -170,21 +169,20 @@ class GameController(object):
     @asyncio.coroutine
     def stop_change_speed_up(self, unit):
         unit.change_speed_up_is_pressing = False
-        unit.compute_new_coordinate(STEP_INTERVAL)
+        unit.compute_new_coordinate()
 
     @asyncio.coroutine
     def stop_change_speed_down(self, unit):
         unit.change_speed_down_is_pressing = False
-        unit.compute_new_coordinate(STEP_INTERVAL)
+        unit.compute_new_coordinate()
 
     @asyncio.coroutine
     def start_fire(self, unit):
         unit.is_fire_active = True
-        while unit.life_count > 0 and unit.is_fire_active and \
-            (datetime.now() - unit.last_fire).total_seconds() >= unit.frequency_fire:
-            unit.compute_new_coordinate(unit.frequency_fire)
+        while unit.life_count > 0 and unit.is_fire_active and (time.time() - unit.last_fire) >= unit.frequency_fire:
+            unit.compute_new_coordinate()
             self.new_unit(Bullet, unit=unit, controller=self)
-            unit.last_fire = datetime.now()
+            unit.last_fire = time.time()
             yield from asyncio.sleep(unit.frequency_fire)
 
     @asyncio.coroutine
@@ -213,20 +211,20 @@ class GameController(object):
             unit.set_angle(new_angle)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
-    def check_collision(self, unit, interval):
-        for key in list(self.units.keys()):
-            if self.units.get(unit.id) and self.units.get(key):
-                self.units[unit.id].check_collision(self.units[key], interval)
+    # def check_collision(self, unit, interval):
+    #     for key in list(self.units.keys()):
+    #         if self.units.get(unit.id) and self.units.get(key):
+    #             self.units[unit.id].check_collision(self.units[key], interval)
 
     @asyncio.coroutine
     def stop_rotate_right(self, unit):
         unit.rotate_right_is_pressing = False
-        unit.compute_new_coordinate(STEP_INTERVAL)
+        unit.compute_new_coordinate()
 
     @asyncio.coroutine
     def stop_rotate_left(self, unit):
         unit.rotate_left_is_pressing = False
-        unit.compute_new_coordinate(STEP_INTERVAL)
+        unit.compute_new_coordinate()
 
     @asyncio.coroutine
     def run(self):
@@ -235,12 +233,27 @@ class GameController(object):
             logging.basicConfig(level=logging.DEBUG)
             logging.info('Starting Space Invaders Game instance.')
 
+            # asyncio.async(self.check_collision())
+
             '''this code for moving invaders. Work as a job.
                 We set moving_speed for positive - if reach the left coordinate of our game field
                 or negative  - if we reach the right coordinate of our game field '''
             while len(self.units) > 0:
                 for unit in list(self.units.keys()):
-                    if self.units.get(unit):
-                        if self.units[unit].speed:
-                            self.units[unit].compute_new_coordinate(STEP_INTERVAL)
-                yield from asyncio.sleep(STEP_INTERVAL)
+                    this_unit = self.units.get(unit)
+                    if this_unit and \
+                            this_unit.speed and \
+                            (time.time() - this_unit.last_calculation_time) >= \
+                            this_unit.frequency:
+                        this_unit.compute_new_coordinate()
+                self.check_collision()
+                yield from asyncio.sleep(MIN_INTERVAL)
+
+    def check_collision(self):
+        for first_unit_key in list(self.units.keys()):
+            first_unit = self.units.get(first_unit_key)
+            if first_unit and first_unit.speed:
+                for second_unit_key in list(self.units.keys()):
+                    second_unit = self.units.get(second_unit_key)
+                    if second_unit_key and first_unit_key != second_unit_key:
+                        first_unit.check_collision(second_unit)
