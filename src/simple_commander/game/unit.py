@@ -6,10 +6,9 @@ import uuid
 import time
 from random import randint
 
-from simple_commander.utils.utils import float_range
+from simple_commander.utils.float_range import float_range
 from simple_commander.utils.constants import MAX_ANGLE, MAX_SPEED, STEP_INTERVAL, UNIT_PROPERTIES, UNITS, DEFAULT_SPEED, \
     DEFAULT_SPEED_BULLETS
-from simple_commander.utils.line_intersection import object_intersection, point_distance
 
 
 class Unit(object):
@@ -31,7 +30,6 @@ class Unit(object):
         self.hits = hits
         self.speed = speed
         self.id = str(uuid.uuid4())
-        self.is_dead = False
         self.shift = 5
         self.frequency = 1/(float(self.speed)/self.height) if self.speed else STEP_INTERVAL
         self.rotate_is_pressing = False
@@ -46,8 +44,9 @@ class Unit(object):
         if not self.controller or (not force and time.time() - self.last_response < STEP_INTERVAL):
             return
         tick_number = 1 // self.frequency
-        next_response = STEP_INTERVAL if tick_number * self.frequency == STEP_INTERVAL \
-            else tick_number * self.frequency + self.frequency
+        next_response = STEP_INTERVAL*1000 if tick_number * int(self.frequency*1000) == STEP_INTERVAL*1000 \
+            else tick_number * int(self.frequency*1000) + int(self.frequency*1000)
+        next_response = next_response/1000
         data = {action: self.to_dict()}
         data[action].update(kwargs)
         if not force:
@@ -56,6 +55,8 @@ class Unit(object):
                 'x1': self.calculate_abscissa(self.x, next_response),
                 'y1': self.calculate_ordinate(self.y, next_response)
             })
+        # print('i am on X={} Y={} time from last calculate={}'.format(data[action]['x'], data[action]['y'], (time.time()-self.last_response)))
+        # print('i am going on X={} Y={} i will be after={}'.format(data[action]['x1'], data[action]['y1'], next_response))
         self.last_response = time.time()
         asyncio.async(self.controller.notify_clients(data))
 
@@ -133,7 +134,7 @@ class Unit(object):
         self.rotate_right_is_pressing = False
         self.change_speed_up_is_pressing = False
         self.change_speed_down_is_pressing = False
-        self.fis_fire_active = False
+        self.is_fire_active = False
 
     def set_speed(self, new_speed):
         self.speed = new_speed > 0 and new_speed or 0
@@ -143,75 +144,15 @@ class Unit(object):
         self.compute_new_coordinate()
         self.response('update', force=True)
 
-    def notify_collision(self, other_unit):
-        if isinstance(self, Bullet) and (isinstance(other_unit, Bullet) or self.unit_id == id(other_unit)):
-            return
-        self.hit(other_unit)
-        self.controller.cleanup_units([self, other_unit])
-
     def check_collision(self, other_unit):
-        # if (hasattr(self, 'unit_id') and id(self)) or (hasattr(other_unit, 'unit_id') and id(other_unit)):
-        #     return
-        # calculate first unit position
-        time_from_last_calculate = time.time() - self.last_calculation_time
-        first_unit_x = self.calculate_abscissa(self.x, time_from_last_calculate)
-        first_unit_y = self.calculate_abscissa(self.y, time_from_last_calculate)
+        if (isinstance(self, Bullet) and (isinstance(other_unit, Bullet) or self.unit_id == id(other_unit))) or \
+                (isinstance(other_unit, Bullet) and (isinstance(self, Bullet) or other_unit.unit_id == id(self))) or \
+                (isinstance(self, Invader) and isinstance(other_unit, Invader)):
+            return
 
-        # calculate second unit position
-        if not other_unit.speed:
-            second_unit_x = other_unit.x
-            second_unit_y = other_unit.y
-        else:
-            time_from_last_calculate = time.time() - self.last_calculation_time
-            second_unit_x = other_unit.calculate_abscissa(other_unit.x, time_from_last_calculate)
-            second_unit_y = other_unit.calculate_abscissa(other_unit.y, time_from_last_calculate)
-
-        distance = math.sqrt(((first_unit_x-second_unit_x)**2)+((first_unit_y-second_unit_y)**2))
+        distance = math.sqrt(((self.x-other_unit.x)**2)+((self.y-other_unit.y)**2))
         if distance <= (self.width/2 + other_unit.width/2):
-            self.notify_collision(other_unit)
-
-    # def check_collision(self, other_unit, interval):
-    #     # check if coordinate for two units is the same
-    #     # for this check we also include width and height of unit's image
-    #     # (other_unit.x - other_unit.width / 2 < self.x < other_unit.x + other_unit.width / 2)
-    #     # (other_unit.y - other_unit.height / 2 < self.y < other_unit.y + other_unit.height / 2)
-    #     # we don't need to check collision for Bullet with Bullet
-    #     if not self.collision_check() and not other_unit.collision_check():
-    #         return
-    #     if id(self) != id(other_unit) and getattr(self, 'unit_id', '') != id(other_unit) and \
-    #             getattr(other_unit, 'unit_id', '') != id(self):
-    #         A = (self.x, self.y)
-    #         B = (self.x1, self.y1)
-    #         C = (other_unit.x, other_unit.y)
-    #         D = (other_unit.x1, other_unit.y1)
-    #         int_point = object_intersection((A, B), (C, D), round(self.width / 2), round(other_unit.width / 2))
-    #         if int_point:
-    #             A_B_distance = point_distance(A, B)
-    #             A_P_distance = point_distance(A, int_point)
-    #             C_D_distance = point_distance(C, D)
-    #             C_P_distance = point_distance(C, int_point)
-    #             if (A_B_distance - A_P_distance < 0 and A_B_distance > 0) or (C_D_distance - C_P_distance < 0 and C_D_distance > 0):
-    #                 if ((B[0] + self.width / 2 > D[0] - other_unit.width / 2) and
-    #                         (B[0] - self.width / 2 < D[0] + other_unit.width / 2) and
-    #                         (B[1] + self.height / 2 > D[1] - other_unit.height / 2) and
-    #                         (B[1] - self.height / 2 < D[1] + other_unit.height / 2)):
-    #                     if A_B_distance > 0:
-    #                         A_P_distance = A_B_distance
-    #                     else:
-    #                         C_P_distance = C_D_distance
-    #                 else:
-    #                     return
-    #             if A_B_distance - A_P_distance >= 0 and A_B_distance > 0:
-    #                 distance_to_unit = A_B_distance
-    #                 distance_to_collision = A_P_distance
-    #             else:
-    #                 distance_to_unit = C_D_distance
-    #                 distance_to_collision = C_P_distance
-    #             time_to_point = distance_to_unit > 0 and round(interval * distance_to_collision / distance_to_unit, 2) or 0
-    #             if time_to_point <= interval:
-    #                 self.controller.collisions[self.id].append(other_unit.id)
-    #                 self.controller.collisions[other_unit.id].append(self.id)
-    #                 asyncio.Task(self.notify_collision(other_unit, time_to_point))
+            self.hit(other_unit)
 
     def reset(self):
         raise NotImplementedError
@@ -222,14 +163,10 @@ class Unit(object):
     @asyncio.coroutine
     def change_object(self, x, y, time_to_crash):
         raise NotImplementedError
-    
-    def collision_check(self):
-        raise NotImplementedError
 
     def kill(self):
         logging.debug('Killing - %s ' % self.__class__.__name__)
-        self.is_dead = True
-        self.x1 = self.x
+        self.controller.remove_unit(self.id)
 
 
 class Hero(Unit):
@@ -266,6 +203,7 @@ class Hero(Unit):
             self.response("new", force=True)
         else:
             self.life_count = 0
+            self.stop_unit()
             self.kill()
         self.response('update_life', force=True)
 
@@ -284,7 +222,7 @@ class Hero(Unit):
             other_unit.decrease_life()
         else:
             # Add hits if other_unit is Bullet
-            if not other_unit.collision_check():
+            if other_unit is Bullet:
                 self.controller.add_hits(other_unit)
             other_unit.kill()
 
@@ -293,10 +231,6 @@ class Hero(Unit):
         """ Recalculate speed for Hero object. """
         self.speed = round(math.sqrt((x - self.x1) ** 2 + (y - self.y1) ** 2) / self.frequency)
         self.move_to(x, y)
-
-    def collision_check(self):
-        """ Do we need to check collision for Hero objects? """
-        return True
 
     def get_bullet_dimension(self):
         """ Get dimension for Hero object. """
@@ -327,9 +261,8 @@ class Invader(Unit):
         self.response('update', force=True)
 
     def hit(self, other_unit):
-        unit_class_name = other_unit. __class__.__name__
-        logging.info('In hit - %s and %s' % (self.__class__.__name__, unit_class_name))
-        if unit_class_name == 'Hero':
+        logging.info('In hit - %s and %s' % (self.__class__.__name__, other_unit. __class__.__name__))
+        if isinstance(other_unit, Hero):
             other_unit.hits += 1
             other_unit.decrease_life()
             self.kill()
@@ -342,16 +275,9 @@ class Invader(Unit):
     def change_object(self, x, y, time_to_crash):
         """ Reset Invader object. """
         asyncio.sleep(time_to_crash)
-        self.move_to(x, y)
-        self.reset()
-
-    def collision_check(self):
-        """ Do we need to check collision for Invader objects? """
-        return True
-
-    # def get_bullet_dimension(self):
-    #     """ Get dimension for Invader object. """
-    #     return UNITS.get('bullet_invader', {}).get('dimension', 0)
+        if self.id in self.controller.units:
+            self.move_to(x, y)
+            self.reset()
 
     def bullet_kill(self, obj_kill):
         """ Kill object after bullet hit. """
@@ -370,7 +296,6 @@ class Bullet(Unit):
     def reset(self):
         """ Remove bullet. """
         self.kill()
-        self.controller.remove_unit(self.id)
 
     def hit(self, other_unit):
         logging.debug('In hit - %s(%s) and %s(%s)' % (self.__class__.__name__, self.unit_id, other_unit.__class__.__name__, other_unit.id))
@@ -379,8 +304,6 @@ class Bullet(Unit):
 
     @asyncio.coroutine
     def change_object(self, x, y, time_to_crash):
-        pass
-
-    def collision_check(self):
-        """ Do we need to check collision for Bullet objects? """
-        return False
+        asyncio.sleep(time_to_crash)
+        if self.id in self.controller.units:
+            self.reset()

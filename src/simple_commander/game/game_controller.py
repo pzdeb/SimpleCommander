@@ -73,17 +73,12 @@ class GameController(object):
                              dimension=hero_type['dimension'])
         return hero
 
-    def cleanup_units(self, units):
-        """ Remove list of units. """
-        for unit in units:
-            if unit.is_dead:
-                self.remove_unit(unit.id)
-
     def remove_unit(self, unit_id):
         """ Remove unit with unit ID. """
-        if self.units[unit_id]:
-            class_name = self.units[unit_id].__class__.__name__
-            self.units[unit_id].response('delete', force=True)
+        unit = self.units.get(unit_id)
+        if unit:
+            class_name = unit.__class__.__name__
+            unit.response('delete', force=True)
             del self.units[unit_id]
             if class_name == 'Invader':
                 self.set_invaders(1)
@@ -211,11 +206,6 @@ class GameController(object):
             unit.set_angle(new_angle)
             yield from asyncio.sleep(ACTION_INTERVAL)
 
-    # def check_collision(self, unit, interval):
-    #     for key in list(self.units.keys()):
-    #         if self.units.get(unit.id) and self.units.get(key):
-    #             self.units[unit.id].check_collision(self.units[key], interval)
-
     @asyncio.coroutine
     def stop_rotate_right(self, unit):
         unit.rotate_right_is_pressing = False
@@ -233,12 +223,10 @@ class GameController(object):
             logging.basicConfig(level=logging.DEBUG)
             logging.info('Starting Space Invaders Game instance.')
 
-            # asyncio.async(self.check_collision())
-
             '''this code for moving invaders. Work as a job.
                 We set moving_speed for positive - if reach the left coordinate of our game field
                 or negative  - if we reach the right coordinate of our game field '''
-            while len(self.units) > 0:
+            while True:
                 for unit in list(self.units.keys()):
                     this_unit = self.units.get(unit)
                     if this_unit and \
