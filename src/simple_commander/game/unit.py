@@ -115,6 +115,7 @@ class Unit(object):
         self.x, self.y = self.x1, self.y1
         self.x1, self.y1 = x, y
         self.response('update', force=False)
+        self.controller.is_check_collision = True
 
     def set_angle(self, new_angle):
         if new_angle > MAX_ANGLE:
@@ -301,6 +302,5 @@ class Bullet(Unit):
 
     @asyncio.coroutine
     def change_object(self, x, y, time_to_crash):
-        asyncio.sleep(time_to_crash)
         if self.id in self.controller.units:
             self.reset()

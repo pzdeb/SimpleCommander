@@ -22,6 +22,7 @@ class GameController(object):
         self.units = {}
         self.random_type = self.get_unit_type()
         self.set_invaders(self.invaders_count)
+        self.is_check_collision = True
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -228,7 +229,9 @@ class GameController(object):
                             (time.time() - this_unit.last_calculation_time) >= \
                             round(this_unit.frequency, 2):
                         this_unit.compute_new_coordinate()
-                self.check_collision()
+                if self.is_check_collision:
+                    self.check_collision()
+                    self.is_check_collision = False
                 yield from asyncio.sleep(MIN_INTERVAL)
 
     def check_collision(self):
