@@ -20,7 +20,6 @@ class GameController(object):
         self.game_field = {'height': height, 'width': width}
         self.invaders_count = invaders_count
         self.units = {}
-        self.collisions = {}
         self.random_type = self.get_unit_type()
         self.set_invaders(self.invaders_count)
 
@@ -45,7 +44,6 @@ class GameController(object):
         kwargs['controller'] = self
         unit = unit_class(*args, **kwargs)
         self.units[unit.id] = unit
-        self.collisions[unit.id] = []
         unit.response('new', force=True)
         # logging.debug('Create new unit - %s -', unit.__class__.__name__)
         unit.compute_new_coordinate()
@@ -143,7 +141,6 @@ class GameController(object):
 
     @asyncio.coroutine
     def change_speed_up(self, unit):
-        self.collisions[unit.id] = []
         unit.change_speed_down_is_pressing = False
         unit.change_speed_up_is_pressing = True
         while unit.change_speed_up_is_pressing:
@@ -153,7 +150,6 @@ class GameController(object):
 
     @asyncio.coroutine
     def change_speed_down(self, unit):
-        self.collisions[unit.id] = []
         unit.change_speed_up_is_pressing = False
         unit.change_speed_down_is_pressing = True
         while unit.change_speed_down_is_pressing:
@@ -186,7 +182,6 @@ class GameController(object):
 
     @asyncio.coroutine
     def rotate_right(self, unit):
-        self.collisions[unit.id] = []
         unit.rotate_left_is_pressing = False
         unit.rotate_right_is_pressing = True
         while unit.rotate_right_is_pressing:
@@ -197,7 +192,6 @@ class GameController(object):
 
     @asyncio.coroutine
     def rotate_left(self, unit):
-        self.collisions[unit.id] = []
         unit.rotate_right_is_pressing = False
         unit.rotate_left_is_pressing = True
         while unit.rotate_left_is_pressing:
