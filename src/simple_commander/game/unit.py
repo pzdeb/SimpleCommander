@@ -1,6 +1,6 @@
 """Base module for all units. """
 import asyncio
-import logging
+# import logging
 import math
 import uuid
 import time
@@ -114,7 +114,7 @@ class Unit(object):
         # self.controller.check_collision(self)
 
     def move_to(self, x, y):
-        logging.debug('Move %s to new coordinate - (%s, %s)' % (self.__class__.__name__, x, y))
+        # logging.info('Move %s to new coordinate - (%s, %s)' % (self.__class__.__name__, x, y))
         self.x, self.y = self.x1, self.y1
         self.x1, self.y1 = x, y
         self.response('update', force=False)
@@ -124,7 +124,7 @@ class Unit(object):
             new_angle -= MAX_ANGLE
         elif new_angle < 0:
             new_angle += MAX_ANGLE
-        logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, new_angle))
+        # logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, new_angle))
         self.angle = new_angle
         self.compute_new_coordinate()
         self.response('update', force=True)
@@ -140,7 +140,7 @@ class Unit(object):
         self.speed = new_speed > 0 and new_speed or 0
         self.speed = MAX_SPEED if self.speed > MAX_SPEED else self.speed
         self.frequency = 1/(float(self.speed)/self.height) if self.speed else STEP_INTERVAL
-        logging.info('Change %s speed to %s' % (self.__class__.__name__, self.speed))
+        # logging.info('Change %s speed to %s' % (self.__class__.__name__, self.speed))
         self.compute_new_coordinate()
         self.response('update', force=True)
 
@@ -165,7 +165,7 @@ class Unit(object):
         raise NotImplementedError
 
     def kill(self):
-        logging.debug('Killing - %s ' % self.__class__.__name__)
+        # logging.info('Killing - %s ' % self.__class__.__name__)
         self.controller.remove_unit(self.id)
 
 
@@ -214,7 +214,7 @@ class Hero(Unit):
         self.response('update', force=True)
 
     def hit(self, other_unit):
-        logging.debug('In hit - %s and %s' % (self.__class__.__name__, other_unit.__class__.__name__))
+        # logging.info('In hit - %s and %s' % (self.__class__.__name__, other_unit.__class__.__name__))
         self.hits += 1
         self.decrease_life()
         if other_unit is Hero:
@@ -257,11 +257,11 @@ class Invader(Unit):
         #TODO: add angle into account
         self.angle = randint(0, 360)
         self.compute_new_coordinate()
-        logging.debug('Reset %s angle. New angle - %s' % (self.__class__.__name__, self.angle))
+        # logging.info('Reset %s angle. New angle - %s' % (self.__class__.__name__, self.angle))
         self.response('update', force=True)
 
     def hit(self, other_unit):
-        logging.info('In hit - %s and %s' % (self.__class__.__name__, other_unit. __class__.__name__))
+        # logging.info('In hit - %s and %s' % (self.__class__.__name__, other_unit. __class__.__name__))
         if isinstance(other_unit, Hero):
             other_unit.hits += 1
             other_unit.decrease_life()
@@ -298,7 +298,7 @@ class Bullet(Unit):
         self.kill()
 
     def hit(self, other_unit):
-        logging.debug('In hit - %s(%s) and %s(%s)' % (self.__class__.__name__, self.unit_id, other_unit.__class__.__name__, other_unit.id))
+        # logging.info('In hit - %s(%s) and %s(%s)' % (self.__class__.__name__, self.unit_id, other_unit.__class__.__name__, other_unit.id))
 
         other_unit.bullet_kill(self)
 

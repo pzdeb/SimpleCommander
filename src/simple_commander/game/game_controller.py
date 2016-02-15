@@ -47,7 +47,7 @@ class GameController(object):
         self.units[unit.id] = unit
         self.collisions[unit.id] = []
         unit.response('new', force=True)
-        logging.debug('Create new unit - %s -', unit.__class__.__name__)
+        # logging.debug('Create new unit - %s -', unit.__class__.__name__)
         unit.compute_new_coordinate()
         unit.response('update', force=True)
         return unit
