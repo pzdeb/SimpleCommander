@@ -226,7 +226,7 @@ class GameController(object):
                     if this_unit and \
                             this_unit.speed and \
                             (time.time() - this_unit.last_calculation_time) >= \
-                            this_unit.frequency:
+                            round(this_unit.frequency, 2):
                         this_unit.compute_new_coordinate()
                 self.check_collision()
                 yield from asyncio.sleep(MIN_INTERVAL)

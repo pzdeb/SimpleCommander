@@ -55,8 +55,6 @@ class Unit(object):
                 'x1': self.calculate_abscissa(self.x, next_response),
                 'y1': self.calculate_ordinate(self.y, next_response)
             })
-        # print('i am on X={} Y={} time from last calculate={}'.format(data[action]['x'], data[action]['y'], (time.time()-self.last_response)))
-        # print('i am going on X={} Y={} i will be after={}'.format(data[action]['x1'], data[action]['y1'], next_response))
         self.last_response = time.time()
         asyncio.async(self.controller.notify_clients(data))
 
@@ -111,7 +109,6 @@ class Unit(object):
             asyncio.async(self.change_object(x, y, time_to_crash))
         else:
             self.reset()
-        # self.controller.check_collision(self)
 
     def move_to(self, x, y):
         # logging.info('Move %s to new coordinate - (%s, %s)' % (self.__class__.__name__, x, y))
@@ -171,7 +168,7 @@ class Unit(object):
 
 class Hero(Unit):
 
-    def __init__(self, x, y, angle, hits=0, speed=0, life_count=3, frequency_fire=0.5, obj_type='',
+    def __init__(self, x, y, angle, hits=0, speed=0, life_count=5, frequency_fire=0.5, obj_type='',
                  bullet_type=UNITS.get('bullet_hero', {}).get('type', ''), dimension=0, controller=None):
         if not obj_type and len(UNITS.get('hero', [])):
             random_number = randint(0, len(UNITS.get('hero', [])) - 1)

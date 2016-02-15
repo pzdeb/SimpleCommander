@@ -10,7 +10,7 @@ MAX_ANGLE = 360
 MAX_SPEED = 220
 ROTATION_ANGLE = 0.015
 SPEED = 8
-MIN_INTERVAL = 0.001
+MIN_INTERVAL = 0.01
 STEP_INTERVAL = 1  # 1 second, can be changed to 0.5
 UNIT_PROPERTIES = ['x', 'y', 'x1', 'y1', 'angle', 'hits', 'speed', 'id', 'life_count', 'type', 'width', 'height',
                    'name', 'frequency']
