@@ -55,10 +55,13 @@ class Unit(object):
                 'x1': self.calculate_abscissa(self.x, next_response),
                 'y1': self.calculate_ordinate(self.y, next_response)
             })
+        if not force:
+            del data[action]['x']
+            del data[action]['y']
         self.last_response = time.time()
         asyncio.async(self.controller.notify_clients(data))
 
-    def to_dict(self):
+    def to_dict(self, update=False):
         result = {}
         for attr in self.__dict__:
             if attr in UNIT_PROPERTIES:
@@ -111,11 +114,10 @@ class Unit(object):
             self.reset()
 
     def move_to(self, x, y):
-        # logging.info('Move %s to new coordinate - (%s, %s)' % (self.__class__.__name__, x, y))
         self.x, self.y = self.x1, self.y1
         self.x1, self.y1 = x, y
         self.response('update', force=False)
-        self.controller.is_check_collision = True
+        # logging.info('Move %s to new coordinate - (%s, %s)' % (self.__class__.__name__, x, y))
 
     def set_angle(self, new_angle):
         if new_angle > MAX_ANGLE:
