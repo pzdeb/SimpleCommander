@@ -1,5 +1,6 @@
 """ This module describes behaviour of Bullet objects. """
 
+import asyncio
 import logging
 
 from simple_commander.game.unit import Unit
@@ -23,8 +24,10 @@ class Bullet(Unit):
 
         other_unit.bullet_kill(self)
 
-    def change_object(self, x, y, interval):
-        pass
+    @asyncio.coroutine
+    def change_object(self, x, y, interval, time_to_crash):
+        if self.id in self.controller.units:
+            self.reset()
 
     def collision_check(self):
         """ Do we need to check collision for Bullet objects? """

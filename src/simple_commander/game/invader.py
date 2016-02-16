@@ -1,5 +1,6 @@
 """This module describes Invader's behaviour. """
 
+import asyncio
 import logging
 from random import randint
 
@@ -36,9 +37,13 @@ class Invader(Unit):
             other_unit.kill()
             self.kill()
 
-    def change_object(self, x, y, interval):
+    @asyncio.coroutine
+    def change_object(self, x, y, interval, time_to_crash):
         """ Reset Invader object. """
-        self.reset()
+        asyncio.sleep(time_to_crash)
+        if self.id in self.controller.units:
+            self.move_to(x, y)
+            self.reset()
 
     def collision_check(self):
         """ Do we need to check collision for Invader objects? """
