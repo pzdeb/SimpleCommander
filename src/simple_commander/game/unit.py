@@ -95,8 +95,7 @@ class Unit(object):
                     time_to_crash = abs((y-self.y1) * interval / (target_y - self.y1))
                     x = self.calculate_abscissa(self.x1, time_to_crash)
                 x, y = self.set_in_limit(x, y)
-                self.change_object(x, y, interval)
-                self.move_to(x, y)
+                asyncio.Task(self.change_object(x, y, interval, time_to_crash))
             else:
                 self.reset()
         self.controller.check_collision(self, interval)
@@ -115,13 +114,6 @@ class Unit(object):
         logging.info('Rotate %s from %s degree to %s degree' % (self.__class__.__name__, self.angle, new_angle))
         self.angle = new_angle
         self.compute_new_coordinate(ACTION_INTERVAL)
-
-    def stop_unit(self):
-        self.rotate_left_is_pressing = False
-        self.rotate_right_is_pressing = False
-        self.change_speed_up_is_pressing = False
-        self.change_speed_down_is_pressing = False
-        self.fis_fire_active = False
 
     def set_speed(self, new_speed):
         self.speed = new_speed > 0 and new_speed or 0
@@ -186,8 +178,9 @@ class Unit(object):
 
     def hit(self, other_unit):
         raise NotImplementedError
-    
-    def change_object(self, x, y, interval):
+
+    @asyncio.coroutine
+    def change_object(self, x, y, interval, time_to_crash):
         raise NotImplementedError
     
     def collision_check(self):
@@ -196,4 +189,3 @@ class Unit(object):
     def kill(self):
         logging.debug('Killing - %s ' % self.__class__.__name__)
         self.is_dead = True
-        self.x1 = self.x

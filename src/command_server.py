@@ -56,7 +56,7 @@ class HttpCommandServer(object):
     def ws_stream(self, request, *args, **kwargs):
         ws = web.WebSocketResponse()
         ws.start(request)
-        while ws.started:
+        while not ws.closed:
             msg = yield from ws.receive()
             if msg.tp == MsgType.text:
                 if msg.data == 'close':
@@ -75,7 +75,7 @@ class HttpCommandServer(object):
                 logging.info('ws connection closed with exception %s', ws.exception())
                 self._controller.drop_connection(ws)
 
-        yield from ws.close()
+        return ws
 
 
 if __name__ == '__main__':

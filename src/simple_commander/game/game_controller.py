@@ -82,8 +82,9 @@ class GameController(object):
 
     def remove_unit(self, unit_id):
         """ Remove unit with unit ID. """
-        if self.units[unit_id]:
-            class_name = self.units[unit_id].__class__.__name__
+        unit = self.units.get(unit_id)
+        if unit:
+            class_name = unit.__class__.__name__
             self.units[unit_id].response('delete')
             del self.units[unit_id]
             if class_name == 'Invader':
@@ -140,7 +141,7 @@ class GameController(object):
                   'deaths': DEFAULT_LIFE_COUNT - unit.life_count,
                   'total': unit.hits - DEFAULT_LIFE_COUNT  + unit.life_count}\
                  for unit in self.units.values() if hasattr(unit, 'life_count')]
-        return sorted(units, key = lambda h: (h['total']), reverse=True)[:10]
+        return sorted(units, key=lambda h: (h['total']), reverse=True)[:10]
 
     @staticmethod
     def set_name(hero, name):
@@ -152,7 +153,7 @@ class GameController(object):
         self.collisions[unit.id] = []
         unit.change_speed_down_is_pressing = False
         unit.change_speed_up_is_pressing = True
-        while unit.change_speed_up_is_pressing:
+        while unit.change_speed_up_is_pressing and not unit.is_dead:
             new_speed = unit.speed + SPEED
             unit.set_speed(new_speed)
             yield from asyncio.sleep(ACTION_INTERVAL)
@@ -162,7 +163,7 @@ class GameController(object):
         self.collisions[unit.id] = []
         unit.change_speed_up_is_pressing = False
         unit.change_speed_down_is_pressing = True
-        while unit.change_speed_down_is_pressing:
+        while unit.change_speed_down_is_pressing and not unit.is_dead:
             new_speed = unit.speed - SPEED
             unit.set_speed(new_speed)
             yield from asyncio.sleep(ACTION_INTERVAL)
@@ -181,7 +182,7 @@ class GameController(object):
     def start_fire(self, unit):
         unit.is_fire_active = True
         while unit.life_count > 0 and unit.is_fire_active and \
-            (datetime.now() - unit.last_fire).total_seconds() >= unit.frequency_fire:
+                (datetime.now() - unit.last_fire).total_seconds() >= unit.frequency_fire and not unit.is_dead:
             unit.compute_new_coordinate(unit.frequency_fire)
             self.new_unit(Bullet, unit=unit, controller=self)
             unit.last_fire = datetime.now()
@@ -196,7 +197,7 @@ class GameController(object):
         self.collisions[unit.id] = []
         unit.rotate_left_is_pressing = False
         unit.rotate_right_is_pressing = True
-        while unit.rotate_right_is_pressing:
+        while unit.rotate_right_is_pressing and not unit.is_dead:
             rotate = ANGLE + unit.speed * ROTATION_ANGLE
             new_angle = unit.angle + rotate
             unit.set_angle(new_angle)
@@ -207,7 +208,7 @@ class GameController(object):
         self.collisions[unit.id] = []
         unit.rotate_right_is_pressing = False
         unit.rotate_left_is_pressing = True
-        while unit.rotate_left_is_pressing:
+        while unit.rotate_left_is_pressing and not unit.is_dead:
             rotate = ANGLE + unit.speed * ROTATION_ANGLE
             new_angle = unit.angle - rotate
             unit.set_angle(new_angle)

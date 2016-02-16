@@ -66,9 +66,11 @@ class Hero(Unit):
                 self.controller.add_hits(other_unit)
             other_unit.kill()
 
-    def change_object(self, x, y, interval):
+    @asyncio.coroutine
+    def change_object(self, x, y, interval, time_to_crash):
         """ Recalculate speed for Hero object. """
         self.speed = round(math.sqrt((x - self.x1) ** 2 + (y - self.y1) ** 2) / interval)
+        self.move_to(x, y)
 
     def collision_check(self):
         """ Do we need to check collision for Hero objects? """
