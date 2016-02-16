@@ -115,13 +115,6 @@ class Unit(object):
         self.angle = new_angle
         self.compute_new_coordinate(ACTION_INTERVAL)
 
-    def stop_unit(self):
-        self.rotate_left_is_pressing = False
-        self.rotate_right_is_pressing = False
-        self.change_speed_up_is_pressing = False
-        self.change_speed_down_is_pressing = False
-        self.is_fire_active = False
-
     def set_speed(self, new_speed):
         self.speed = new_speed > 0 and new_speed or 0
         self.speed = MAX_SPEED if self.speed > MAX_SPEED else self.speed
@@ -196,5 +189,3 @@ class Unit(object):
     def kill(self):
         logging.debug('Killing - %s ' % self.__class__.__name__)
         self.is_dead = True
-        self.x1 = self.x
-        self.stop_unit()

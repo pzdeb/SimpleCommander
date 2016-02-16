@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import time
 
 from simple_commander.game.unit import Unit
 from simple_commander.utils.constants import DEFAULT_SPEED_BULLETS
@@ -26,8 +27,7 @@ class Bullet(Unit):
 
     @asyncio.coroutine
     def change_object(self, x, y, interval, time_to_crash):
-        if self.id in self.controller.units:
-            self.reset()
+        self.move_to(x, y)
 
     def collision_check(self):
         """ Do we need to check collision for Bullet objects? """

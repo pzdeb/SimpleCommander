@@ -40,9 +40,9 @@ class Invader(Unit):
     @asyncio.coroutine
     def change_object(self, x, y, interval, time_to_crash):
         """ Reset Invader object. """
+        self.move_to(x, y)
         asyncio.sleep(time_to_crash)
         if self.id in self.controller.units:
-            self.move_to(x, y)
             self.reset()
 
     def collision_check(self):
