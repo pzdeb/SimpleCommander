@@ -211,7 +211,6 @@ function GameController(canvas) {
         for (var key in unitData) {
             if (unit.hasOwnProperty(key)) {
                 unit[key] = unitData[key]
-
             }
             else if (key = 'angle') {
                 unit['rotation'] = unitData[key]
