@@ -7,12 +7,12 @@ from datetime import datetime
 from random import randint
 
 from simple_commander.game.unit import Unit
-from simple_commander.utils.constants import STEP_INTERVAL, UNITS
+from simple_commander.utils.constants import UNITS
 
 
 class Hero(Unit):
 
-    def __init__(self, x, y, angle, hits=0, speed=0, life_count=3, frequency_fire=0.5, obj_type='',
+    def __init__(self, x, y, angle, hits=0, speed=0, life_count=5, frequency_fire=0.5, obj_type='',
                  bullet_type=UNITS.get('bullet_hero', {}).get('type', ''), dimension=0, controller=None):
         if not obj_type and len(UNITS.get('hero', [])):
             random_number = randint(0, len(UNITS.get('hero', [])) - 1)

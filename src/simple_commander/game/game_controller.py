@@ -182,7 +182,7 @@ class GameController(object):
     def start_fire(self, unit):
         unit.is_fire_active = True
         while unit.life_count > 0 and unit.is_fire_active and \
-            (datetime.now() - unit.last_fire).total_seconds() >= unit.frequency_fire:
+                (datetime.now() - unit.last_fire).total_seconds() >= unit.frequency_fire and not unit.is_dead:
             unit.compute_new_coordinate(unit.frequency_fire)
             self.new_unit(Bullet, unit=unit, controller=self)
             unit.last_fire = datetime.now()
