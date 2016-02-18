@@ -1,6 +1,6 @@
 #!/bin/bash
 
-WORKDIR=${WORKDIR:=`pwd`}
+WORKDIR=${WORKDIR:=$(dirname `pwd`)}
 PYTHONPATH=$WORKDIR/src
 export PYTHONPATH
 
