@@ -80,7 +80,9 @@ class HttpCommandServer(object):
 
 if __name__ == '__main__':
     config = configparser.ConfigParser()
-    config.read('etc/command_server.conf')
+    config_file = os.path.join(os.path.dirname(os.getcwd()),
+                               'etc', 'command_server.conf')
+    config.read(config_file)
     host = config.get('commandServer', 'host')
     port = os.environ.get('PORT', config.get('commandServer', 'port'))
     static_path = config.get('commandServer', 'static_path')
